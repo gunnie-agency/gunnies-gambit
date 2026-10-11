@@ -1,0 +1,19 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+.wrangler/
+
+# Copied from node_modules on install (scripts/copy-assets.mjs)
+public/stockfish/
+public/pieces/
+
+# Local only
+.env.local
+.dev.vars
+.claude/
+.idea/
+.junie/
+prototype/
+.DS_Store
+*.log

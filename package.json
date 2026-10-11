@@ -1,0 +1,60 @@
+{
+  "name": "gunnies-gambit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chess practice partner and coach that runs entirely in your browser",
+  "keywords": [
+    "chess",
+    "stockfish",
+    "webassembly",
+    "vite",
+    "typescript"
+  ],
+  "homepage": "https://chess.gunnie.nl",
+  "bugs": {
+    "url": "https://github.com/gunnie-agency/gunnies-gambit/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gunnie-agency/gunnies-gambit.git"
+  },
+  "license": "GPL-3.0-or-later",
+  "author": "Gunnie (https://gunnie.nl)",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "postinstall": "node scripts/copy-assets.mjs",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@fontsource-variable/instrument-sans": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "chess.js": "1.4.0",
+    "stockfish": "19.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "chessground": "^9.2.1",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.1",
+    "vite": "^8.3.4",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.149.0"
+  }
+}

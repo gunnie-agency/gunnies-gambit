@@ -1,0 +1,14 @@
+{
+  // Static site on Cloudflare Workers: no server code, only the built files in dist/.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gunnies-gambit",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page",
+  },
+  // Served on its own hostname only; no duplicate on workers.dev.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "chess.gunnie.nl", "custom_domain": true }],
+}

@@ -1,0 +1,81 @@
+# Gunnie's Gambit: chess practice partner and coach
+
+A browser app for learning and practising chess with Stockfish running entirely client-side. You play against the
+engine at a level you choose, ask for hints, and (planned) review your mistakes after the game. An analysis board lets
+you set up or enter any position and see what the engine thinks. Live at https://chess.gunnie.nl.
+
+It is also a public showcase project for Gunnie, so code quality, tests, commit history and a clean README matter as
+much as features. The display name lives in one place, `VITE_APP_NAME` in `.env`; the public URL is `VITE_SITE_URL`.
+Don't hardcode either elsewhere.
+
+## Modes
+
+1. **Analysis board.** Enter moves for both sides (tap/click or SAN/UCI text), see best move, eval, top 3 lines,
+   arrows. FEN/PGN load and copy. Also usable for games against computer bots on other sites, where the site allows it.
+2. **Play vs engine.** A second engine worker plays the other side at a chosen strength (`UCI_LimitStrength` /
+   `UCI_Elo`, plus beginner levels below the Elo floor via `Skill Level` and a shallow depth). The evaluation and the
+   best move are separate toggles, both off by default; a hint can be requested per position.
+3. **Review** (planned). After a game, analyse every move and mark inaccuracies, mistakes and blunders by eval drop.
+
+## Fair play (hard constraint)
+
+For practice, bots and review only. Do **not** build anything aimed at using it in games against humans: no reading
+moves from Chess.com/Lichess pages or screens, no browser extension, no stealth or quick "live game" modes. The README
+and the app footer state that engine help in any online game against a human (rated or casual) or in over-the-board
+tournament games is against the rules and gets accounts banned on Chess.com and Lichess.
+
+## Stack
+
+- **Vite + TypeScript**, vanilla modules, no UI framework.
+- **chess.js 1.x** (camelCase API; `move()` throws on illegal moves).
+- **Stockfish** from the `stockfish` npm package, lite single-threaded WASM build. `scripts/copy-assets.mjs` copies it
+  (and the Cburnett pieces from Chessground) into `public/` on install, with the full Stockfish version in the file
+  name; both directories are git-ignored. No fallback
+  engine. Keep the UI wording neutral ("the computer", "the engine"); Stockfish is credited in the footer and README.
+- **Static hosting only**, no backend, no tracking or analytics. Cloudflare Workers static assets (`wrangler.jsonc`,
+  custom domain `chess.gunnie.nl`); relative base path so any static host works.
+- **Vitest** for unit tests, **ESLint** (typescript-eslint strict) and **Prettier** (120 columns).
+
+## Layout
+
+```
+src/
+  main.ts       bootstrap
+  state.ts      settings and game persistence (localStorage)
+  board/        board rendering, arrows, promotion picker
+  engine/       UCI worker wrapper, info parsing, search queue, strength levels
+  ui/           app controller; chrome.ts for header brand and theme switch
+  util/         SAN/UCI helpers, move input, score formatting
+public/         _headers, icons, social card, 404 page
+```
+
+Pure logic (UCI parsing, score conversion, PV to SAN, search queue, move input) lives in modules without DOM access
+and has unit tests next to it (`*.test.ts`).
+
+## Deployment
+
+GitHub Actions (`.github/workflows/ci.yml`): every push to `master` and every pull request runs lint, format check,
+tests and build. A push to `master` then deploys the tested `dist/` with `wrangler deploy`, using the `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID` repository secrets. Caching and security headers are in `public/_headers`: HTML is
+`no-cache`, `/assets/*` immutable, and the CSP needs `'wasm-unsafe-eval'` for the engine and `data:` fonts because Vite
+inlines small font subsets. Cloudflare allows one `*` per `_headers` rule.
+
+## Next milestones
+
+1. Post-game review with mistake classification.
+2. PWA/offline, import finished games from the Lichess and Chess.com public APIs, Playwright smoke test.
+3. README screenshots, CONTRIBUTING, issue templates.
+
+## Constraints
+
+- **License: GPL-3.0-or-later** (Stockfish is GPLv3 and we ship it). Keep the Stockfish licence link and attribution,
+  and the piece set's licence.
+- Works on a phone (big touch targets, portrait layout) and in a narrow desktop window.
+- Accessibility: every square is a focusable button with an aria-label; visible focus states; respect
+  `prefers-reduced-motion`.
+- **Look and feel of gunnie.nl**: near-black `#0b0d11`, accent `#00a1ff`, white hairline borders, Instrument Sans with
+  one Instrument Serif italic accent, JetBrains Mono eyebrows. Dark is the default; a header button switches to the
+  light variant. All colours are CSS tokens at the top of `src/style.css`; rules below the token blocks use none of their own.
+- The Gunnie logo is defined once as an SVG `<symbol id="gunnie-logo">` in `index.html` and reused in the header
+  lockup (logo + last word of `VITE_APP_NAME`) and the footer. Referencing elements use `viewBox="0 0 493 97"`; the
+  symbol carries the real crop, and repeating it on the outer `<svg>` clips the logo.
