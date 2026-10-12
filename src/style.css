@@ -604,12 +604,15 @@ button.btn.primary:hover:not(:disabled) {
   color: var(--accent-text);
 }
 
+/* The status is written by the script after the first paint; reserving its usual two lines (headline and small
+   line) keeps the board from jumping down when it appears. */
 .status {
   font-size: 1.5rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.2;
   text-wrap: balance;
+  min-height: calc(1.2em + 6px + 0.9rem * 1.2);
 }
 .status small {
   display: block;
