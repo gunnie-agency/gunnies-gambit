@@ -44,6 +44,7 @@ src/
   board/    board rendering, arrows, promotion picker
   ui/       app controller, header and theme
   util/     SAN/UCI helpers, move input, score formatting
+  site/     structured data, robots.txt, sitemap, web app manifest, llms.txt
   state.ts  settings and game persistence (localStorage)
 ```
 
@@ -59,8 +60,10 @@ npm run lint         # ESLint; npm run format for Prettier
 npm run build        # type check + production build in dist/
 ```
 
-The display name and public URL live in [`.env`](.env). The build uses a relative base path, so `dist/` can be
-served from any static host or sub-path.
+The display name and public URL live in [`.env`](.env). The build generates the structured data, `robots.txt`,
+`sitemap.xml`, `manifest.webmanifest` and `llms.txt` from them ([`src/site/files.ts`](src/site/files.ts)); the dev
+server serves the same files. The build uses a relative base path, so `dist/` can be served from any static host or
+sub-path.
 
 ## Deployment
 

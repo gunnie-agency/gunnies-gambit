@@ -864,6 +864,39 @@ details.tools summary:hover {
   flex-wrap: wrap;
 }
 
+/* About: what the app does, in words, under the workbench. */
+.about {
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+}
+.about h2 {
+  margin: 6px 0 18px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px 36px;
+}
+.about h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.about p {
+  margin: 0;
+  color: var(--muted);
+}
+@media (max-width: 860px) {
+  .about-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 footer {
   color: var(--muted);
   font-size: 0.82rem;

@@ -1,4 +1,5 @@
 /** Page chrome outside the game: the header lockup and the light/dark switch. */
+import { shortName } from '../site/files';
 
 const THEME_KEY = 'gunnies-gambit.theme';
 
@@ -12,8 +13,7 @@ type Theme = 'dark' | 'light';
 /** The header shows the Gunnie logo followed by the last word of the app name in the serif accent. */
 export function renderBrand(): void {
   const accent = document.getElementById('brandAccent');
-  const name = import.meta.env.VITE_APP_NAME.trim();
-  if (accent) accent.textContent = name.slice(name.lastIndexOf(' ') + 1);
+  if (accent) accent.textContent = shortName(import.meta.env.VITE_APP_NAME);
 }
 
 /** Dark is the default, as on gunnie.nl. The choice is a per-browser convenience. */

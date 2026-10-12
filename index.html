@@ -5,16 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta
       name="description"
-      content="Practise chess against the computer at your level, get hints, and analyse positions. Runs entirely in your browser."
+      content="Play chess against the computer at your level, from beginner to full strength. Get hints and analyse any position. Free, and it runs in your browser."
     />
     <meta name="color-scheme" content="dark light" />
     <meta name="theme-color" content="#0b0d11" />
-    <title>%VITE_APP_NAME% · chess practice and analysis</title>
+    <title>Play chess against the computer · %VITE_APP_NAME%</title>
     <link rel="canonical" href="%VITE_SITE_URL%/" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="%VITE_APP_NAME%" />
+    <meta property="og:locale" content="en_GB" />
     <meta property="og:title" content="%VITE_APP_NAME% · chess practice and analysis" />
     <meta
       property="og:description"
@@ -174,6 +176,37 @@
           </div>
         </details>
       </main>
+
+      <section class="about" aria-labelledby="aboutTitle">
+        <div class="eyebrow">About</div>
+        <h2 id="aboutTitle">Play chess against the computer, at your level</h2>
+        <div class="about-grid">
+          <div>
+            <h3>Practise against the computer</h3>
+            <p>
+              Choose an opponent from beginner, who misses simple tactics, through Elo 1400 to 2400 up to full strength.
+              Play White or Black, ask for a hint when you are stuck, and switch on the evaluation or the best move only
+              when you want them.
+            </p>
+          </div>
+          <div>
+            <h3>Analyse any position</h3>
+            <p>
+              The analysis board shows the best move, the evaluation and the top three lines, with arrows on the board.
+              Enter moves for both sides by tapping or by typing them, load a position from FEN, or continue a game from
+              PGN.
+            </p>
+          </div>
+          <div>
+            <h3>Free, private, no account</h3>
+            <p>
+              The engine runs in your browser, so there is nothing to install and no sign-up. Your games never leave
+              your device. %VITE_APP_NAME% is free and
+              <a href="https://github.com/gunnie-agency/gunnies-gambit">open source</a>.
+            </p>
+          </div>
+        </div>
+      </section>
 
       <footer>
         <p>
