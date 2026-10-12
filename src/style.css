@@ -6,6 +6,30 @@
  * Layout: board-first workbench. Board + eval bar on the left, advice and controls on the right; one column on
  * phones, with the advice directly under the board.
  */
+
+/*
+ * Local fonts scaled to Instrument Sans's metrics, used until the web font arrives, so the swap does not move the
+ * page (layout shift). Values from capsize: size-adjust is the ratio of average character widths, and the overrides
+ * are Instrument Sans's ascent (970) and descent (250) per 1000, divided by it. Helvetica and Liberation Sans share
+ * Arial's widths; Android has Roboto instead.
+ */
+@font-face {
+  font-family: 'Instrument Sans Fallback';
+  src: local('Arial'), local('ArialMT'), local('Helvetica'), local('Liberation Sans');
+  size-adjust: 102.74%;
+  ascent-override: 94.42%;
+  descent-override: 24.33%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Instrument Sans Fallback Roboto';
+  src: local('Roboto'), local('Roboto-Regular');
+  size-adjust: 102.96%;
+  ascent-override: 94.21%;
+  descent-override: 24.28%;
+  line-gap-override: 0%;
+}
+
 :root {
   /* Surfaces */
   --bg: #0b0d11;
@@ -59,7 +83,9 @@
   --gunnie-accent: #00a1ff;
   --gunnie-ink: #e7eaef;
 
-  --font-sans: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans:
+    'Instrument Sans Variable', 'Instrument Sans Fallback', 'Instrument Sans Fallback Roboto', system-ui, -apple-system,
+    'Segoe UI', sans-serif;
   --font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 
@@ -131,6 +157,13 @@ a {
 }
 a:hover {
   color: var(--accent-hover);
+}
+/* Links inside running text are underlined, so they do not rely on colour alone. */
+.about p a,
+footer p:not(.made-by) a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
 }
 [hidden] {
   display: none !important;

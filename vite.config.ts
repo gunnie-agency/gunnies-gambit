@@ -31,6 +31,30 @@ function cloudflareAnalytics(token: string | undefined): Plugin {
   };
 }
 
+/**
+ * Preloads the body font (Instrument Sans, Latin subset), so it usually arrives before the first paint instead of
+ * replacing the fallback afterwards. Build only: the file name carries Vite's content hash.
+ */
+function preloadBodyFont(): Plugin {
+  return {
+    name: 'preload-body-font',
+    apply: 'build',
+    transformIndexHtml(_html, ctx) {
+      const font = Object.keys(ctx.bundle ?? {}).find((name) =>
+        /instrument-sans-latin-wght-normal-[\w-]+\.woff2$/.test(name),
+      );
+      if (!font) throw new Error('preload-body-font: Instrument Sans Latin woff2 not found in the bundle');
+      return [
+        {
+          tag: 'link',
+          attrs: { rel: 'preload', href: `./${font}`, as: 'font', type: 'font/woff2', crossorigin: true },
+          injectTo: 'head-prepend',
+        },
+      ];
+    },
+  };
+}
+
 /** The commit date of HEAD, so the sitemap's lastmod only moves when the site changes. */
 function lastCommitDate(): string | undefined {
   try {
@@ -93,7 +117,7 @@ export default defineConfig(({ mode }) => {
     define: {
       __STOCKFISH_FILE__: JSON.stringify(`stockfish/stockfish-${stockfish.version}-lite-single.js`),
     },
-    plugins: [siteFiles(site), cloudflareAnalytics(env.VITE_CF_ANALYTICS_TOKEN)],
+    plugins: [siteFiles(site), preloadBodyFont(), cloudflareAnalytics(env.VITE_CF_ANALYTICS_TOKEN)],
     test: {
       include: ['src/**/*.test.ts'],
     },
