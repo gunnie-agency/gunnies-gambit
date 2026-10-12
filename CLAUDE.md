@@ -32,7 +32,10 @@ tournament games is against the rules and gets accounts banned on Chess.com and 
   (and the Cburnett pieces from Chessground) into `public/` on install, with the full Stockfish version in the file
   name; both directories are git-ignored. No fallback
   engine. Keep the UI wording neutral ("the computer", "the engine"); Stockfish is credited in the footer and README.
-- **Static hosting only**, no backend, no tracking or analytics. Cloudflare Workers static assets (`wrangler.jsonc`,
+- **Static hosting only**, no backend. Game data never leaves the browser. The only third party is cookieless
+  Cloudflare Web Analytics (visit counts), injected into production builds by a Vite plugin from
+  `VITE_CF_ANALYTICS_TOKEN`; the CSP allows exactly its two hosts. Never add cookies, consent-requiring trackers or
+  analytics on game content. Cloudflare Workers static assets (`wrangler.jsonc`,
   custom domain `chess.gunnie.nl`); relative base path so any static host works.
 - **Vitest** for unit tests, **ESLint** (typescript-eslint strict) and **Prettier** (120 columns).
 

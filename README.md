@@ -4,7 +4,7 @@
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
 Practise chess against the computer at your own level, ask for hints, and analyse any position. Everything runs in
-your browser: there is no server, no account and no tracking.
+your browser: there is no backend, no account and no cookies.
 
 **Try it: [chess.gunnie.nl](https://chess.gunnie.nl)**
 
@@ -68,6 +68,14 @@ Every push to `master` runs lint, format check, tests and build in [GitHub Actio
 when they pass, deploys `dist/` to [Cloudflare Workers](https://developers.cloudflare.com/workers/static-assets/) as a
 static site ([`wrangler.jsonc`](wrangler.jsonc)). Pull requests get the same checks without the deploy. Caching and
 security headers are in [`public/_headers`](public/_headers).
+
+## Privacy
+
+Your games, settings and analysis stay in your browser (`localStorage`); nothing about them is sent anywhere. To see
+how many people use the site, production builds include
+[Cloudflare Web Analytics](https://developers.cloudflare.com/web-analytics/), which counts page views without
+cookies or personal data. It is added at build time from `VITE_CF_ANALYTICS_TOKEN` in [`.env`](.env); leave that
+empty to build without it.
 
 ## Fair play
 
