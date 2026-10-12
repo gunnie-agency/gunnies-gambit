@@ -1,7 +1,9 @@
 /**
  * The files that tell search engines, browsers and AI crawlers what the site is: structured data for the page head,
- * robots.txt, sitemap.xml, the web app manifest and llms.txt. They are generated at build time (see vite.config.ts)
- * so the app name and public URL come from `.env` only. No imports: vite.config.ts loads this file directly.
+ * the FAQ section, robots.txt, sitemap.xml, the web app manifest, llms.txt and the IndexNow key file. They are
+ * generated at build time (see vite.config.ts) so the app name and public URL come from `.env` only, and each text
+ * (the FAQ above all) is written once for both the page and the machine-readable copies. No imports: vite.config.ts
+ * loads this file directly.
  */
 
 export interface Site {
@@ -15,9 +17,17 @@ export interface Site {
   lastmod?: string;
 }
 
+export interface Faq {
+  question: string;
+  answer: string;
+}
+
 export const SUMMARY =
   'Play chess against the computer at your level, from beginner to full strength, ask for hints and analyse any ' +
   'position. Free, no account, and it runs entirely in your browser.';
+
+/** The name sounds like a chess opening; search engines and AI answers need telling that it is an app. */
+const NOT_AN_OPENING = 'A web app for practising and analysing chess, not a chess opening.';
 
 const SOURCE_URL = 'https://github.com/gunnie-agency/gunnies-gambit';
 const LICENSE_URL = 'https://www.gnu.org/licenses/gpl-3.0.html';
@@ -35,6 +45,66 @@ const FEATURES = [
   'FEN and PGN import and export',
   'Dark and light theme, keyboard accessible',
 ];
+
+export function faq(site: Site): Faq[] {
+  return [
+    {
+      question: `Is ${site.name} a chess opening?`,
+      answer:
+        `No. Despite the name, ${site.name} is a free web app for practising chess against the computer and ` +
+        "analysing positions. The name is a play on chess gambits such as the Queen's Gambit.",
+    },
+    {
+      question: 'Is it free, and do I need an account?',
+      answer: 'It is free and open source, with no account, no sign-up and no ads.',
+    },
+    {
+      question: 'How strong is the computer?',
+      answer:
+        'There are seven levels. Beginner and Novice play weak moves on purpose and miss simple tactics. The Elo ' +
+        'levels play at roughly 1400, 1700, 2000 and 2400, and Full strength is the complete engine, stronger than ' +
+        'any human player.',
+    },
+    {
+      question: 'Can I analyse my own games?',
+      answer:
+        'Yes. Switch to Analyse, then paste a PGN or a FEN position under "Position & PGN", or enter the moves on ' +
+        'the board. You see the best move, the evaluation and the top three lines for the position on the board.',
+    },
+    {
+      question: 'Do my games leave my device?',
+      answer:
+        'No. The engine runs in your browser and your games and settings are stored there too. The only thing sent ' +
+        'anywhere is an anonymous, cookieless visit count.',
+    },
+    {
+      question: 'Does it work on my phone?',
+      answer:
+        'Yes. It works in any modern browser on a phone, tablet or computer, and you can add it to your home screen.',
+    },
+    {
+      question: 'Can I use it during an online game?',
+      answer:
+        'Only against computer bots, where the site allows it. Using engine help in any online game against a ' +
+        'human, rated or casual, or in an over-the-board tournament is against the rules and gets accounts banned ' +
+        'on Chess.com and Lichess.',
+    },
+  ];
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c);
+}
+
+/** The FAQ as disclosure widgets, for the page. */
+export function faqHtml(site: Site): string {
+  return faq(site)
+    .map(
+      ({ question, answer }) =>
+        `<details><summary>${escapeHtml(question)}</summary><p>${escapeHtml(answer)}</p></details>`,
+    )
+    .join('\n');
+}
 
 /** The last word of the app name: the header's accent word and the manifest's short name. */
 export function shortName(name: string): string {
@@ -60,8 +130,11 @@ export function structuredData(site: Site): object {
         '@type': 'WebApplication',
         '@id': `${home}#app`,
         name: site.name,
+        alternateName: `${site.name} chess app`,
         url: home,
         description: SUMMARY,
+        disambiguatingDescription: NOT_AN_OPENING,
+        sameAs: [SOURCE_URL],
         applicationCategory: 'GameApplication',
         applicationSubCategory: 'Chess',
         operatingSystem: 'Any',
@@ -75,6 +148,18 @@ export function structuredData(site: Site): object {
         isPartOf: { '@id': `${home}#website` },
         author: { '@id': JEROEN },
         publisher: { '@id': GUNNIE },
+      },
+      {
+        '@type': 'FAQPage',
+        '@id': `${home}#faq`,
+        url: home,
+        isPartOf: { '@id': `${home}#website` },
+        about: { '@id': `${home}#app` },
+        mainEntity: faq(site).map(({ question, answer }) => ({
+          '@type': 'Question',
+          name: question,
+          acceptedAnswer: { '@type': 'Answer', text: answer },
+        })),
       },
       { '@type': 'Organization', '@id': GUNNIE, name: 'Gunnie', url: 'https://gunnie.nl/' },
       {
@@ -137,10 +222,11 @@ export function llmsTxt(site: Site): string {
     [
       `# ${site.name}`,
       `> ${SUMMARY}`,
-      `${site.name} (${site.url}/) is a free, open-source chess practice app on a single page with two modes:`,
+      `${site.name} (${site.url}/) is a free, open-source chess practice app on a single page. ` +
+        'Despite the name, it is not a chess opening. It has two modes:',
       [
-        `- Play: a game against the computer at a chosen strength, from Beginner and Novice through Elo 1400 to 2400 up to full strength. Hints on request; the evaluation and ` +
-          'the best move can each be switched on.',
+        '- Play: a game against the computer at a chosen strength, from Beginner and Novice through Elo 1400 to ' +
+          '2400 up to full strength. Hints on request; the evaluation and the best move can each be switched on.',
         '- Analyse: an analysis board. Enter moves for both sides by tapping or typing SAN or UCI, and see the best ' +
           'move, the evaluation and the top three lines. Positions load from FEN, games from PGN.',
       ].join('\n'),
@@ -151,6 +237,8 @@ export function llmsTxt(site: Site): string {
       `${site.name} is for practice, games against computer bots and reviewing your own games. Using engine help in ` +
         'any online game against a human, rated or casual, or in an over-the-board tournament is against the rules ' +
         'and gets accounts banned on Chess.com and Lichess. It has no features for reading moves from other sites.',
+      '## Questions',
+      ...faq(site).map(({ question, answer }) => `### ${question}\n\n${answer}`),
       '## Links',
       [
         `- [Source code](${SOURCE_URL}): GPL-3.0-or-later`,
@@ -158,4 +246,10 @@ export function llmsTxt(site: Site): string {
       ].join('\n'),
     ].join('\n\n') + '\n'
   );
+}
+
+/** IndexNow proves ownership with a text file named after the key that contains only the key. */
+export function indexNowKeyFile(key: string): { fileName: string; body: string } {
+  if (!/^[a-zA-Z0-9-]{8,128}$/.test(key)) throw new Error('IndexNow key must be 8-128 letters, digits or dashes');
+  return { fileName: `${key}.txt`, body: key };
 }

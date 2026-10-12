@@ -3,6 +3,8 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import {
+  faqHtml,
+  indexNowKeyFile,
   llmsTxt,
   robotsTxt,
   shortName,
@@ -72,23 +74,31 @@ function lastCommitDate(): string | undefined {
   }
 }
 
+const FAQ_PLACEHOLDER = '<!-- %FAQ% -->';
+
 /**
- * Fills in %APP_SHORT_NAME% (the header's accent word, so the header has its final size at first paint), adds the
- * structured data to the page head and generates robots.txt, sitemap.xml, the web app manifest and llms.txt
- * from `.env` (see src/site/files.ts). The files are emitted into the build and served by the dev server.
+ * Fills in %APP_SHORT_NAME% (the header's accent word, so the header has its final size at first paint) and the FAQ,
+ * adds the structured data to the page head and generates robots.txt, sitemap.xml, the web app manifest, llms.txt
+ * and the IndexNow key file from `.env` (see src/site/files.ts). The files are emitted into the build and served by
+ * the dev server.
  */
-function siteFiles(site: Site): Plugin {
+function siteFiles(site: Site, indexNowKey: string | undefined): Plugin {
   const files: Record<string, { type: string; body: string }> = {
     'robots.txt': { type: 'text/plain', body: robotsTxt(site) },
     'sitemap.xml': { type: 'application/xml', body: sitemapXml(site) },
     'manifest.webmanifest': { type: 'application/manifest+json', body: webManifest(site) },
     'llms.txt': { type: 'text/plain', body: llmsTxt(site) },
   };
+  if (indexNowKey) {
+    const { fileName, body } = indexNowKeyFile(indexNowKey);
+    files[fileName] = { type: 'text/plain', body };
+  }
   return {
     name: 'site-files',
     transformIndexHtml(html) {
+      if (!html.includes(FAQ_PLACEHOLDER)) throw new Error(`site-files: ${FAQ_PLACEHOLDER} missing from index.html`);
       return {
-        html: html.replaceAll('%APP_SHORT_NAME%', shortName(site.name)),
+        html: html.replaceAll('%APP_SHORT_NAME%', shortName(site.name)).replace(FAQ_PLACEHOLDER, faqHtml(site)),
         tags: [
           {
             tag: 'script',
@@ -116,7 +126,8 @@ function siteFiles(site: Site): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd());
+  // The '' prefix also loads INDEXNOW_KEY, which only the build needs.
+  const env = loadEnv(mode, process.cwd(), '');
   const site: Site = {
     name: env.VITE_APP_NAME ?? '',
     url: env.VITE_SITE_URL ?? '',
@@ -129,7 +140,7 @@ export default defineConfig(({ mode }) => {
     define: {
       __STOCKFISH_FILE__: JSON.stringify(`stockfish/stockfish-${stockfish.version}-lite-single.js`),
     },
-    plugins: [siteFiles(site), preloadBodyFont(), cloudflareAnalytics(env.VITE_CF_ANALYTICS_TOKEN)],
+    plugins: [siteFiles(site, env.INDEXNOW_KEY), preloadBodyFont(), cloudflareAnalytics(env.VITE_CF_ANALYTICS_TOKEN)],
     test: {
       include: ['src/**/*.test.ts'],
     },

@@ -60,17 +60,19 @@ npm run lint         # ESLint; npm run format for Prettier
 npm run build        # type check + production build in dist/
 ```
 
-The display name and public URL live in [`.env`](.env). The build generates the structured data, `robots.txt`,
-`sitemap.xml`, `manifest.webmanifest` and `llms.txt` from them ([`src/site/files.ts`](src/site/files.ts)); the dev
-server serves the same files. The build uses a relative base path, so `dist/` can be served from any static host or
-sub-path.
+The display name and public URL live in [`.env`](.env). The build generates the structured data, the FAQ section,
+`robots.txt`, `sitemap.xml`, `manifest.webmanifest`, `llms.txt` and the IndexNow key file from them
+([`src/site/files.ts`](src/site/files.ts)); the FAQ text is written once there for both the page and the structured
+data. The dev server serves the same files. The build uses a relative base path, so `dist/` can be served from any
+static host or sub-path.
 
 ## Deployment
 
-Every push to `master` runs lint, format check, tests and build in [GitHub Actions](.github/workflows/ci.yml), and
-when they pass, deploys `dist/` to [Cloudflare Workers](https://developers.cloudflare.com/workers/static-assets/) as a
-static site ([`wrangler.jsonc`](wrangler.jsonc)). Pull requests get the same checks without the deploy. Caching and
-security headers are in [`public/_headers`](public/_headers).
+Every push to `master` runs lint, format check, tests and build in [GitHub Actions](.github/workflows/ci.yml), and when
+they pass, deploys `dist/` to [Cloudflare Workers](https://developers.cloudflare.com/workers/static-assets/) as a static
+site ([`wrangler.jsonc`](wrangler.jsonc)) and notifies [IndexNow](https://www.indexnow.org/), so Bing and other engines
+recrawl it ([`scripts/indexnow.mjs`](scripts/indexnow.mjs)). Pull requests get the same checks without the deploy.
+Caching and security headers are in [`public/_headers`](public/_headers).
 
 ## Privacy
 
