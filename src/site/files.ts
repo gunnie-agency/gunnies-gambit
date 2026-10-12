@@ -36,7 +36,7 @@ const FEATURES = [
   'Dark and light theme, keyboard accessible',
 ];
 
-/** The last word of the app name, as in the header lockup. */
+/** The last word of the app name: the header's accent word and the manifest's short name. */
 export function shortName(name: string): string {
   const trimmed = name.trim();
   return trimmed.slice(trimmed.lastIndexOf(' ') + 1);

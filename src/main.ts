@@ -5,9 +5,8 @@ import '@fontsource/jetbrains-mono/500.css';
 import '@fontsource/jetbrains-mono/600.css';
 import './style.css';
 import { App } from './ui/app';
-import { renderBrand, setupThemeToggle } from './ui/chrome';
+import { setupThemeToggle } from './ui/chrome';
 
-renderBrand();
 setupThemeToggle();
 
 const app = new App();

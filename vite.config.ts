@@ -2,7 +2,15 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
-import { llmsTxt, robotsTxt, sitemapXml, structuredDataScript, webManifest, type Site } from './src/site/files.ts';
+import {
+  llmsTxt,
+  robotsTxt,
+  shortName,
+  sitemapXml,
+  structuredDataScript,
+  webManifest,
+  type Site,
+} from './src/site/files.ts';
 
 const stockfish = JSON.parse(readFileSync('node_modules/stockfish/package.json', 'utf8')) as { version: string };
 
@@ -65,7 +73,8 @@ function lastCommitDate(): string | undefined {
 }
 
 /**
- * Adds the structured data to the page head and generates robots.txt, sitemap.xml, the web app manifest and llms.txt
+ * Fills in %APP_SHORT_NAME% (the header's accent word, so the header has its final size at first paint), adds the
+ * structured data to the page head and generates robots.txt, sitemap.xml, the web app manifest and llms.txt
  * from `.env` (see src/site/files.ts). The files are emitted into the build and served by the dev server.
  */
 function siteFiles(site: Site): Plugin {
@@ -77,15 +86,18 @@ function siteFiles(site: Site): Plugin {
   };
   return {
     name: 'site-files',
-    transformIndexHtml() {
-      return [
-        {
-          tag: 'script',
-          attrs: { type: 'application/ld+json' },
-          children: structuredDataScript(site),
-          injectTo: 'head',
-        },
-      ];
+    transformIndexHtml(html) {
+      return {
+        html: html.replaceAll('%APP_SHORT_NAME%', shortName(site.name)),
+        tags: [
+          {
+            tag: 'script',
+            attrs: { type: 'application/ld+json' },
+            children: structuredDataScript(site),
+            injectTo: 'head',
+          },
+        ],
+      };
     },
     configureServer(server) {
       server.middlewares.use((req, res, next) => {

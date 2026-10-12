@@ -42,7 +42,7 @@ parsing and score conversion in DOM-free modules covered by unit tests.
 src/
   engine/   UCI worker wrapper, info parsing, search queue, strength levels
   board/    board rendering, arrows, promotion picker
-  ui/       app controller, header and theme
+  ui/       app controller, theme switch
   util/     SAN/UCI helpers, move input, score formatting
   site/     structured data, robots.txt, sitemap, web app manifest, llms.txt
   state.ts  settings and game persistence (localStorage)
