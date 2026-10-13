@@ -29,9 +29,15 @@ export function numberMoves(fen: string, sans: readonly string[]): NumberedMove[
   let turn = fields[1] === 'b' ? 'b' : 'w';
   let num = Number.parseInt(fields[5] ?? '1', 10) || 1;
   return sans.map((san, i) => {
-    const label = turn === 'w' ? `${num}.` : i === 0 ? `${num}…` : '';
+    const label = moveLabel(turn, num, i === 0);
     if (turn === 'b') num++;
     turn = turn === 'w' ? 'b' : 'w';
     return { label, san };
   });
+}
+
+/** White's moves are numbered `12.`; Black's only when the list starts with it, as `12…`. */
+function moveLabel(turn: string, num: number, first: boolean): string {
+  if (turn === 'w') return `${num}.`;
+  return first ? `${num}…` : '';
 }

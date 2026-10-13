@@ -37,41 +37,66 @@ export interface BoardView {
   selected: Square | null;
 }
 
+/** What every square needs to know about the position, worked out once per render. */
+interface SquareContext {
+  game: Chess;
+  selected: Square | null;
+  last: { from: string; to: string } | undefined;
+  /** Legal destinations of the selected piece: true for a capture. */
+  targets: Map<string, boolean>;
+  checkSquare: Square | undefined;
+}
+
 export function renderBoard(el: HTMLElement, view: BoardView): void {
   const { game, orient, selected } = view;
   const focused = el.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.sq : undefined;
-  const history = game.history({ verbose: true });
-  const last = history[history.length - 1];
   const targets = new Map<string, boolean>();
   if (selected) {
     for (const m of game.moves({ square: selected, verbose: true })) targets.set(m.to, m.isCapture());
   }
-  const checkSquare = game.inCheck() ? game.findPiece({ type: 'k', color: game.turn() })[0] : undefined;
+  const ctx: SquareContext = {
+    game,
+    selected,
+    last: game.history({ verbose: true }).at(-1),
+    targets,
+    checkSquare: game.inCheck() ? game.findPiece({ type: 'k', color: game.turn() })[0] : undefined,
+  };
 
   let html = '';
   for (let y = 0; y < 8; y++) {
-    for (let x = 0; x < 8; x++) {
-      const sq = squareAt(x, y, orient);
-      const rank = Number(sq[1]);
-      const piece = game.get(sq);
-      let cls = `sq ${squareColor(sq)}`;
-      if (last && (last.from === sq || last.to === sq)) cls += ' last';
-      if (selected === sq) cls += ' sel';
-      if (checkSquare === sq) cls += ' check';
-      if (targets.has(sq)) cls += ` target${targets.get(sq) ? ' capture' : ''}`;
-      let label = sq;
-      if (piece) label += `, ${piece.color === 'w' ? 'white' : 'black'} ${NAME[piece.type]}`;
-      if (selected === sq) label += ', selected';
-      else if (targets.has(sq)) label += ', legal move';
-      html += `<button type="button" class="${cls}" data-sq="${sq}" aria-label="${label}">`;
-      if (x === 0) html += `<span class="coord rank" aria-hidden="true">${rank}</span>`;
-      if (y === 7) html += `<span class="coord file" aria-hidden="true">${sq[0]}</span>`;
-      if (piece) html += pieceImg(piece.color, piece.type);
-      html += '</button>';
-    }
+    for (let x = 0; x < 8; x++) html += squareHtml(squareAt(x, y, orient), x === 0, y === 7, ctx);
   }
   el.innerHTML = html;
   if (focused) el.querySelector<HTMLElement>(`[data-sq="${focused}"]`)?.focus();
+}
+
+/** One square's button, with the rank on the left edge and the file on the bottom edge. */
+function squareHtml(sq: Square, leftEdge: boolean, bottomEdge: boolean, ctx: SquareContext): string {
+  const piece = ctx.game.get(sq);
+  let html = `<button type="button" class="${squareClasses(sq, ctx)}" data-sq="${sq}" aria-label="${squareLabel(sq, ctx)}">`;
+  if (leftEdge) html += `<span class="coord rank" aria-hidden="true">${sq[1]}</span>`;
+  if (bottomEdge) html += `<span class="coord file" aria-hidden="true">${sq[0]}</span>`;
+  if (piece) html += pieceImg(piece.color, piece.type);
+  return html + '</button>';
+}
+
+function squareClasses(sq: Square, ctx: SquareContext): string {
+  const classes = ['sq', squareColor(sq)];
+  if (ctx.last?.from === sq || ctx.last?.to === sq) classes.push('last');
+  if (ctx.selected === sq) classes.push('sel');
+  if (ctx.checkSquare === sq) classes.push('check');
+  const capture = ctx.targets.get(sq);
+  if (capture !== undefined) classes.push(capture ? 'target capture' : 'target');
+  return classes.join(' ');
+}
+
+function squareLabel(sq: Square, ctx: SquareContext): string {
+  const piece = ctx.game.get(sq);
+  let label: string = sq;
+  if (piece) label += `, ${piece.color === 'w' ? 'white' : 'black'} ${NAME[piece.type]}`;
+  if (ctx.selected === sq) label += ', selected';
+  else if (ctx.targets.has(sq)) label += ', legal move';
+  return label;
 }
 
 /** Arrow keys move focus between squares in screen direction. */
