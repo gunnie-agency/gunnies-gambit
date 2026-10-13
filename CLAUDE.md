@@ -41,7 +41,8 @@ tournament games is against the rules and gets accounts banned on Chess.com and 
   `VITE_CF_ANALYTICS_TOKEN`; the CSP allows exactly its two hosts. Never add cookies, consent-requiring trackers or
   analytics on game content. Cloudflare Workers static assets (`wrangler.jsonc`,
   custom domain `chess.gunnie.nl`); relative base path so any static host works.
-- **Vitest** for unit tests, **ESLint** (typescript-eslint strict) and **Prettier** (120 columns).
+- **Vitest** for unit tests, **ESLint** (typescript-eslint strict plus SonarJS recommended, the rules SonarQube applies,
+  so CI fails on what the Sonar IDE plugin flags) and **Prettier** (120 columns).
 
 ## Layout
 

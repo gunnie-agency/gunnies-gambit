@@ -19,6 +19,6 @@ export function parseUciMove(text: string): UciMove | null {
   return move;
 }
 
-export function toUci(move: { from: string; to: string; promotion?: string | undefined }): string {
+export function toUci(move: { from: string; to: string; promotion?: string }): string {
   return move.from + move.to + (move.promotion ?? '');
 }

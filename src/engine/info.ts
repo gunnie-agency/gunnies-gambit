@@ -20,33 +20,36 @@ export function parseInfo(line: string): EngineInfo | null {
   let score: Score | null = null;
   let bound = false;
   let pv: string[] = [];
-  for (let i = 1; i < t.length; i++) {
-    switch (t[i]) {
+  // Each keyword consumes its own values, so `i` always points at the next keyword.
+  let i = 1;
+  while (i < t.length) {
+    switch (t[i++]) {
       case 'string':
         return null;
       case 'depth':
-        depth = Number(t[++i]);
+        depth = Number(t[i++]);
         break;
       case 'multipv':
-        multipv = Number(t[++i]);
+        multipv = Number(t[i++]);
         break;
       case 'score': {
-        const kind = t[++i];
-        const value = Number(t[++i]);
+        const kind = t[i++];
+        const value = Number(t[i++]);
         if ((kind === 'cp' || kind === 'mate') && Number.isFinite(value)) score = { kind, value };
-        if (t[i + 1] === 'lowerbound' || t[i + 1] === 'upperbound') {
+        if (t[i] === 'lowerbound' || t[i] === 'upperbound') {
           bound = true;
           i++;
         }
         break;
       }
       case 'pv':
-        pv = t.slice(i + 1);
+        pv = t.slice(i);
         i = t.length;
         break;
     }
   }
-  if (!score || bound || pv.length === 0 || !Number.isFinite(depth) || !(multipv >= 1)) return null;
+  const badMultipv = !Number.isFinite(multipv) || multipv < 1;
+  if (!score || bound || pv.length === 0 || !Number.isFinite(depth) || badMultipv) return null;
   return { depth, multipv, score, pv };
 }
 

@@ -66,7 +66,7 @@ Requires Node.js 24 (see `.nvmrc`).
 npm install          # also copies Stockfish and the piece set into public/
 npm run dev          # http://localhost:5173
 npm test             # unit tests (Vitest)
-npm run lint         # ESLint; npm run format for Prettier
+npm run lint         # ESLint with typescript-eslint strict and SonarJS; npm run format for Prettier
 npm run build        # type check + production build in dist/
 ```
 

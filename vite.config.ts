@@ -68,6 +68,8 @@ function preloadBodyFont(): Plugin {
 /** The commit date of HEAD, so the sitemap's lastmod only moves when the site changes. */
 function lastCommitDate(): string | undefined {
   try {
+    // Build time only: the developer's or CI's own git, the same one that checked the code out.
+    // eslint-disable-next-line sonarjs/no-os-command-from-path
     return execFileSync('git', ['log', '-1', '--format=%cs'], { encoding: 'utf8' }).trim() || undefined;
   } catch {
     return undefined;
