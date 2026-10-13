@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evalBarPercent, formatScore, toWhitePov, verdict } from './score';
+import { evalBarPercent, formatScore, toWhitePov, verdict, winningChances } from './score';
 
 describe('toWhitePov', () => {
   it('keeps scores when White is to move and flips them when Black is', () => {
@@ -20,6 +20,24 @@ describe('formatScore', () => {
     expect(formatScore({ kind: 'mate', value: 2 })).toBe('+M2');
     expect(formatScore({ kind: 'mate', value: -4 })).toBe('−M4');
     expect(formatScore({ kind: 'mate', value: 0 })).toBe('#');
+  });
+});
+
+describe('winningChances', () => {
+  it('is 0 for equal and symmetric around it', () => {
+    expect(winningChances({ kind: 'cp', value: 0 })).toBe(0);
+    expect(winningChances({ kind: 'cp', value: -300 })).toBeCloseTo(-winningChances({ kind: 'cp', value: 300 }));
+  });
+
+  it('follows the Lichess curve and caps at 1000 centipawns', () => {
+    expect(winningChances({ kind: 'cp', value: 100 })).toBeCloseTo(0.182, 3);
+    expect(winningChances({ kind: 'cp', value: 5000 })).toBe(winningChances({ kind: 'cp', value: 1000 }));
+  });
+
+  it('counts a mate as the cap, and being mated as a loss', () => {
+    expect(winningChances({ kind: 'mate', value: 3 })).toBe(winningChances({ kind: 'cp', value: 1000 }));
+    expect(winningChances({ kind: 'mate', value: -1 })).toBe(winningChances({ kind: 'cp', value: -1000 }));
+    expect(winningChances({ kind: 'mate', value: 0 })).toBe(-1);
   });
 });
 

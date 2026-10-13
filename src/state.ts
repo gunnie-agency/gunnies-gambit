@@ -1,5 +1,6 @@
 import { Chess, DEFAULT_POSITION, type Color } from 'chess.js';
 import { DEFAULT_LEVEL_ID, LEVELS } from './engine/levels';
+import type { PositionEval } from './review/classify';
 import { parseUciMove, toUci } from './util/uci';
 
 export type Mode = 'play' | 'analysis';
@@ -97,4 +98,39 @@ export function replay(startFen: string, moves: readonly string[]): { game: Ches
     }
   }
   return { game, startFen: fen };
+}
+
+const REVIEW_KEY = 'gunnies-gambit.review.v1';
+
+function isPositionEval(v: unknown): v is PositionEval {
+  if (!v || typeof v !== 'object') return false;
+  const { score, best } = v as Partial<Record<keyof PositionEval, unknown>>;
+  if (!score || typeof score !== 'object') return false;
+  const { kind, value } = score as Record<string, unknown>;
+  return (kind === 'cp' || kind === 'mate') && Number.isFinite(value) && (best === null || typeof best === 'string');
+}
+
+/** Engine results of the last reviewed game, by cache key, so reopening its review needs no new searches. */
+export function loadReviewCache(): Map<string, PositionEval> {
+  const cache = new Map<string, PositionEval>();
+  let raw: unknown;
+  try {
+    raw = JSON.parse(localStorage.getItem(REVIEW_KEY) ?? '[]');
+  } catch {
+    return cache;
+  }
+  if (!Array.isArray(raw)) return cache;
+  for (const entry of raw) {
+    if (Array.isArray(entry) && typeof entry[0] === 'string' && isPositionEval(entry[1])) cache.set(entry[0], entry[1]);
+  }
+  return cache;
+}
+
+/** Stores the given cache entries in place of the previous review's. */
+export function saveReviewCache(entries: ReadonlyArray<[string, PositionEval]>): void {
+  try {
+    localStorage.setItem(REVIEW_KEY, JSON.stringify(entries));
+  } catch {
+    // Not remembered; the review is just searched again next time.
+  }
 }

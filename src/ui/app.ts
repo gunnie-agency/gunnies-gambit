@@ -4,8 +4,10 @@ import { Engine, STOCKFISH_URL } from '../engine/engine';
 import type { EngineInfo } from '../engine/info';
 import { LEVELS, levelById } from '../engine/levels';
 import type { SearchJob } from '../engine/queue';
+import { Review } from '../review/view';
 import { DEFAULT_SETTINGS, loadSaved, replay, saveGame, settingsOf, type Mode, type Settings } from '../state';
-import { fenProblem, gameEnd, parseTypedMove, uniqueMoveTo } from '../util/moves';
+import { escapeHtml } from '../util/html';
+import { fenProblem, gameEnd, parseTypedMove, uniqueMoveTo, type GameEnd } from '../util/moves';
 import { numberMoves, pvToSan } from '../util/san';
 import { evalBarPercent, formatScore, toWhitePov, verdict, type Score } from '../util/score';
 import { parseUciMove, toUci, type UciMove } from '../util/uci';
@@ -26,15 +28,17 @@ const MIN_REPLY_MS = 600;
 const PLAY_THINK_MS = 2000;
 
 const COLOR_NAME: Record<Color, string> = { w: 'White', b: 'Black' };
+const DRAW_TEXT: Record<Exclude<GameEnd, 'checkmate'>, string> = {
+  stalemate: 'Stalemate. The game is drawn.',
+  threefold: 'Draw by threefold repetition.',
+  insufficient: 'Draw by insufficient material.',
+  'fifty-moves': 'Draw by the 50-move rule.',
+};
 
 function $<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
   if (!el) throw new Error(`Missing element #${id}`);
   return el as T;
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);
 }
 
 export class App {
@@ -52,6 +56,11 @@ export class App {
     bestMeta: $('bestMeta'),
     playBest: $<HTMLButtonElement>('playBest'),
     hintBtn: $<HTMLButtonElement>('hintBtn'),
+    advice: $('advice'),
+    settingsBox: $('settings'),
+    reviewStart: $<HTMLButtonElement>('reviewStart'),
+    reviewBtn: $<HTMLButtonElement>('reviewBtn'),
+    reviewExit: $<HTMLButtonElement>('reviewExit'),
     lines: $('lines'),
     moveForm: $<HTMLFormElement>('moveForm'),
     moveInput: $<HTMLInputElement>('moveInput'),
@@ -97,6 +106,7 @@ export class App {
 
   private readonly analysis: Engine;
   private readonly opponent: Engine<MoveJob>;
+  private readonly review: Review;
 
   constructor() {
     const saved = loadSaved();
@@ -118,6 +128,23 @@ export class App {
       onBestMove: (job, move) => this.onOpponentMove(job, move),
       onStatus: () => this.onEngineStatus(),
     });
+
+    this.review = new Review(
+      {
+        panel: $('review'),
+        title: $('reviewTitle'),
+        move: $('reviewMove'),
+        detail: $('reviewDetail'),
+        nav: $('reviewNav'),
+        graph: document.getElementById('reviewGraph') as unknown as SVGElement,
+        progress: $<HTMLProgressElement>('reviewProgress'),
+        progressText: $('reviewProgressText'),
+        summary: $('reviewSummary'),
+        live: $('reviewLive'),
+        moves: $('moves'),
+      },
+      () => this.render(),
+    );
 
     this.el.levelSelect.innerHTML = LEVELS.map((l) => `<option value="${l.id}">${escapeHtml(l.label)}</option>`).join(
       '',
@@ -148,12 +175,18 @@ export class App {
   }
 
   private get isEngineTurn(): boolean {
+    if (this.review.active) return false;
     return this.settings.mode === 'play' && this.game.turn() !== this.settings.side && !this.isOver;
+  }
+
+  /** Review needs moves, and in play mode a finished game. */
+  private get canReview(): boolean {
+    return this.game.history().length > 0 && (this.settings.mode === 'analysis' || this.isOver);
   }
 
   /** Whether any analysis output is shown (and so computed) for the current position. */
   private get showAnalysis(): boolean {
-    if (this.isOver) return false;
+    if (this.isOver || this.review.active) return false;
     if (this.settings.mode === 'analysis') return true;
     return this.game.turn() === this.settings.side && (this.evalVisible || this.bestVisible);
   }
@@ -241,6 +274,7 @@ export class App {
   // ---------- game actions ----------
 
   private positionChanged(): void {
+    this.review.close();
     clearTimeout(this.replyTimer);
     this.selected = null;
     this.lines = [];
@@ -284,7 +318,7 @@ export class App {
 
   private onSquare(sq: Square): void {
     const game = this.game;
-    if (this.isOver || !this.canInput) return;
+    if (this.isOver || !this.canInput || this.review.active) return;
 
     if (this.selected) {
       if (sq === this.selected) {
@@ -304,7 +338,7 @@ export class App {
     }
 
     const piece = game.get(sq);
-    if (piece && piece.color === game.turn()) {
+    if (piece?.color === game.turn()) {
       this.selected = sq;
       this.renderBoardOnly();
       return;
@@ -349,6 +383,28 @@ export class App {
     this.positionChanged();
   }
 
+  private startReview(): void {
+    if (!this.canReview) return;
+    const { side, mode } = this.settings;
+    this.review.open({
+      startFen: this.startFen,
+      moves: this.game.history({ verbose: true }).map(toUci),
+      you: side,
+      them: mode === 'play' ? 'The computer' : 'Your opponent',
+    });
+    this.selected = null;
+    this.syncEngines();
+    this.render();
+    document.getElementById('review')?.focus();
+  }
+
+  private exitReview(): void {
+    this.review.close();
+    this.syncEngines();
+    this.render();
+    this.el.reviewBtn.focus();
+  }
+
   private updateSettings(patch: Partial<Settings>): void {
     this.settings = { ...this.settings, ...patch };
     saveGame(this.game, this.startFen, this.settings);
@@ -375,6 +431,10 @@ export class App {
       this.syncEngines();
       this.render();
     });
+
+    el.reviewStart.addEventListener('click', () => this.startReview());
+    el.reviewBtn.addEventListener('click', () => this.startReview());
+    el.reviewExit.addEventListener('click', () => this.exitReview());
 
     el.undoBtn.addEventListener('click', () => this.undo());
     el.flipBtn.addEventListener('click', () =>
@@ -415,6 +475,7 @@ export class App {
     seg(el.modeSeg, (v) => {
       const mode = v as Mode;
       if (mode === this.settings.mode) return;
+      this.review.close();
       this.selected = null;
       this.hintFen = null;
       this.restartAnalysis();
@@ -517,14 +578,24 @@ export class App {
     this.renderChip();
     this.el.fenInput.value = this.fen;
     this.el.undoBtn.disabled = this.game.history().length === 0;
+    const reviewing = this.review.active;
+    this.el.advice.hidden = reviewing;
+    this.el.moveForm.hidden = reviewing;
+    this.el.settingsBox.hidden = reviewing;
+    this.el.reviewBtn.disabled = reviewing || !this.canReview;
   }
 
   private renderBoardOnly(): void {
-    renderBoard(this.el.board, { game: this.game, orient: this.settings.orient, selected: this.selected });
+    const game = this.review.active ? this.review.board : this.game;
+    renderBoard(this.el.board, { game, orient: this.settings.orient, selected: this.selected });
     this.renderArrowsOnly();
   }
 
   private renderArrowsOnly(): void {
+    if (this.review.active) {
+      renderArrows(this.el.arrows, this.settings.orient, this.review.arrows);
+      return;
+    }
     const arrows: Arrow[] = [];
     const [l1, l2] = this.lines;
     if (this.showAnalysis && this.bestVisible && l1?.pv[0]) {
@@ -535,119 +606,145 @@ export class App {
   }
 
   private renderStatus(): void {
-    const { side, mode } = this.settings;
-    const game = this.game;
-    const end = gameEnd(game);
-    const level = levelById(this.settings.level).label;
-    let html: string;
-    if (end === 'checkmate') {
-      const winner: Color = game.turn() === 'w' ? 'b' : 'w';
-      const loser = mode === 'play' ? 'The computer wins.' : 'Your opponent wins.';
-      html = `Checkmate. ${winner === side ? 'You win.' : loser}<small>Undo a move to look again, or start a new game.</small>`;
-    } else if (end === 'stalemate') html = 'Stalemate. The game is drawn.';
-    else if (end === 'threefold') html = 'Draw by threefold repetition.';
-    else if (end === 'insufficient') html = 'Draw by insufficient material.';
-    else if (end === 'fifty-moves') html = 'Draw by the 50-move rule.';
-    else if (mode === 'play') {
-      if (this.opponent.status === 'failed')
-        html = 'The engine could not start.<small>Reload the page to try again.</small>';
-      else if (game.turn() === side)
-        html = `Your move${game.inCheck() ? ', and you are in check' : ''}<small>You play ${COLOR_NAME[side]} against the computer (${escapeHtml(level)}).</small>`;
-      else html = `The computer is thinking…<small>Level: ${escapeHtml(level)}</small>`;
-    } else if (game.turn() === side) {
-      html = `Your move${game.inCheck() ? ', and you are in check' : ''}<small>You play ${COLOR_NAME[side]}. Play the suggestion, or enter the move you choose.</small>`;
-    } else {
-      html = 'Your opponent is to move<small>Enter their move on the board or type it below.</small>';
-    }
+    const html = this.statusHtml();
     if (this.el.status.innerHTML !== html) this.el.status.innerHTML = html;
+  }
+
+  private statusHtml(): string {
+    if (this.review.active)
+      return 'Game review<small>Step through the moves with the buttons or the arrow keys, or jump to the next mistake.</small>';
+    const end = gameEnd(this.game);
+    if (end) return this.endHtml(end);
+    const { side, mode } = this.settings;
+    const yourMove = this.game.inCheck() ? 'Your move, and you are in check' : 'Your move';
+    if (mode === 'analysis') {
+      return this.game.turn() === side
+        ? `${yourMove}<small>You play ${COLOR_NAME[side]}. Play the suggestion, or enter the move you choose.</small>`
+        : 'Your opponent is to move<small>Enter their move on the board or type it below.</small>';
+    }
+    const level = escapeHtml(levelById(this.settings.level).label);
+    if (this.opponent.status === 'failed')
+      return 'The engine could not start.<small>Reload the page to try again.</small>';
+    if (this.game.turn() === side)
+      return `${yourMove}<small>You play ${COLOR_NAME[side]} against the computer (${level}).</small>`;
+    return `The computer is thinking…<small>Level: ${level}</small>`;
+  }
+
+  private endHtml(end: GameEnd): string {
+    if (end !== 'checkmate') return DRAW_TEXT[end];
+    const winner: Color = this.game.turn() === 'w' ? 'b' : 'w';
+    let result = 'You win.';
+    if (winner !== this.settings.side)
+      result = this.settings.mode === 'play' ? 'The computer wins.' : 'Your opponent wins.';
+    return `Checkmate. ${result}<small>Undo a move to look again, or start a new game.</small>`;
   }
 
   private renderAnalysis(): void {
     const el = this.el;
-    const { mode, side, showBest } = this.settings;
-    const fen = this.fen;
-    const l1 = this.lines[0];
-    const yours = this.game.turn() === side;
-    const showEval = this.evalVisible;
+    if (this.review.active) {
+      el.evalbar.classList.remove('off');
+      const bar = this.review.bar;
+      this.paintBar(bar?.percent ?? 50, bar?.label ?? 'Evaluation');
+      return;
+    }
 
+    const { mode } = this.settings;
+    const yours = this.game.turn() === this.settings.side;
+    const showEval = this.evalVisible;
     el.hintBtn.hidden = true;
+    el.reviewStart.hidden = true;
     el.playBest.hidden = false;
     el.playBest.disabled = true;
     el.playBest.textContent = mode === 'analysis' && !yours ? 'They played this' : 'Play it';
     el.evalbar.classList.toggle('off', !showEval);
     el.lines.classList.toggle('no-score', !showEval);
-    const wait = (label: string, text: string, meta = '\u00a0') => {
-      el.bestLabel.textContent = label;
-      el.bestSan.textContent = text;
-      el.bestSan.className = 'best-san wait';
-      el.bestMeta.textContent = meta;
-      el.lines.innerHTML = '';
-    };
 
     if (this.isOver) {
-      wait('Result', 'Game over');
+      this.waitAdvice('Result', 'Game over');
       el.playBest.hidden = true;
+      el.reviewStart.hidden = !this.canReview;
       this.setBar(null);
       return;
     }
     if (mode === 'play' && !yours) {
-      wait('Opponent', 'Thinking…');
+      this.waitAdvice('Opponent', 'Thinking…');
       el.playBest.hidden = true;
       return;
     }
-
-    const depth = l1 ? `depth ${l1.depth}${this.analysisDone ? ' (done)' : ''}` : '';
-    const white = l1 ? toWhitePov(l1.score, this.game.turn()) : null;
-    const evalMeta = () => {
-      if (!white) {
-        el.bestMeta.textContent = this.analysis.status === 'failed' ? 'Engine unavailable' : 'Evaluating…';
-        return;
-      }
-      const v = verdict(white, side);
-      el.bestMeta.innerHTML = `<b>${formatScore(white)}</b> · <span class="${v.tone}">${v.text}</span> · ${depth}`;
-      this.setBar(white);
-    };
-
     if (!this.bestVisible) {
-      wait('Hint', 'Need help?', 'A hint shows the best move in this position.');
+      this.waitAdvice('Hint', 'Need help?', 'A hint shows the best move in this position.');
       el.playBest.hidden = true;
       el.hintBtn.hidden = false;
       el.hintBtn.disabled = this.analysis.status === 'failed';
-      if (showEval) evalMeta();
+      if (showEval) this.renderEvalMeta();
       else this.setBar(null);
       return;
     }
 
-    const label =
-      mode === 'play' ? (showBest ? 'Best move' : 'Hint') : yours ? 'Best move for you' : 'Opponent’s strongest reply';
+    const l1 = this.lines[0];
     if (!l1) {
-      const text =
-        this.analysis.status === 'failed'
-          ? 'Engine unavailable'
-          : this.analysis.status === 'loading'
-            ? 'Engine loading…'
-            : 'Thinking…';
-      wait(label, text);
+      this.waitAdvice(this.bestLabelText(yours), this.engineWaitText());
       return;
     }
-
-    el.bestLabel.textContent = label;
-    el.bestSan.textContent = pvToSan(fen, l1.pv, 1)[0] ?? l1.pv[0] ?? '';
+    el.bestLabel.textContent = this.bestLabelText(yours);
+    el.bestSan.textContent = pvToSan(this.fen, l1.pv, 1)[0] ?? l1.pv[0] ?? '';
     el.bestSan.className = 'best-san';
     el.playBest.disabled = false;
+    if (showEval) this.renderEvalMeta();
+    else el.bestMeta.textContent = `Engine suggestion, ${this.depthText()}`;
+    el.lines.innerHTML = this.linesVisible ? this.linesHtml(showEval) : '';
+  }
 
-    if (showEval) evalMeta();
-    else el.bestMeta.textContent = `Engine suggestion, ${depth}`;
+  /** Fills the advice panel with a label and a waiting text, and no lines. */
+  private waitAdvice(label: string, text: string, meta = '\u00a0'): void {
+    const el = this.el;
+    el.bestLabel.textContent = label;
+    el.bestSan.textContent = text;
+    el.bestSan.className = 'best-san wait';
+    el.bestMeta.textContent = meta;
+    el.lines.innerHTML = '';
+  }
 
-    if (!this.linesVisible) {
-      el.lines.innerHTML = '';
+  private bestLabelText(yours: boolean): string {
+    if (this.settings.mode === 'play') return this.settings.showBest ? 'Best move' : 'Hint';
+    return yours ? 'Best move for you' : 'Opponent’s strongest reply';
+  }
+
+  private engineWaitText(): string {
+    if (this.analysis.status === 'failed') return 'Engine unavailable';
+    return this.analysis.status === 'loading' ? 'Engine loading…' : 'Thinking…';
+  }
+
+  private depthText(): string {
+    const l1 = this.lines[0];
+    if (!l1) return '';
+    return this.analysisDone ? `depth ${l1.depth} (done)` : `depth ${l1.depth}`;
+  }
+
+  /** The evaluation line under the best move, and the eval bar to match. */
+  private renderEvalMeta(): void {
+    const l1 = this.lines[0];
+    if (!l1) {
+      this.el.bestMeta.textContent = this.analysis.status === 'failed' ? 'Engine unavailable' : 'Evaluating…';
       return;
     }
-    el.lines.innerHTML = this.lines
+    const white = toWhitePov(l1.score, this.game.turn());
+    const v = verdict(white, this.settings.side);
+    const score = `<b>${formatScore(white)}</b>`;
+    this.el.bestMeta.innerHTML = `${score} · <span class="${v.tone}">${v.text}</span> · ${this.depthText()}`;
+    this.setBar(white);
+  }
+
+  private linesHtml(showEval: boolean): string {
+    const fen = this.fen;
+    return this.lines
       .filter((ln): ln is Line => Boolean(ln))
       .map((ln) => {
         const moves = numberMoves(fen, pvToSan(fen, ln.pv, 9))
-          .map((m, i) => `${m.label ? `${m.label} ` : ''}${i === 0 ? `<b>${m.san}</b>` : m.san}`)
+          .map((m, i) => {
+            const san = i === 0 ? `<b>${m.san}</b>` : m.san;
+            return m.label ? `${m.label} ${san}` : san;
+          })
           .join(' ');
         const score = showEval
           ? `<span class="score">${formatScore(toWhitePov(ln.score, this.game.turn()))}</span>`
@@ -658,12 +755,17 @@ export class App {
   }
 
   private setBar(white: Score | null): void {
-    this.el.evalfill.style.height = `${evalBarPercent(white).toFixed(1)}%`;
+    this.paintBar(evalBarPercent(white), white ? `Evaluation ${formatScore(white)} (White’s view)` : 'Evaluation');
+  }
+
+  private paintBar(percent: number, title: string): void {
+    this.el.evalfill.style.height = `${percent.toFixed(1)}%`;
     this.el.evalbar.classList.toggle('flipped', this.settings.orient === 'b');
-    this.el.evalbar.title = white ? `Evaluation ${formatScore(white)} (White’s view)` : 'Evaluation';
+    this.el.evalbar.title = title;
   }
 
   private renderMoves(): void {
+    if (this.review.active) return; // the review draws its own, clickable move list
     const sans = this.game.history();
     const el = this.el.moves;
     if (!sans.length) {

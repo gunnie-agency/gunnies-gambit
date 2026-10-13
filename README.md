@@ -3,8 +3,8 @@
 [![CI](https://github.com/gunnie-agency/gunnies-gambit/actions/workflows/ci.yml/badge.svg)](https://github.com/gunnie-agency/gunnies-gambit/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
-Practise chess against the computer at your own level, ask for hints, and analyse any position. Everything runs in
-your browser: there is no backend, no account and no cookies.
+Practise chess against the computer at your own level, ask for hints, review your games for mistakes, and analyse any
+position. Everything runs in your browser: there is no backend, no account and no cookies.
 
 **Try it: [chess.gunnie.nl](https://chess.gunnie.nl)**
 
@@ -15,6 +15,9 @@ your browser: there is no backend, no account and no cookies.
 - **Play** against the computer, from beginner level up to full strength. Hints on request; the evaluation and the
   best move (with engine lines) can each be switched on separately.
 - **Analyse** any position: enter moves for both sides, see the best move, evaluation, top three lines and arrows.
+- **Review** a game when it ends, or any game in Analyse (including an imported PGN). Every move is checked and
+  marked as an inaccuracy (?!), mistake (?) or blunder (??), with the better move as an arrow, an eval graph and an
+  accuracy per side. Step through with the buttons, the arrow keys or the clickable move list.
 - Tap a piece and then its square, or tap only the square when just one piece can go there. Or type moves in SAN
   (`Nf3`, `exd5`, `O-O`) or UCI (`e7e8q`).
 - FEN and PGN import and export. The current game is remembered in your browser.
@@ -28,7 +31,13 @@ needs no cross-origin isolation headers and works on any static host.
 
 Two workers run side by side: one analyses the position for hints and evaluation, the other plays the opponent at a
 limited strength (`UCI_Elo`, or `Skill Level` with a shallow search for the beginner levels). Keeping them apart
-means the opponent's handicap never leaks into the hints.
+means the opponent's handicap never leaks into the hints. A review starts a third worker for as long as it is open.
+
+The review searches every position once with a fixed node count (`go nodes 400000`). Unlike a time limit, that gives
+the same result on every device; unlike a depth limit, it takes about as long in every position. A move is judged by
+how much of the mover's winning chances it lost, on the same curve and thresholds Lichess uses (0.1 inaccuracy, 0.2
+mistake, 0.3 blunder on a -1 to 1 scale), with Lichess's separate rules for missed and allowed mates. Results are
+cached by position, so reopening a review after a reload is instant.
 
 The interesting part is [`SearchQueue`](src/engine/queue.ts). UCI engines answer asynchronously, so when the position
 changes during a search it sends `stop`, waits for that search's `bestmove`, and only then starts the newest request.
@@ -41,6 +50,7 @@ parsing and score conversion in DOM-free modules covered by unit tests.
 ```
 src/
   engine/   UCI worker wrapper, info parsing, search queue, strength levels
+  review/   move classification, review runner, eval graph, review panel
   board/    board rendering, arrows, promotion picker
   ui/       app controller, theme switch
   util/     SAN/UCI helpers, move input, score formatting

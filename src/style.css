@@ -79,6 +79,11 @@
   --good: #4cc27a;
   --bad: #ff7a6b;
 
+  /* Review marks: inaccuracy (?!), mistake (?), blunder (??) */
+  --inaccuracy: #f2c14e;
+  --mistake: #ff9f43;
+  --blunder: #ff6b6b;
+
   /* Logo */
   --gunnie-accent: #00a1ff;
   --gunnie-ink: #e7eaef;
@@ -118,6 +123,9 @@
   --eval-black: #2a2f38;
   --good: #1f7f45;
   --bad: #c0392b;
+  --inaccuracy: #8a6a00;
+  --mistake: #b05600;
+  --blunder: #c0392b;
   --gunnie-accent: #0077c2;
   --gunnie-ink: #0b0d11;
   color-scheme: light;
@@ -125,6 +133,12 @@
 
 * {
   box-sizing: border-box;
+}
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
 }
 body {
   margin: 0;
@@ -320,27 +334,6 @@ header.top {
   gap: 18px 36px;
   align-items: start;
 }
-.status {
-  grid-area: status;
-}
-.board-area {
-  grid-area: board;
-}
-.verdict {
-  grid-area: verdict;
-}
-.move-entry {
-  grid-area: entry;
-}
-.settings {
-  grid-area: settings;
-}
-.moves-box {
-  grid-area: moves;
-}
-details.tools {
-  grid-area: tools;
-}
 @media (max-width: 860px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
@@ -352,6 +345,7 @@ details.tools {
 
 /* Board */
 .board-area {
+  grid-area: board;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -607,6 +601,7 @@ button.btn.primary:hover:not(:disabled) {
 /* The status is written by the script after the first paint; reserving its usual two lines (headline and small
    line) keeps the board from jumping down when it appears. */
 .status {
+  grid-area: status;
   font-size: 1.5rem;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -624,6 +619,7 @@ button.btn.primary:hover:not(:disabled) {
 }
 
 .verdict {
+  grid-area: verdict;
   background: var(--surface-raised);
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -715,6 +711,7 @@ button.btn.primary:hover:not(:disabled) {
 }
 
 .move-entry {
+  grid-area: entry;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -781,6 +778,7 @@ textarea {
 }
 
 .settings {
+  grid-area: settings;
   display: flex;
   gap: 16px 22px;
   flex-wrap: wrap;
@@ -834,9 +832,139 @@ textarea {
 }
 
 .moves-box {
+  grid-area: moves;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+.moves-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+button.btn.small {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+/* Review: the panel takes the advice panel's place; the move list below it becomes clickable. */
+.review .best-san.inaccuracy,
+.review-summary .inaccuracy {
+  color: var(--inaccuracy);
+}
+.review .best-san.mistake,
+.review-summary .mistake {
+  color: var(--mistake);
+}
+.review .best-san.blunder,
+.review-summary .blunder {
+  color: var(--blunder);
+}
+.review:focus {
+  outline: none;
+}
+.review .verdict-meta {
+  margin: 0;
+  min-height: 3em;
+}
+.review-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.review-nav button.btn:not(.primary) {
+  min-width: 44px;
+  padding: 0;
+  font-size: 18px;
+}
+.review-nav button.btn.primary {
+  margin-left: auto;
+}
+.graph {
+  display: block;
+  width: 100%;
+  height: 80px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.graph-bg {
+  fill: var(--eval-black);
+}
+.graph-area {
+  fill: var(--eval-white);
+}
+.graph-mid {
+  stroke: var(--arrow-2);
+  stroke-width: 1;
+}
+.graph-mark {
+  stroke-width: 2;
+}
+.graph-mark.inaccuracy {
+  stroke: var(--inaccuracy);
+}
+.graph-mark.mistake {
+  stroke: var(--mistake);
+}
+.graph-mark.blunder {
+  stroke: var(--blunder);
+}
+.graph-cur {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.review-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+.review-progress progress {
+  flex: 0 0 120px;
+  accent-color: var(--accent);
+}
+.review-summary {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+.review-summary th,
+.review-summary td {
+  padding: 6px 4px;
+  border-top: 1px solid var(--line);
+  text-align: right;
+}
+.review-summary thead th {
+  border-top: 0;
+  font: 500 11px var(--font-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.review-summary thead th.inaccuracy,
+.review-summary thead th.mistake,
+.review-summary thead th.blunder {
+  font-size: 13px;
+  font-weight: 700;
+}
+.review-summary tbody th {
+  text-align: left;
+  font-weight: 600;
+}
+.review-summary td {
+  font-family: var(--font-mono);
+}
+.review-summary .side {
+  color: var(--muted);
+  font-weight: 400;
+}
+#reviewExit {
+  align-self: flex-start;
 }
 .moves {
   font-family: var(--font-mono);
@@ -862,6 +990,31 @@ textarea {
   color: var(--accent-text);
   box-shadow: inset 0 0 0 1px var(--accent-border);
 }
+button.m {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+button.m:hover {
+  background: var(--accent-fill);
+}
+.moves .mark {
+  font-weight: 700;
+  margin-left: 2px;
+}
+.moves .inaccuracy .mark {
+  color: var(--inaccuracy);
+}
+.moves .mistake .mark {
+  color: var(--mistake);
+}
+.moves .blunder .mark {
+  color: var(--blunder);
+}
 .moves .empty {
   grid-column: 1 / -1;
   color: var(--muted);
@@ -869,6 +1022,7 @@ textarea {
 }
 
 details.tools {
+  grid-area: tools;
   border-top: 1px solid var(--line);
   padding-top: 12px;
 }

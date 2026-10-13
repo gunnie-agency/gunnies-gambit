@@ -1,7 +1,7 @@
 # Gunnie's Gambit: chess practice partner and coach
 
 A browser app for learning and practising chess with Stockfish running entirely client-side. You play against the
-engine at a level you choose, ask for hints, and (planned) review your mistakes after the game. An analysis board lets
+engine at a level you choose, ask for hints, and review your mistakes after the game. An analysis board lets
 you set up or enter any position and see what the engine thinks. Live at https://chess.gunnie.nl.
 
 It is also a public showcase project for Gunnie, so code quality, tests, commit history and a clean README matter as
@@ -15,7 +15,11 @@ Don't hardcode either elsewhere.
 2. **Play vs engine.** A second engine worker plays the other side at a chosen strength (`UCI_LimitStrength` /
    `UCI_Elo`, plus beginner levels below the Elo floor via `Skill Level` and a shallow depth). The evaluation and the
    best move are separate toggles, both off by default; a hint can be requested per position.
-3. **Review** (planned). After a game, analyse every move and mark inaccuracies, mistakes and blunders by eval drop.
+3. **Review.** Not a third `Mode` but a state on top of the current game, started with "Review game" when a play-mode
+   game ends or for any game in Analyse. A third worker (`src/review/view.ts`, created on open, terminated on close)
+   searches every position with `go nodes 400000`; the other engines stay idle meanwhile. Moves are judged by lost
+   winning chances on the Lichess curve (0.1 / 0.2 / 0.3) plus Lichess's mate rules, and the engine's own choice is
+   never marked. Results are cached by position in localStorage (last reviewed game only).
 
 ## Fair play (hard constraint)
 
@@ -44,17 +48,19 @@ tournament games is against the rules and gets accounts banned on Chess.com and 
 ```
 src/
   main.ts       bootstrap
-  state.ts      settings and game persistence (localStorage)
+  state.ts      settings, game and review-cache persistence (localStorage)
   board/        board rendering, arrows, promotion picker
   engine/       UCI worker wrapper, info parsing, search queue, strength levels
+  review/       classify.ts (judgements, accuracy), runner.ts (search order, cache), graph.ts (eval graph SVG), view.ts
+                (review panel, owns the move list while open)
   ui/           app controller; chrome.ts for the theme switch
   util/         SAN/UCI helpers, move input, score formatting
   site/         JSON-LD, FAQ, robots.txt, sitemap, manifest, llms.txt, IndexNow key; built from .env by a Vite plugin
 public/         _headers, icons, social card, 404 page
 ```
 
-Pure logic (UCI parsing, score conversion, PV to SAN, search queue, move input) lives in modules without DOM access
-and has unit tests next to it (`*.test.ts`).
+Pure logic (UCI parsing, score conversion, PV to SAN, search queue, move input, HTML escaping, review
+classification, runner and graph) lives in modules without DOM access and has unit tests next to it (`*.test.ts`).
 
 ## Deployment
 
@@ -67,9 +73,8 @@ subsets. Cloudflare allows one `*` per `_headers` rule.
 
 ## Next milestones
 
-1. Post-game review with mistake classification.
-2. Offline support (service worker), import finished games from the Lichess and Chess.com public APIs, Playwright smoke test.
-3. README screenshots, CONTRIBUTING, issue templates.
+1. Offline support (service worker), import finished games from the Lichess and Chess.com public APIs, Playwright smoke test.
+2. README screenshots, CONTRIBUTING, issue templates.
 
 ## Constraints
 

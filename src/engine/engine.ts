@@ -36,7 +36,7 @@ export class Engine<J extends SearchJob = SearchJob> {
   }
 
   start(): void {
-    if (this.worker) return;
+    if (this.worker || this.statusValue === 'failed') return;
     try {
       this.worker = new Worker(this.options.url);
     } catch {
@@ -61,6 +61,14 @@ export class Engine<J extends SearchJob = SearchJob> {
 
   cancel(): void {
     this.queue.cancel();
+  }
+
+  /** Shuts the worker down for good, without reporting a status. Later calls to `start` and `request` do nothing. */
+  terminate(): void {
+    clearTimeout(this.loadTimer);
+    this.worker?.terminate();
+    this.worker = null;
+    this.statusValue = 'failed';
   }
 
   private handleLine(line: string): void {

@@ -24,15 +24,33 @@ export function formatScore(s: Score): string {
     return (s.value > 0 ? '+M' : `${MINUS}M`) + Math.abs(s.value);
   }
   const pawns = s.value / 100;
-  const sign = pawns > 0 ? '+' : pawns < 0 ? MINUS : '';
-  return sign + Math.abs(pawns).toFixed(2);
+  return signOf(pawns) + Math.abs(pawns).toFixed(2);
+}
+
+function signOf(n: number): string {
+  if (n > 0) return '+';
+  return n < 0 ? MINUS : '';
+}
+
+/**
+ * Winning chances from -1 (lost) to 1 (won), from the same point of view as the score. Uses Lichess's curve, fitted
+ * to real games, so the review thresholds mean what they mean there. Centipawns are capped at ±1000 and a mate
+ * counts as that cap; `mate 0` means the side to move has been mated.
+ */
+export function winningChances(s: Score): number {
+  if (s.kind === 'mate') return s.value === 0 ? -1 : cpChances(Math.sign(s.value) * 1000);
+  return cpChances(Math.max(-1000, Math.min(1000, s.value)));
+}
+
+function cpChances(cp: number): number {
+  return 2 / (1 + Math.exp(-0.00368208 * cp)) - 1;
 }
 
 /** Height of White's part of the eval bar, 0 to 100. */
 export function evalBarPercent(s: Score | null): number {
   if (!s) return 50;
-  if (s.kind === 'mate') return s.value > 0 ? 100 : s.value < 0 ? 0 : 50;
-  return 50 + 50 * (2 / (1 + Math.exp(-0.0042 * s.value)) - 1);
+  if (s.kind === 'mate') return s.value === 0 ? 50 : 50 + 50 * Math.sign(s.value);
+  return 50 + 50 * winningChances(s);
 }
 
 export type Tone = 'pos' | 'neg' | 'even';

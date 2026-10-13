@@ -23,8 +23,8 @@ export interface Faq {
 }
 
 export const SUMMARY =
-  'Play chess against the computer at your level, from beginner to full strength, ask for hints and analyse any ' +
-  'position. Free, no account, and it runs entirely in your browser.';
+  'Play chess against the computer at your level, from beginner to full strength, ask for hints, review your games ' +
+  'for mistakes and analyse any position. Free, no account, and it runs entirely in your browser.';
 
 /** The name sounds like a chess opening; search engines and AI answers need telling that it is an app. */
 const NOT_AN_OPENING = 'A web app for practising and analysing chess, not a chess opening.';
@@ -41,6 +41,7 @@ const FEATURES = [
   'Play against the computer, from beginner to full strength',
   'Hints on request; evaluation and best move can each be switched on',
   'Analysis board with best move, evaluation, top three lines and arrows',
+  'Game review that marks inaccuracies, mistakes and blunders, shows the better move and an accuracy per side',
   'Move entry by tapping or typing SAN or UCI',
   'FEN and PGN import and export',
   'Dark and light theme, keyboard accessible',
@@ -69,7 +70,17 @@ export function faq(site: Site): Faq[] {
       question: 'Can I analyse my own games?',
       answer:
         'Yes. Switch to Analyse, then paste a PGN or a FEN position under "Position & PGN", or enter the moves on ' +
-        'the board. You see the best move, the evaluation and the top three lines for the position on the board.',
+        'the board. You see the best move, the evaluation and the top three lines for the position on the board. ' +
+        'Review game then goes through the whole game and marks the mistakes.',
+    },
+    {
+      question: 'How does the game review work?',
+      answer:
+        'When a game against the computer ends, or for any game in Analyse, choose Review game. The engine ' +
+        'evaluates every position and marks a move as an inaccuracy (?!), mistake (?) or blunder (??) by how much ' +
+        'of your winning chances it gave away, with the better move shown on the board. The thresholds and the ' +
+        'accuracy percentage follow the Lichess method, so the figures are close to Lichess’s but not identical. ' +
+        'A 40-move game takes about half a minute on a laptop and a few minutes on an older phone.',
     },
     {
       question: 'Do my games leave my device?',
@@ -175,7 +186,7 @@ export function structuredData(site: Site): object {
 
 /** JSON-LD for a `<script type="application/ld+json">`; `<` is escaped so no string can close the script. */
 export function structuredDataScript(site: Site): string {
-  return JSON.stringify(structuredData(site)).replaceAll('<', '\\u003c');
+  return JSON.stringify(structuredData(site)).replaceAll('<', String.raw`\u003c`);
 }
 
 export function robotsTxt(site: Site): string {
@@ -223,12 +234,15 @@ export function llmsTxt(site: Site): string {
       `# ${site.name}`,
       `> ${SUMMARY}`,
       `${site.name} (${site.url}/) is a free, open-source chess practice app on a single page. ` +
-        'Despite the name, it is not a chess opening. It has two modes:',
+        'Despite the name, it is not a chess opening. It has two modes and a game review:',
       [
         '- Play: a game against the computer at a chosen strength, from Beginner and Novice through Elo 1400 to ' +
           '2400 up to full strength. Hints on request; the evaluation and the best move can each be switched on.',
         '- Analyse: an analysis board. Enter moves for both sides by tapping or typing SAN or UCI, and see the best ' +
           'move, the evaluation and the top three lines. Positions load from FEN, games from PGN.',
+        '- Review: after a game against the computer, or for any game in Analyse, the engine evaluates every ' +
+          'position and marks inaccuracies, mistakes and blunders by lost winning chances, with the better move ' +
+          'and an accuracy percentage per side.',
       ].join('\n'),
       `The engine is Stockfish ${site.stockfishVersion}, compiled to WebAssembly and run in the browser. There is no ` +
         'backend and no account: games and settings stay in the browser. Visits are counted with cookieless ' +
