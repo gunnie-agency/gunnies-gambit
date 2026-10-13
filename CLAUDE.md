@@ -74,8 +74,10 @@ subsets. Cloudflare allows one `*` per `_headers` rule.
 
 ## Next milestones
 
-1. Offline support (service worker), import finished games from the Lichess and Chess.com public APIs, Playwright smoke test.
-2. README screenshots, CONTRIBUTING, issue templates.
+1. Game explanation and how to play (user feedback): the rules and how each piece moves, for someone who has just
+   started, and how to use the app itself (levels, hints, the analysis board, the review).
+2. Offline support (service worker), import finished games from the Lichess and Chess.com public APIs, Playwright smoke test.
+3. README screenshots, CONTRIBUTING, issue templates.
 
 ## Constraints
 
