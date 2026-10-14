@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="Learn to play chess: how every piece moves, check, checkmate, stalemate, castling, en passant and promotion, with a practice board for each rule. Free, no account."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b0d11" />
+    <title>How to play chess: rules for beginners · %VITE_APP_NAME%</title>
+    <link rel="canonical" href="%VITE_SITE_URL%/how-to-play" />
+    <link rel="icon" href="./favicon.ico" sizes="32x32" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="%VITE_APP_NAME%" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:title" content="How to play chess: the rules, with a practice board for each" />
+    <meta
+      property="og:description"
+      content="How every piece moves, check, checkmate, stalemate and the special moves, each with a small board to try it on."
+    />
+    <meta property="og:url" content="%VITE_SITE_URL%/how-to-play" />
+    <meta property="og:image" content="%VITE_SITE_URL%/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="%VITE_APP_NAME%: a chess board with the engine's best move" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script src="./theme-init.js"></script>
+    <script type="module" src="./src/learn/main.ts"></script>
+  </head>
+  <body>
+    <!-- %LOGO_SYMBOL% -->
+    <div class="app">
+      <header class="top">
+        <div class="brand">
+          <a class="lockup" href="./">
+            <span class="visually-hidden">%VITE_APP_NAME%: play chess</span>
+            <svg class="gunnie-logo" viewBox="0 0 493 97" aria-hidden="true" focusable="false">
+              <use href="#gunnie-logo" />
+            </svg>
+            <span class="lockup-accent" aria-hidden="true">%APP_SHORT_NAME%</span>
+          </a>
+          <span class="tag">Chess practice &amp; analysis</span>
+          <a class="nav-link" href="./">Play chess</a>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" type="button" id="themeBtn" aria-label="Switch to light theme"></button>
+        </div>
+      </header>
+
+      <main class="learn">
+        <div class="learn-intro">
+          <div class="eyebrow">How to play</div>
+          <h1>How to play chess</h1>
+          <p class="lead">
+            Chess is a game for two players on a board of 64 squares. Each side starts with sixteen pieces: a king, a
+            queen, two rooks, two bishops, two knights and eight pawns. This page explains the rules one at a time. Next
+            to each rule is a small board where you can try it: tap a piece to see where it can go, then tap a square to
+            move it.
+          </p>
+          <nav class="learn-toc" aria-label="On this page">
+            <ol>
+              <li><a href="#goal">The goal</a></li>
+              <li><a href="#pieces">How the pieces move</a></li>
+              <li><a href="#check">Check, checkmate and stalemate</a></li>
+              <li><a href="#special">Three special moves</a></li>
+              <li><a href="#draws">Other ways to draw</a></li>
+              <li><a href="#app">Using %VITE_APP_NAME%</a></li>
+              <li><a href="#start">Where to start</a></li>
+            </ol>
+          </nav>
+        </div>
+
+        <section class="learn-section" id="goal" aria-labelledby="goalTitle">
+          <h2 id="goalTitle">The goal</h2>
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <p>
+                You win by checkmating your opponent's king: attacking it so that it cannot escape. The king is never
+                actually taken. White moves first, then the players take turns, one move each. You must move when it is
+                your turn; you cannot pass.
+              </p>
+              <h3>Setting up the board</h3>
+              <p>
+                Place the board so each player has a light square in the right-hand corner. The rooks go in the corners,
+                then the knights, then the bishops. The queen stands on her own colour: the white queen on a light
+                square, the black queen on a dark one. The king takes the last square, and the pawns fill the row in
+                front.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="start">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: the starting position"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                The starting position. Tap a white piece to see where it can go, then tap a square to move it.
+              </p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="learn-section" id="pieces" aria-labelledby="piecesTitle">
+          <h2 id="piecesTitle">How the pieces move</h2>
+          <p class="section-lead">
+            Each piece moves in its own way. No piece can move through another, except the knight. You capture by moving
+            onto a square held by an opponent's piece, which then leaves the board. You can never capture your own
+            pieces.
+          </p>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>The king</h3>
+              <p>
+                The king moves one square in any direction. It may never move to a square where it would be attacked.
+                The whole game is about the king, so keep it safe.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="king">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: the king"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">Tap the king to see its squares, then tap one to move it.</p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>The queen</h3>
+              <p>
+                The queen moves any number of squares in a straight line: along a row, along a column or diagonally. It
+                is the strongest piece.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="queen">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: the queen"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">From the middle of the board the queen reaches 27 squares.</p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>The rook</h3>
+              <p>
+                The rook moves any number of squares along a row or a column. Like every piece except the knight, it
+                stops at the first piece in its way. It can capture an opponent's piece there, but it cannot jump over
+                it.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="rook">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: the rook"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                Your own pawn on g4 blocks the rook. The black pawn on d7 can be captured.
+              </p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>The bishop</h3>
+              <p>
+                The bishop moves any number of squares diagonally. It stays on squares of one colour for the whole game,
+                so each side has one bishop for the light squares and one for the dark squares.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="bishop">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: the bishop"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                The bishop can capture the black knight on f6. Its own pawn on b2 is in the way.
+              </p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>The knight</h3>
+              <p>
+                The knight moves in an L: two squares in a straight line, then one to the side. It is the only piece
+                that jumps over other pieces, and it always lands on a square of the other colour.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="knight">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: the knight"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                The knight is boxed in by its own pawns, and can still jump out to eight squares.
+              </p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>The pawn</h3>
+              <p>
+                The pawn moves one square straight forward, never backwards. From its starting square it may move two
+                squares at once. It captures differently from how it moves: one square diagonally forward. A pawn with a
+                piece right in front of it cannot move forward.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="pawn">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: the pawn"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                The c2 pawn has not moved yet, so it can go one or two squares. The e4 pawn is blocked, but can capture
+                on d5.
+              </p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="learn-section" id="check" aria-labelledby="checkTitle">
+          <h2 id="checkTitle">Check, checkmate and stalemate</h2>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>Check</h3>
+              <p>
+                A king that is attacked is in check. You must get out of check straight away, and there are three ways:
+                move the king to a safe square, put a piece between the king and the attacker, or capture the attacker.
+                A move that leaves your own king in check is not allowed.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="check">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: getting out of check"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                The black rook on e8 gives check. Find one way out, then start again and find another.
+              </p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>Checkmate</h3>
+              <p>
+                Checkmate is a check with no way out. The game ends at once, and the player who gave checkmate wins.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="checkmate">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: checkmate in one move"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">White to move. Find the checkmate in one move.</p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>Stalemate</h3>
+              <p>
+                Stalemate is when the player to move is not in check but has no legal move. The game is then a draw,
+                even when the other side is far ahead. It is the classic way to throw away a won game: when you are
+                winning, leave the other king a square until you can checkmate it.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="stalemate">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: checkmate, not stalemate"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                White to move. One queen move wins, another only draws. Find the checkmate.
+              </p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="learn-section" id="special" aria-labelledby="specialTitle">
+          <h2 id="specialTitle">Three special moves</h2>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>Castling</h3>
+              <p>
+                Once per game, the king can castle: it moves two squares towards one of its rooks, and that rook jumps
+                to the square on the king's other side. It counts as one move, puts the king somewhere safer and brings
+                the rook into play. You may only castle when the king and that rook have not moved yet, there is nothing
+                between them, the king is not in check, and the king does not pass through or land on an attacked
+                square.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="castling">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: castling"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">Tap the king and move it two squares to the left or right.</p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>En passant</h3>
+              <p>
+                When a pawn moves two squares from its starting square and lands next to an enemy pawn, that enemy pawn
+                may capture it as if it had moved only one square. This is called en passant, French for "in passing".
+                It is only allowed on the very next move.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="en-passant">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: en passant"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                Black has just moved a pawn from d7 to d5, next to yours on e5. Capture it en passant by moving to d6.
+              </p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>Promotion</h3>
+              <p>
+                A pawn that reaches the far side of the board is promoted: it becomes a queen, rook, bishop or knight of
+                its own colour, whichever you choose. You can have more than one queen this way.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="promotion">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: promotion"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">Move the pawn to e8 and choose what it becomes.</p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="learn-section" id="draws" aria-labelledby="drawsTitle">
+          <h2 id="drawsTitle">Other ways to draw</h2>
+          <p class="section-lead">Besides stalemate, a game is drawn when:</p>
+          <ul class="learn-list">
+            <li>both players agree to a draw;</li>
+            <li>the same position occurs three times, with the same player to move (threefold repetition);</li>
+            <li>both sides have made fifty moves without a pawn move or a capture (the 50-move rule);</li>
+            <li>
+              neither side has enough pieces left to checkmate, such as a king against a king, or a king and a bishop
+              against a king.
+            </li>
+          </ul>
+          <p class="section-lead">%VITE_APP_NAME% spots the last three for you and ends the game.</p>
+        </section>
+
+        <section class="learn-section" id="app" aria-labelledby="appTitle">
+          <h2 id="appTitle">Using %VITE_APP_NAME%</h2>
+          <div class="about-grid">
+            <div>
+              <h3>Play the computer</h3>
+              <p>
+                Choose Play at the top. Pick your colour under I play and a level under Opponent. Beginner and Novice
+                make mistakes on purpose, the Elo levels play at about 1400 to 2400, and Full strength is the engine at
+                its best. Move by tapping a piece and then a square, or type the move under Type a move, such as e4 or
+                Nf3.
+              </p>
+            </div>
+            <div>
+              <h3>Hints and engine help</h3>
+              <p>
+                Stuck? Show hint gives the best move in the position. Under Engine help you can switch on Show
+                evaluation, which tells you who is better and by how much, and Show best move. Both are off at the
+                start, so you can play on your own.
+              </p>
+            </div>
+            <div>
+              <h3>Analyse a position</h3>
+              <p>
+                Choose Analyse to enter moves for both sides and see the best move, the evaluation and the top three
+                lines, with arrows on the board. Paste a game under Position &amp; PGN to carry on from it.
+              </p>
+            </div>
+            <div>
+              <h3>Review your game</h3>
+              <p>
+                When a game ends, choose Review game. The engine checks every move and marks inaccuracies (?!), mistakes
+                (?) and blunders (??), with the better move as an arrow. Step through with the arrow keys or jump to the
+                next mistake.
+              </p>
+            </div>
+            <div>
+              <h3>Keyboard</h3>
+              <p>
+                Every square is a button. Tab to the board, move between squares with the arrow keys, and press Enter or
+                Space to pick up a piece and put it down.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="learn-section" id="start" aria-labelledby="startTitle">
+          <h2 id="startTitle">Where to start</h2>
+          <ol class="learn-list">
+            <li>Try every practice board on this page until the moves feel familiar.</li>
+            <li>Play the Beginner level as White, and ask for a hint whenever you are stuck.</li>
+            <li>When the game ends, choose Review game and look at your blunders first.</li>
+            <li>Move up a level once you win most of your games.</li>
+          </ol>
+          <p><a class="nav-link primary" href="./">Play your first game</a></p>
+        </section>
+      </main>
+
+      <!-- %FOOTER% -->
+    </div>
+  </body>
+</html>

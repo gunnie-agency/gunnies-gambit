@@ -37,6 +37,22 @@ const BACKGROUND = '#0b0d11';
 const GUNNIE = 'https://gunnie.nl/#organization';
 const JEROEN = 'https://gunnie.nl/#jeroen';
 
+/** The How to play page, served without `.html` (Cloudflare and GitHub Pages both map the clean URL to the file). */
+export const HOW_TO_PLAY_PATH = '/how-to-play';
+const HOW_TO_PLAY_TITLE = 'How to play chess';
+const HOW_TO_PLAY_SUMMARY =
+  'The rules of chess for beginners: how each piece moves, check, checkmate, stalemate, castling, en passant and ' +
+  'promotion, with a practice board for each. Then how to use the app to play, get hints and review your games.';
+
+const GUNNIE_NODE = { '@type': 'Organization', '@id': GUNNIE, name: 'Gunnie', url: 'https://gunnie.nl/' };
+const JEROEN_NODE = {
+  '@type': 'Person',
+  '@id': JEROEN,
+  name: 'Jeroen Gunneweg',
+  url: 'https://gunnie.nl/en/about',
+  worksFor: { '@id': GUNNIE },
+};
+
 const FEATURES = [
   'Play against the computer, from beginner to full strength',
   'Hints on request; evaluation and best move can each be switched on',
@@ -45,6 +61,7 @@ const FEATURES = [
   'Move entry by tapping or typing SAN or UCI',
   'FEN and PGN import and export',
   'Dark and light theme, keyboard accessible',
+  'A How to play page with the rules and a practice board for every piece and special move',
 ];
 
 export function faq(site: Site): Faq[] {
@@ -54,6 +71,13 @@ export function faq(site: Site): Faq[] {
       answer:
         `No. Despite the name, ${site.name} is a free web app for practising chess against the computer and ` +
         "analysing positions. The name is a play on chess gambits such as the Queen's Gambit.",
+    },
+    {
+      question: 'I do not know the rules yet. Where do I start?',
+      answer:
+        `Start with How to play (${site.url}${HOW_TO_PLAY_PATH}). It explains how every piece moves, check, ` +
+        'checkmate, stalemate and the special moves, each with a small board to try it on. Then play the Beginner ' +
+        'level with a hint whenever you are stuck, and review the game when it ends.',
     },
     {
       question: 'Is it free, and do I need an account?',
@@ -103,7 +127,7 @@ export function faq(site: Site): Faq[] {
   ];
 }
 
-function escapeHtml(text: string): string {
+export function escapeHtml(text: string): string {
   return text.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c);
 }
 
@@ -172,21 +196,58 @@ export function structuredData(site: Site): object {
           acceptedAnswer: { '@type': 'Answer', text: answer },
         })),
       },
-      { '@type': 'Organization', '@id': GUNNIE, name: 'Gunnie', url: 'https://gunnie.nl/' },
+      GUNNIE_NODE,
+      JEROEN_NODE,
+    ],
+  };
+}
+
+/** The How to play page: a beginner's tutorial that is part of the same website, by the same people. */
+export function howToPlayStructuredData(site: Site): object {
+  const home = `${site.url}/`;
+  const page = `${site.url}${HOW_TO_PLAY_PATH}`;
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
       {
-        '@type': 'Person',
-        '@id': JEROEN,
-        name: 'Jeroen Gunneweg',
-        url: 'https://gunnie.nl/en/about',
-        worksFor: { '@id': GUNNIE },
+        '@type': ['WebPage', 'LearningResource'],
+        '@id': `${page}#page`,
+        url: page,
+        name: HOW_TO_PLAY_TITLE,
+        description: HOW_TO_PLAY_SUMMARY,
+        inLanguage: 'en',
+        isPartOf: { '@type': 'WebSite', '@id': `${home}#website`, url: home, name: site.name },
+        about: { '@type': 'Thing', name: 'Chess', sameAs: 'https://en.wikipedia.org/wiki/Chess' },
+        learningResourceType: 'Tutorial',
+        educationalLevel: 'Beginner',
+        teaches: [
+          'How the chess pieces move',
+          'Check, checkmate and stalemate',
+          'Castling, en passant and promotion',
+          'How a chess game can end in a draw',
+        ],
+        isAccessibleForFree: true,
+        breadcrumb: { '@id': `${page}#breadcrumb` },
+        author: { '@id': JEROEN },
+        publisher: { '@id': GUNNIE },
       },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': `${page}#breadcrumb`,
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: site.name, item: home },
+          { '@type': 'ListItem', position: 2, name: HOW_TO_PLAY_TITLE, item: page },
+        ],
+      },
+      GUNNIE_NODE,
+      JEROEN_NODE,
     ],
   };
 }
 
 /** JSON-LD for a `<script type="application/ld+json">`; `<` is escaped so no string can close the script. */
-export function structuredDataScript(site: Site): string {
-  return JSON.stringify(structuredData(site)).replaceAll('<', String.raw`\u003c`);
+export function jsonLdScript(data: object): string {
+  return JSON.stringify(data).replaceAll('<', String.raw`\u003c`);
 }
 
 export function robotsTxt(site: Site): string {
@@ -195,10 +256,13 @@ export function robotsTxt(site: Site): string {
 
 export function sitemapXml(site: Site): string {
   const lastmod = site.lastmod ? `<lastmod>${site.lastmod}</lastmod>` : '';
+  const urls = [`${site.url}/`, `${site.url}${HOW_TO_PLAY_PATH}`].map(
+    (loc) => `  <url><loc>${loc}</loc>${lastmod}</url>\n`,
+  );
   return (
     '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    `  <url><loc>${site.url}/</loc>${lastmod}</url>\n` +
+    urls.join('') +
     '</urlset>\n'
   );
 }
@@ -233,7 +297,7 @@ export function llmsTxt(site: Site): string {
     [
       `# ${site.name}`,
       `> ${SUMMARY}`,
-      `${site.name} (${site.url}/) is a free, open-source chess practice app on a single page. ` +
+      `${site.name} (${site.url}/) is a free, open-source chess practice app that runs in the browser. ` +
         'Despite the name, it is not a chess opening. It has two modes and a game review:',
       [
         '- Play: a game against the computer at a chosen strength, from Beginner and Novice through Elo 1400 to ' +
@@ -255,6 +319,7 @@ export function llmsTxt(site: Site): string {
       ...faq(site).map(({ question, answer }) => `### ${question}\n\n${answer}`),
       '## Links',
       [
+        `- [How to play](${site.url}${HOW_TO_PLAY_PATH}): the rules for beginners, with a practice board for each piece and special move`,
         `- [Source code](${SOURCE_URL}): GPL-3.0-or-later`,
         '- [Gunnie](https://gunnie.nl/): the Dutch Magento and e-commerce agency that made it',
       ].join('\n'),

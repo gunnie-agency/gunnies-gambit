@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   faq,
   faqHtml,
+  howToPlayStructuredData,
   indexNowKeyFile,
   llmsTxt,
   robotsTxt,
   shortName,
   sitemapXml,
-  structuredDataScript,
+  jsonLdScript,
+  structuredData,
   webManifest,
   type Site,
 } from './files';
@@ -26,9 +28,9 @@ describe('shortName', () => {
   });
 });
 
-describe('structuredDataScript', () => {
+describe('structured data', () => {
   it('describes the app as a free web application published by Gunnie', () => {
-    const data = JSON.parse(structuredDataScript(site)) as { '@graph': Record<string, unknown>[] };
+    const data = JSON.parse(jsonLdScript(structuredData(site))) as { '@graph': Record<string, unknown>[] };
     const app = data['@graph'].find((node) => node['@type'] === 'WebApplication');
     expect(app).toMatchObject({
       name: "Gunnie's Gambit",
@@ -40,7 +42,7 @@ describe('structuredDataScript', () => {
   });
 
   it('says the app is not a chess opening and carries the FAQ', () => {
-    const graph = (JSON.parse(structuredDataScript(site)) as { '@graph': Record<string, unknown>[] })['@graph'];
+    const graph = (JSON.parse(jsonLdScript(structuredData(site))) as { '@graph': Record<string, unknown>[] })['@graph'];
     const app = graph.find((node) => node['@type'] === 'WebApplication');
     expect(app?.disambiguatingDescription).toContain('not a chess opening');
     const faqPage = graph.find((node) => node['@type'] === 'FAQPage') as { mainEntity: { name: string }[] };
@@ -48,7 +50,7 @@ describe('structuredDataScript', () => {
   });
 
   it('cannot close its script element', () => {
-    const script = structuredDataScript({ ...site, name: '</script><script>alert(1)</script>' });
+    const script = jsonLdScript(structuredData({ ...site, name: '</script><script>alert(1)</script>' }));
     expect(script).not.toContain('<');
     expect(JSON.stringify(JSON.parse(script))).toContain('</script>');
   });
@@ -109,5 +111,26 @@ describe('indexNowKeyFile', () => {
   it('rejects keys IndexNow would not accept', () => {
     expect(() => indexNowKeyFile('short')).toThrow();
     expect(() => indexNowKeyFile('../../etc/passwd')).toThrow();
+  });
+});
+
+describe('the How to play page', () => {
+  it('is in the sitemap next to the home page', () => {
+    expect(sitemapXml(site)).toContain(
+      '<url><loc>https://chess.example/how-to-play</loc><lastmod>2026-10-12</lastmod></url>',
+    );
+  });
+
+  it('is described as a beginner tutorial on the same website, with a breadcrumb back home', () => {
+    const graph = (howToPlayStructuredData(site) as { '@graph': Array<Record<string, unknown>> })['@graph'];
+    const page = graph.find((node) => node['@id'] === 'https://chess.example/how-to-play#page');
+    expect(page?.['@type']).toEqual(['WebPage', 'LearningResource']);
+    expect(page?.isPartOf).toMatchObject({ '@id': 'https://chess.example/#website' });
+    expect(graph.some((node) => node['@type'] === 'BreadcrumbList')).toBe(true);
+  });
+
+  it('is linked from llms.txt and the FAQ', () => {
+    expect(llmsTxt(site)).toContain('https://chess.example/how-to-play');
+    expect(faq(site).some((q) => q.answer.includes('https://chess.example/how-to-play'))).toBe(true);
   });
 });

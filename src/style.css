@@ -174,6 +174,7 @@ a:hover {
 }
 /* Links inside running text are underlined, so they do not rely on colour alone. */
 .about p a,
+.learn-section p a,
 footer p:not(.made-by) a {
   text-decoration: underline;
   text-decoration-thickness: 1px;
@@ -1061,7 +1062,8 @@ details.tools summary:hover {
   padding-top: 24px;
 }
 .about h2,
-.faq h2 {
+.faq h2,
+.learn-section h2 {
   margin: 6px 0 18px;
   font-size: 1.5rem;
   font-weight: 600;
@@ -1074,12 +1076,14 @@ details.tools summary:hover {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px 36px;
 }
-.about h3 {
+.about h3,
+.learn h3 {
   margin: 0 0 6px;
   font-size: 1rem;
   font-weight: 600;
 }
-.about p {
+.about p,
+.learn-section p {
   margin: 0;
   color: var(--muted);
 }
@@ -1117,11 +1121,152 @@ details.tools summary:hover {
   }
 }
 
+/* Links that look like the buttons: the header's page links and the call to action on How to play. */
+a.lockup {
+  color: inherit;
+  text-decoration: none;
+}
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  font: 500 14px var(--font-sans);
+  color: var(--fg);
+  transition:
+    filter 0.18s,
+    border-color 0.18s;
+}
+.nav-link:hover {
+  border-color: var(--accent-border);
+  color: var(--fg);
+}
+.nav-link.primary {
+  min-height: 44px;
+  padding: 0 20px;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.nav-link.primary:hover {
+  filter: brightness(1.08);
+}
+
+/* How to play: each rule's text on the left and its practice board on the right; one column on phones. */
+.learn-intro {
+  padding-top: 12px;
+  max-width: 75ch;
+}
+.learn h1 {
+  margin: 6px 0 12px;
+  font-size: clamp(2rem, 6vw, 2.75rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.learn .lead {
+  margin: 0 0 16px;
+  font-size: 1.06rem;
+  color: var(--muted);
+}
+.learn-toc ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.92rem;
+}
+.learn-toc a {
+  display: inline-block;
+  padding-block: 8px;
+}
+.learn-section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  scroll-margin-top: 12px;
+}
+.learn-section .section-lead {
+  max-width: 75ch;
+  margin-bottom: 14px;
+}
+.lesson-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px 40px;
+  align-items: start;
+  padding-block: 18px;
+}
+.lesson-row + .lesson-row {
+  border-top: 1px solid var(--line);
+}
+.lesson-text {
+  max-width: 65ch;
+}
+.lesson-text p + h3 {
+  margin-top: 16px;
+}
+.lesson {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lesson .board-box {
+  flex: none;
+  width: 100%;
+}
+.lesson .sq .coord {
+  font-size: 3cqi;
+}
+/* Room for three lines, so a longer reply does not push the page down. */
+.learn-section .lesson-msg {
+  min-height: 4.4em;
+  font-size: 0.92rem;
+  color: var(--fg);
+}
+.lesson-reset {
+  align-self: flex-start;
+}
+.learn-list {
+  display: grid;
+  gap: 6px;
+  max-width: 75ch;
+  margin: 0 0 18px;
+  padding-left: 1.3em;
+  color: var(--muted);
+}
+.learn-section .about-grid {
+  margin-bottom: 4px;
+}
+@media (max-width: 860px) {
+  .lesson-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .lesson {
+    max-width: 420px;
+  }
+}
+
 footer {
   color: var(--muted);
   font-size: 0.82rem;
   border-top: 1px solid var(--line);
   padding-top: 16px;
+}
+.footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin-bottom: 10px;
+}
+.footer-nav a {
+  display: inline-block;
+  padding-block: 6px;
 }
 footer p {
   margin: 0 0 4px;
@@ -1182,6 +1327,15 @@ footer .made-by {
   .chip .dot {
     width: 8px;
     height: 8px;
+  }
+  /* A plain text link on phones, so the logo row keeps its height and the board does not move down. */
+  .brand .nav-link {
+    min-height: 0;
+    padding: 4px 2px;
+    border: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    color: var(--accent-text);
   }
   .lockup .gunnie-logo {
     height: 22px;

@@ -35,6 +35,8 @@ export interface BoardView {
   game: Chess;
   orient: Color;
   selected: Square | null;
+  /** The move to highlight, when it is not the game's own last move. */
+  last?: { from: string; to: string };
 }
 
 /** What every square needs to know about the position, worked out once per render. */
@@ -57,7 +59,7 @@ export function renderBoard(el: HTMLElement, view: BoardView): void {
   const ctx: SquareContext = {
     game,
     selected,
-    last: game.history({ verbose: true }).at(-1),
+    last: view.last ?? game.history({ verbose: true }).at(-1),
     targets,
     checkSquare: game.inCheck() ? game.findPiece({ type: 'k', color: game.turn() })[0] : undefined,
   };

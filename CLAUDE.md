@@ -21,6 +21,12 @@ Don't hardcode either elsewhere.
    winning chances on the Lichess curve (0.1 / 0.2 / 0.3) plus Lichess's mate rules, and the engine's own choice is
    never marked. Results are cached by position in localStorage (last reviewed game only).
 
+**How to play** is a second page (`how-to-play.html`, served as `/how-to-play`, own entry `src/learn/main.ts`, no
+engine): the rules for beginners with a practice board per rule, and how to use the app. Each board is a lesson in
+`src/learn/lessons.ts`: `free` (move one piece around, White always to move), `task` (one move, then feedback until
+reset) or `game` (both sides). The intro text next to each board lives in the HTML so it is indexable and the layout is
+final before the script runs.
+
 ## Fair play (hard constraint)
 
 For practice, bots and review only. Do **not** build anything aimed at using it in games against humans: no reading
@@ -54,14 +60,16 @@ src/
   engine/       UCI worker wrapper, info parsing, search queue, strength levels
   review/       classify.ts (judgements, accuracy), runner.ts (search order, cache), graph.ts (eval graph SVG), view.ts
                 (review panel, owns the move list while open)
+  learn/        How to play page: lessons.ts (positions and feedback), practice.ts (board state), view.ts (DOM)
   ui/           app controller; chrome.ts for the theme switch
   util/         SAN/UCI helpers, move input, score formatting
-  site/         JSON-LD, FAQ, robots.txt, sitemap, manifest, llms.txt, IndexNow key; built from .env by a Vite plugin
+  site/         JSON-LD, FAQ, robots.txt, sitemap, manifest, llms.txt, IndexNow key; partials.ts for the logo symbol
+                and footer shared by both pages; built from .env by a Vite plugin
 public/         _headers, icons, social card, 404 page
 ```
 
 Pure logic (UCI parsing, score conversion, PV to SAN, search queue, move input, HTML escaping, review
-classification, runner and graph) lives in modules without DOM access and has unit tests next to it (`*.test.ts`).
+classification, runner and graph, practice boards) lives in modules without DOM access and has unit tests next to it (`*.test.ts`).
 
 ## Deployment
 
@@ -74,8 +82,8 @@ subsets. Cloudflare allows one `*` per `_headers` rule.
 
 ## Next milestones
 
-1. Game explanation and how to play (user feedback): the rules and how each piece moves, for someone who has just
-   started, and how to use the app itself (levels, hints, the analysis board, the review).
+1. Interactive lessons: short exercises with a goal and feedback (find the fork, mate in two, basic endgames), building
+   on the practice boards of How to play.
 2. Offline support (service worker), import finished games from the Lichess and Chess.com public APIs, Playwright smoke test.
 3. README screenshots, CONTRIBUTING, issue templates.
 
@@ -89,6 +97,7 @@ subsets. Cloudflare allows one `*` per `_headers` rule.
 - **Look and feel of gunnie.nl**: near-black `#0b0d11`, accent `#00a1ff`, white hairline borders, Instrument Sans with
   one Instrument Serif italic accent, JetBrains Mono eyebrows. Dark is the default; a header button switches to the
   light variant. All colours are CSS tokens at the top of `src/style.css`; rules below the token blocks use none of their own.
-- The Gunnie logo is defined once as an SVG `<symbol id="gunnie-logo">` in `index.html` and reused in the header
+- The Gunnie logo is defined once as an SVG `<symbol id="gunnie-logo">` in `src/site/partials.ts`, put into each page
+  in place of `<!-- %LOGO_SYMBOL% -->`, and reused in the header
   lockup (logo + last word of `VITE_APP_NAME`) and the footer. Referencing elements use `viewBox="0 0 493 97"`; the
   symbol carries the real crop, and repeating it on the outer `<svg>` clips the logo.

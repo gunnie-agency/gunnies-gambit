@@ -18,6 +18,8 @@ position. Everything runs in your browser: there is no backend, no account and n
 - **Review** a game when it ends, or any game in Analyse (including an imported PGN). Every move is checked and
   marked as an inaccuracy (?!), mistake (?) or blunder (??), with the better move as an arrow, an eval graph and an
   accuracy per side. Step through with the buttons, the arrow keys or the clickable move list.
+- **How to play**: the rules for beginners, from how each piece moves to castling, en passant and promotion, with a
+  small practice board for every rule, and a guide to the app itself.
 - Tap a piece and then its square, or tap only the square when just one piece can go there. Or type moves in SAN
   (`Nf3`, `exd5`, `O-O`) or UCI (`e7e8q`).
 - FEN and PGN import and export. The current game is remembered in your browser.
@@ -51,10 +53,11 @@ parsing and score conversion in DOM-free modules covered by unit tests.
 src/
   engine/   UCI worker wrapper, info parsing, search queue, strength levels
   review/   move classification, review runner, eval graph, review panel
+  learn/    the How to play page: lessons, practice board state, board view
   board/    board rendering, arrows, promotion picker
   ui/       app controller, theme switch
   util/     SAN/UCI helpers, move input, score formatting
-  site/     structured data, robots.txt, sitemap, web app manifest, llms.txt
+  site/     structured data, robots.txt, sitemap, web app manifest, llms.txt, shared logo and footer
   state.ts  settings and game persistence (localStorage)
 ```
 

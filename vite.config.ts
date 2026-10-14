@@ -1,18 +1,22 @@
 /// <reference types="vitest/config" />
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { basename, resolve } from 'node:path';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import {
   faqHtml,
+  howToPlayStructuredData,
   indexNowKeyFile,
+  jsonLdScript,
   llmsTxt,
   robotsTxt,
   shortName,
   sitemapXml,
-  structuredDataScript,
+  structuredData,
   webManifest,
   type Site,
 } from './src/site/files.ts';
+import { footerHtml, logoSymbol } from './src/site/partials.ts';
 
 const stockfish = JSON.parse(readFileSync('node_modules/stockfish/package.json', 'utf8')) as { version: string };
 
@@ -77,12 +81,23 @@ function lastCommitDate(): string | undefined {
 }
 
 const FAQ_PLACEHOLDER = '<!-- %FAQ% -->';
+const LOGO_PLACEHOLDER = '<!-- %LOGO_SYMBOL% -->';
+const FOOTER_PLACEHOLDER = '<!-- %FOOTER% -->';
+
+/** The HTML pages, by file name. */
+const PAGES = { 'index.html': 'index', 'how-to-play.html': 'howToPlay' } as const;
+
+/** Puts a page's placeholder in place, and fails the build when the page lost it. */
+function fill(html: string, placeholder: string, markup: string, page: string): string {
+  if (!html.includes(placeholder)) throw new Error(`site-files: ${placeholder} missing from ${page}`);
+  return html.replace(placeholder, markup);
+}
 
 /**
- * Fills in %APP_SHORT_NAME% (the header's accent word, so the header has its final size at first paint) and the FAQ,
- * adds the structured data to the page head and generates robots.txt, sitemap.xml, the web app manifest, llms.txt
- * and the IndexNow key file from `.env` (see src/site/files.ts). The files are emitted into the build and served by
- * the dev server.
+ * Fills in %APP_SHORT_NAME% (the header's accent word, so the header has its final size at first paint), the shared
+ * logo symbol and footer, and the FAQ on the home page; adds each page's structured data to its head; and generates
+ * robots.txt, sitemap.xml, the web app manifest, llms.txt and the IndexNow key file from `.env` (see
+ * src/site/files.ts). The files are emitted into the build and served by the dev server.
  */
 function siteFiles(site: Site, indexNowKey: string | undefined): Plugin {
   const files: Record<string, { type: string; body: string }> = {
@@ -97,17 +112,19 @@ function siteFiles(site: Site, indexNowKey: string | undefined): Plugin {
   }
   return {
     name: 'site-files',
-    transformIndexHtml(html) {
-      if (!html.includes(FAQ_PLACEHOLDER)) throw new Error(`site-files: ${FAQ_PLACEHOLDER} missing from index.html`);
+    transformIndexHtml(html, ctx) {
+      const page = basename(ctx.filename);
+      if (!(page in PAGES)) throw new Error(`site-files: unknown page ${page}; add it to PAGES`);
+      let out = html.replaceAll('%APP_SHORT_NAME%', shortName(site.name));
+      out = fill(out, LOGO_PLACEHOLDER, logoSymbol(), page);
+      out = fill(out, FOOTER_PLACEHOLDER, footerHtml(site.name), page);
+      const isHome = PAGES[page as keyof typeof PAGES] === 'index';
+      if (isHome) out = fill(out, FAQ_PLACEHOLDER, faqHtml(site), page);
+      const data = isHome ? structuredData(site) : howToPlayStructuredData(site);
       return {
-        html: html.replaceAll('%APP_SHORT_NAME%', shortName(site.name)).replace(FAQ_PLACEHOLDER, faqHtml(site)),
+        html: out,
         tags: [
-          {
-            tag: 'script',
-            attrs: { type: 'application/ld+json' },
-            children: structuredDataScript(site),
-            injectTo: 'head',
-          },
+          { tag: 'script', attrs: { type: 'application/ld+json' }, children: jsonLdScript(data), injectTo: 'head' },
         ],
       };
     },
@@ -143,6 +160,13 @@ export default defineConfig(({ mode }) => {
       __STOCKFISH_FILE__: JSON.stringify(`stockfish/stockfish-${stockfish.version}-lite-single.js`),
     },
     plugins: [siteFiles(site, env.INDEXNOW_KEY), preloadBodyFont(), cloudflareAnalytics(env.VITE_CF_ANALYTICS_TOKEN)],
+    build: {
+      rollupOptions: {
+        input: Object.fromEntries(
+          Object.entries(PAGES).map(([file, name]) => [name, resolve(import.meta.dirname, file)]),
+        ),
+      },
+    },
     test: {
       include: ['src/**/*.test.ts'],
     },

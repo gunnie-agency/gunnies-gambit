@@ -3,8 +3,11 @@
 //
 //   node --env-file=.env scripts/indexnow.mjs
 //
-// It waits until the key file is live, because IndexNow fetches it to check the site is ours. A failed ping is a
-// warning, not an error: the deploy itself has already succeeded.
+// It submits every URL in the built sitemap, so a new page is announced without changing this script. It waits until
+// the key file is live, because IndexNow fetches it to check the site is ours. A failed ping is a warning, not an
+// error: the deploy itself has already succeeded.
+
+import { readFileSync } from 'node:fs';
 
 const site = process.env.VITE_SITE_URL;
 const key = process.env.INDEXNOW_KEY;
@@ -15,6 +18,17 @@ if (!site || !key) {
 }
 
 const keyLocation = `${site}/${key}.txt`;
+
+/** The pages of the deployed build, from dist/sitemap.xml; the home page alone if there is no build to read. */
+function sitemapUrls() {
+  try {
+    const urls = [...readFileSync('dist/sitemap.xml', 'utf8').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    if (urls.length) return urls;
+  } catch {
+    // No build here, e.g. a manual run from a fresh checkout.
+  }
+  return [`${site}/`];
+}
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function keyFileIsLive() {
@@ -31,11 +45,12 @@ if (!(await keyFileIsLive())) {
   process.exit(0);
 }
 
+const urlList = sitemapUrls();
 const res = await fetch('https://api.indexnow.org/indexnow', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json; charset=utf-8' },
-  body: JSON.stringify({ host: new URL(site).host, key, keyLocation, urlList: [`${site}/`] }),
+  body: JSON.stringify({ host: new URL(site).host, key, keyLocation, urlList }),
 });
 
-if (res.ok) console.log(`indexnow: ${res.status}, submitted ${site}/`);
+if (res.ok) console.log(`indexnow: ${res.status}, submitted ${urlList.join(', ')}`);
 else console.log(`::warning::IndexNow answered ${res.status}: ${(await res.text()).slice(0, 200)}`);
