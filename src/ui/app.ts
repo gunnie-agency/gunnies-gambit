@@ -91,6 +91,8 @@ export class App {
   private startFen: string;
   private settings: Settings;
   private selected: Square | null = null;
+  /** The square of the pawn whose promotion piece is being asked, so focus can return there on Escape. */
+  private promotionFrom: Square | null = null;
   private moveMessage: { text: string; err: boolean } | null = null;
 
   /** Analysis of the current position (best move, eval, lines). */
@@ -305,6 +307,7 @@ export class App {
     this.selected = null;
     this.restartAnalysis();
     this.hintFen = null;
+    this.promotionFrom = null;
     closePromotion(this.el.promo);
     saveGame(this.game, this.startFen, this.settings);
     this.syncEngines();
@@ -327,7 +330,9 @@ export class App {
       this.playMove({ from, to });
       return;
     }
+    this.promotionFrom = from;
     askPromotion(this.el.promo, this.game.turn(), (piece) => {
+      this.promotionFrom = null;
       if (piece) this.playMove({ from, to, promotion: piece });
       else {
         this.selected = null;
@@ -556,12 +561,13 @@ export class App {
 
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      const selected = this.selected;
-      const promoOpen = !el.promo.hidden;
-      if (promoOpen) closePromotion(el.promo);
+      // A destination-only tap opens the picker without a selected square, so focus goes back to the pawn.
+      const pawn = el.promo.hidden ? null : this.promotionFrom;
+      closePromotion(el.promo);
+      this.promotionFrom = null;
       this.selected = null;
       this.renderBoardOnly();
-      if (promoOpen && selected) this.focusSquare(selected);
+      if (pawn) this.focusSquare(pawn);
     });
   }
 
