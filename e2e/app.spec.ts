@@ -68,6 +68,17 @@ test.describe('the move list', () => {
     await expect(page.locator('#liveBtn')).toBeHidden();
   });
 
+  test('a review completes and keeps focus on a move picked with the keyboard', async ({ page }) => {
+    await page.locator('#reviewBtn').click();
+    const moves = page.locator('#moves');
+    await moves.getByRole('button', { name: /^1… e5/ }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#reviewProgressText')).toHaveText('Every move analysed.', { timeout: 30_000 });
+    const current = moves.locator('[aria-current="true"]');
+    await expect(current).toHaveAccessibleName(/^1… e5/);
+    await expect(current).toBeFocused();
+  });
+
   test('downloads the game as PGN', async ({ page }) => {
     await page.locator('details.tools summary').click();
     const [download] = await Promise.all([page.waitForEvent('download'), page.locator('#downloadPgn').click()]);
