@@ -3,6 +3,8 @@ node_modules/
 dist/
 coverage/
 .wrangler/
+test-results/
+playwright-report/
 
 # Copied from node_modules on install (scripts/copy-assets.mjs)
 public/stockfish/
