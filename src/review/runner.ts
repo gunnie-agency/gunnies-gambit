@@ -46,9 +46,12 @@ export function gamePositions(startFen: string, moves: readonly string[]): GameP
   return positions;
 }
 
-/** Cache key: the same position searched with the same limit gives the same answer. */
+/**
+ * Cache key: the same position searched with the same limit gives the same answer. The `clear` prefix marks results
+ * searched with {@link REVIEW_OPTIONS}; results stored before that, keyed without it, are never used again.
+ */
 export function cacheKey(go: string, fen: string): string {
-  return `${go}|${fen}`;
+  return `clear|${go}|${fen}`;
 }
 
 /**

@@ -98,6 +98,12 @@ describe('ReviewRunner', () => {
     expect(cache.size).toBe(2);
   });
 
+  it('does not use results stored before every search cleared the hash', () => {
+    const old = { score: { kind: 'cp' as const, value: 20 }, best: 'd2d4' };
+    const t = setup(['e2e4'], new Map([[`${GO}|${DEFAULT_POSITION}`, old]]));
+    expect(t.runner.done).toBe(0);
+  });
+
   it('ignores output for other jobs and stops on cancel', () => {
     const t = setup(['e2e4', 'e7e5']);
     t.runner.start();
