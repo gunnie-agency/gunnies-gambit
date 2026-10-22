@@ -10,9 +10,14 @@ updates:
     ignore:
       - dependency-name: stockfish
       - dependency-name: chess.js
+      # Follows the Node version in .nvmrc and package.json engines, not the newest release.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+    # Minor and patch updates come together; a major version gets a pull request of its own.
     groups:
       npm:
         patterns: ['*']
+        update-types: [minor, patch]
   - package-ecosystem: github-actions
     directory: /
     schedule:
