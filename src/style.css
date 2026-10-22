@@ -41,7 +41,7 @@
   /* Ink */
   --fg: #e7eaef;
   --muted: rgba(231, 234, 239, 0.62);
-  --placeholder: rgba(231, 234, 239, 0.38);
+  --placeholder: rgba(231, 234, 239, 0.55);
 
   /* Accent (Gunnie blue) and the warm second accent */
   --accent: #00a1ff;
@@ -109,7 +109,7 @@
   --surface-solid: #ffffff;
   --fg: #0b0d11;
   --muted: rgba(11, 13, 17, 0.62);
-  --placeholder: rgba(11, 13, 17, 0.4);
+  --placeholder: rgba(11, 13, 17, 0.58);
   --accent: #0077c2;
   --accent-text: #0069ad;
   --accent-hover: #004f82;
