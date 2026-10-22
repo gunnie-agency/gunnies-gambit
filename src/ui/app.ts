@@ -257,11 +257,16 @@ export class App {
     }
   }
 
-  /** Forgets the running analysis so the next sync starts a fresh search (e.g. after a think-time change). */
+  /**
+   * Forgets the analysis so the next sync starts a fresh search, also when the position is the same as before
+   * (a new game from the start position, a think-time change).
+   */
   private restartAnalysis(): void {
     this.lines = [];
     this.analysisDone = false;
+    if (this.analysisFen === null) return;
     this.analysisFen = null;
+    this.analysis.cancel();
   }
 
   private onAnalysisInfo(job: SearchJob, info: EngineInfo): void {
@@ -298,8 +303,7 @@ export class App {
     this.review.close();
     clearTimeout(this.replyTimer);
     this.selected = null;
-    this.lines = [];
-    this.analysisDone = false;
+    this.restartAnalysis();
     this.hintFen = null;
     closePromotion(this.el.promo);
     saveGame(this.game, this.startFen, this.settings);
