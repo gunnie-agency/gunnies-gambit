@@ -6,8 +6,9 @@ import type { Chess, Move, PieceSymbol } from 'chess.js';
  * - `free`: White is to move again after every move, so the reader can keep moving a piece around.
  * - `task`: the board waits for one White move, says what it did, and stays put until it is reset.
  * - `game`: both sides take turns, as in a real game.
+ * - `puzzle`: the reader plays White's moves of `solution` and the board answers with Black's, until it is solved.
  */
-export type LessonMode = 'free' | 'task' | 'game';
+export type LessonMode = 'free' | 'task' | 'game' | 'puzzle';
 
 /** One practice board on the How to play page. Its intro text lives in the page, next to the board. */
 export interface Lesson {
@@ -19,6 +20,10 @@ export interface Lesson {
   setup?: string[];
   /** What to say about the reader's move. Without it the board names the move. */
   respond?(move: Move, after: Chess): string;
+  /** A puzzle's moves in UCI, White's and Black's in turn. Any checkmate also solves it. */
+  solution?: readonly string[];
+  /** What to say once a puzzle is solved. */
+  solved?: string;
 }
 
 export const PIECE_NAME: Record<PieceSymbol, string> = {
@@ -108,6 +113,41 @@ export const LESSONS: readonly Lesson[] = [
         return `Your pawn became a ${PIECE_NAME[move.promotion]}. Usually a queen is best, but now and then another piece is the better choice.`;
       return `The king moved, and the pawn is still waiting. ${TRY_AGAIN}`;
     },
+  },
+  {
+    id: 'knight-fork',
+    mode: 'puzzle',
+    fen: '4k3/5ppp/q7/3N4/8/8/5PPP/6K1 w - - 0 1',
+    solution: ['d5c7', 'e8d8', 'c7a6'],
+    solved: 'Solved. The knight checked the king and attacked the queen at once, so the queen was lost.',
+  },
+  {
+    id: 'queen-fork',
+    mode: 'puzzle',
+    fen: 'r5k1/p5pp/8/8/8/8/5PPP/3Q2K1 w - - 0 1',
+    solution: ['d1d5', 'g8h8', 'd5a8'],
+    solved: 'Solved. The queen checked along one diagonal and hit the rook along the other.',
+  },
+  {
+    id: 'pin',
+    mode: 'puzzle',
+    fen: '4k3/5ppp/4q3/8/8/8/5PPP/R4K2 w - - 0 1',
+    solution: ['a1e1', 'e8d8', 'e1e6'],
+    solved: 'Solved. The queen could not leave the line to its king, so your rook took it.',
+  },
+  {
+    id: 'back-rank',
+    mode: 'puzzle',
+    fen: '2r3k1/pp3ppp/8/8/8/8/3R1PPP/3R2K1 w - - 0 1',
+    solution: ['d2d8', 'c8d8', 'd1d8'],
+    solved: 'Checkmate. The first rook pulled the defender away, and the second mates on the back row.',
+  },
+  {
+    id: 'smothered',
+    mode: 'puzzle',
+    fen: '5r1k/pp4pp/7N/8/2Q5/8/PP3PPP/6K1 w - - 0 1',
+    solution: ['c4g8', 'f8g8', 'h6f7'],
+    solved: 'Checkmate. The queen lured the rook onto g8, and the king is smothered by its own pieces.',
   },
 ];
 

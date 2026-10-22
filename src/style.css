@@ -1353,3 +1353,22 @@ footer .made-by {
     font-size: 1.2rem;
   }
 }
+
+/* How to play, puzzles and endgames: the buttons under a board in one row, and a ring on the piece a hint points at. */
+.lesson-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.lesson-actions .lesson-reset {
+  align-self: auto;
+}
+.sq.hint::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  box-shadow: inset 0 0 0 max(3px, 0.9cqi) var(--accent);
+  pointer-events: none;
+}

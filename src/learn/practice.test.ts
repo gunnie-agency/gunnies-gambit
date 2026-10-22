@@ -1,6 +1,6 @@
 import type { Square } from 'chess.js';
 import { describe, expect, it } from 'vitest';
-import { LESSONS, lessonById } from './lessons';
+import { LESSONS, lessonById, type Lesson } from './lessons';
 import { Practice } from './practice';
 
 function practice(id: string): Practice {
@@ -131,5 +131,65 @@ describe('Practice', () => {
     p.play('e7', 'e8', 'n');
     expect(p.game.get('e8')?.type).toBe('n');
     expect(p.message).toMatch(/became a knight/);
+  });
+
+  it('takes back a wrong puzzle move and lets the reader try again', () => {
+    const p = practice('knight-fork');
+    tapMove(p, 'd5', 'b6');
+    expect(p.message).toBe('Not quite: Nb6 is not the move here. Try again.');
+    expect(p.game.get('d5')?.type).toBe('n');
+    expect(p.game.turn()).toBe('w');
+    expect(p.last).toBeUndefined();
+    expect(p.done).toBe(false);
+  });
+
+  it('answers a right puzzle move with the scripted reply, then accepts the solution', () => {
+    const p = practice('knight-fork');
+    tapMove(p, 'd5', 'c7');
+    expect(p.waiting).toBe(true);
+    expect(p.message).toMatch(/^Nc7\+\. Good/);
+    p.tap('g1');
+    expect(p.selected).toBeNull();
+    p.reply();
+    expect(p.waiting).toBe(false);
+    expect(p.game.get('d8')?.type).toBe('k');
+    expect(p.last).toEqual({ from: 'e8', to: 'd8' });
+    expect(p.message).toBe('Black answered Kd8. Your move.');
+    tapMove(p, 'c7', 'a6');
+    expect(p.done).toBe(true);
+    expect(p.message).toMatch(/^Solved\./);
+    p.reset();
+    expect(p.game.get('d5')?.type).toBe('n');
+    expect(p.done).toBe(false);
+  });
+
+  it('points a hint at the piece to move, and clears it on the next move', () => {
+    const p = practice('smothered');
+    p.showHint();
+    expect(p.hint).toBe('c4');
+    expect(p.message).toBe('Hint: move your queen.');
+    tapMove(p, 'c4', 'g8');
+    expect(p.hint).toBeNull();
+    p.reply();
+    p.showHint();
+    expect(p.hint).toBe('h6');
+    tapMove(p, 'h6', 'f7');
+    expect(p.game.isCheckmate()).toBe(true);
+    expect(p.done).toBe(true);
+    p.showHint();
+    expect(p.hint).toBeNull();
+  });
+
+  it('accepts any checkmate in a puzzle, not only the planned one', () => {
+    const lesson: Lesson = {
+      id: 'two-mates',
+      mode: 'puzzle',
+      fen: '6k1/5ppp/8/8/8/8/5PPP/R2R2K1 w - - 0 1',
+      solution: ['d1d8'],
+    };
+    const p = new Practice(lesson);
+    tapMove(p, 'a1', 'a8');
+    expect(p.done).toBe(true);
+    expect(p.message).toBe('Solved.');
   });
 });

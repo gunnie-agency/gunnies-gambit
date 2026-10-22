@@ -69,6 +69,7 @@
               <li><a href="#check">Check, checkmate and stalemate</a></li>
               <li><a href="#special">Three special moves</a></li>
               <li><a href="#draws">Other ways to draw</a></li>
+              <li><a href="#tactics">First tactics</a></li>
               <li><a href="#app">Using %VITE_APP_NAME%</a></li>
               <li><a href="#start">Where to start</a></li>
             </ol>
@@ -373,6 +374,126 @@
             </li>
           </ul>
           <p class="section-lead">%VITE_APP_NAME% spots the last three for you and ends the game.</p>
+        </section>
+
+        <section class="learn-section" id="tactics" aria-labelledby="tacticsTitle">
+          <h2 id="tacticsTitle">First tactics</h2>
+          <p class="section-lead">
+            A tactic is a short sequence of moves that wins material or checkmates, because the other side cannot answer
+            every threat at once. Each board below is a puzzle with White to move. Play your move and the board answers
+            for Black. A wrong move is taken back, so you can try again; Hint shows which piece to move.
+          </p>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>The knight fork</h3>
+              <p>
+                A fork is one piece attacking two at once. The knight is made for it: a knight's check cannot be
+                blocked, and the pieces it attacks cannot hit it back unless they are knights too. Look for a square
+                from which the knight checks the king and hits something valuable at the same time.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="knight-fork">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: knight fork puzzle"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">White to move and win the black queen.</p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-hint" type="button">Hint</button>
+                <button class="btn small lesson-reset" type="button">Start again</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>The queen fork</h3>
+              <p>
+                The queen can fork too, along a row, a column and two diagonals at the same time. A check is the
+                strongest half of a fork, because the other side has to deal with it first and has no time to save the
+                second piece.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="queen-fork">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: queen fork puzzle"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                White to move and win material. An undefended piece on the edge is a target.
+              </p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-hint" type="button">Hint</button>
+                <button class="btn small lesson-reset" type="button">Start again</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>The pin</h3>
+              <p>
+                A piece is pinned when it stands on a line between an attacker and a more valuable piece behind it. When
+                that piece behind is the king, the pinned piece may not move off the line at all, because that would
+                expose its king to check.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="pin">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: pin puzzle"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">White to move and win the black queen.</p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-hint" type="button">Hint</button>
+                <button class="btn small lesson-reset" type="button">Start again</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>Back-rank mate in two</h3>
+              <p>
+                A king behind its own unmoved pawns has no escape square. A rook or queen that reaches the back row then
+                gives checkmate, unless a defender covers that row. In this puzzle you first deal with the defender,
+                then mate on your second move.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="back-rank">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: back-rank mate in two"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">White to move and checkmate in two moves.</p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-hint" type="button">Hint</button>
+                <button class="btn small lesson-reset" type="button">Start again</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>Smothered mate in two</h3>
+              <p>
+                A smothered mate is a knight's check against a king that is walled in by its own pieces. It often starts
+                with a sacrifice that forces one more defender into the last free square next to the king.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="smothered">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: smothered mate in two"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">White to move and checkmate in two moves.</p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-hint" type="button">Hint</button>
+                <button class="btn small lesson-reset" type="button">Start again</button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section class="learn-section" id="app" aria-labelledby="appTitle">

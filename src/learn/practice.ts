@@ -1,5 +1,5 @@
-import { Chess, type Square } from 'chess.js';
-import type { PromotionPiece } from '../util/uci';
+import { Chess, type Move, type Square } from 'chess.js';
+import { parseUciMove, toUci, type PromotionPiece, type UciMove } from '../util/uci';
 import { PIECE_NAME, type Lesson } from './lessons';
 
 /** A move the reader has chosen but that still needs a promotion piece. */
@@ -28,8 +28,14 @@ export class Practice {
   last: { from: Square; to: Square } | undefined;
   /** What the board says after a move; null while the page's intro text applies. */
   message: string | null = null;
-  /** A task lesson after its move: the board takes no input until it is reset. */
+  /** A task lesson after its move, or a solved puzzle: the board takes no input until it is reset. */
   done = false;
+  /** A puzzle waiting for Black's scripted reply, which `reply` plays. */
+  waiting = false;
+  /** The square of the piece a puzzle's hint points at. */
+  hint: Square | null = null;
+  /** How far into a puzzle's solution the board is. */
+  private ply = 0;
 
   constructor(readonly lesson: Lesson) {
     this.reset();
@@ -44,6 +50,9 @@ export class Practice {
     this.selected = null;
     this.message = null;
     this.done = false;
+    this.waiting = false;
+    this.hint = null;
+    this.ply = 0;
   }
 
   /**
@@ -51,7 +60,7 @@ export class Practice {
    * Returns the move when it is a promotion, so the caller can ask which piece; `play` then finishes it.
    */
   tap(square: Square): PendingMove | null {
-    if (this.done) return null;
+    if (this.done || this.waiting) return null;
     const from = this.selected;
     if (from && from !== square) {
       const moves = this.game.moves({ square: from, verbose: true }).filter((m) => m.to === square);
@@ -69,6 +78,10 @@ export class Practice {
   play(from: Square, to: Square, promotion?: PromotionPiece): void {
     const move = this.game.move({ from, to, promotion });
     this.selected = null;
+    if (this.lesson.mode === 'puzzle') {
+      this.judge(move);
+      return;
+    }
     this.last = { from, to };
     this.message = this.lesson.respond?.(move, this.game) ?? null;
     const { mode } = this.lesson;
@@ -78,6 +91,51 @@ export class Practice {
       this.game = new Chess(whiteToMove(this.game.fen()), { skipValidation: true });
     }
     if (mode === 'game') this.message ??= this.gameMessage(move.san);
+  }
+
+  /** Points at the piece the puzzle's next move is made with. */
+  showHint(): void {
+    const next = this.nextMove();
+    if (this.done || this.waiting || !next) return;
+    this.hint = next.from;
+    this.selected = null;
+    const piece = this.game.get(next.from);
+    this.message = piece ? `Hint: move your ${PIECE_NAME[piece.type]}.` : null;
+  }
+
+  /** Plays Black's scripted answer in a puzzle, once the reader's move has been accepted. */
+  reply(): void {
+    const next = this.nextMove();
+    if (!this.waiting || !next) return;
+    const move = this.game.move(next);
+    this.ply++;
+    this.waiting = false;
+    this.last = { from: move.from, to: move.to };
+    this.message = `Black answered ${move.san}. Your move.`;
+  }
+
+  private nextMove(): UciMove | null {
+    return parseUciMove(this.lesson.solution?.[this.ply] ?? '');
+  }
+
+  /** A puzzle move is right when it is the solution's move or checkmates; a wrong one is taken back at once. */
+  private judge(move: Move): void {
+    const solution = this.lesson.solution ?? [];
+    this.hint = null;
+    if (!this.game.isCheckmate() && toUci(move) !== solution[this.ply]) {
+      this.game.undo();
+      this.message = `Not quite: ${move.san} is not the move here. Try again.`;
+      return;
+    }
+    this.ply++;
+    this.last = { from: move.from, to: move.to };
+    if (this.game.isCheckmate() || this.ply >= solution.length) {
+      this.done = true;
+      this.message = this.lesson.solved ?? 'Solved.';
+    } else {
+      this.waiting = true;
+      this.message = `${move.san}. Good, now see what Black does.`;
+    }
   }
 
   private gameMessage(san: string): string {
