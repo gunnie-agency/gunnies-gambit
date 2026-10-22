@@ -1,6 +1,6 @@
 import { Chess, DEFAULT_POSITION, type Color, type Square } from 'chess.js';
 import { askPromotion, closePromotion, enableArrowKeys, renderArrows, renderBoard, type Arrow } from '../board/board';
-import { Engine, STOCKFISH_URL } from '../engine/engine';
+import { Engine, STOCKFISH_URL, type EngineStatus } from '../engine/engine';
 import type { EngineInfo } from '../engine/info';
 import { LEVELS, levelById } from '../engine/levels';
 import type { SearchJob } from '../engine/queue';
@@ -109,6 +109,8 @@ export class App {
 
   private readonly analysis: Engine;
   private readonly opponent: Engine<MoveJob>;
+  /** Engines are started on first use, so a worker that is never needed never loads. */
+  private readonly started = { analysis: false, opponent: false };
   private readonly review: Review;
 
   constructor() {
@@ -158,9 +160,8 @@ export class App {
 
   start(): void {
     this.readPracticeLink();
-    this.analysis.start();
-    if (this.settings.mode === 'play') this.opponent.start();
     this.positionChanged();
+    this.warmOpponent();
   }
 
   /** Opens a finished game in Analyse with the user's side set, optionally starting its review. False if unreadable. */
@@ -233,12 +234,28 @@ export class App {
 
   // ---------- engines ----------
 
+  private startEngine(name: keyof App['started']): void {
+    this.started[name] = true;
+    this[name].start();
+  }
+
+  /**
+   * In play mode, loads the opponent before its first move is due. Waits while the analysis engine is still loading,
+   * so the page never compiles two engines at once without needing both.
+   */
+  private warmOpponent(): void {
+    if (this.settings.mode !== 'play' || this.started.opponent) return;
+    if (this.started.analysis && this.analysis.status === 'loading') return;
+    this.startEngine('opponent');
+  }
+
   private syncEngines(): void {
     const fen = this.fen;
     if (this.showAnalysis) {
       if (this.analysisFen !== fen) {
         this.analysisFen = fen;
         const ms = this.settings.mode === 'analysis' ? this.settings.think : PLAY_THINK_MS;
+        this.startEngine('analysis');
         this.analysis.request({ fen, go: `movetime ${ms}` });
       }
     } else if (this.analysisFen !== null) {
@@ -251,7 +268,7 @@ export class App {
         this.opponentFen = fen;
         clearTimeout(this.replyTimer);
         const level = levelById(this.settings.level);
-        this.opponent.start();
+        this.startEngine('opponent');
         this.opponent.request({ fen, go: level.go, options: level.options, requestedAt: Date.now() });
       }
     } else if (this.opponentFen !== null) {
@@ -297,6 +314,7 @@ export class App {
   }
 
   private onEngineStatus(): void {
+    this.warmOpponent();
     this.renderChip();
     this.scheduleRender();
   }
@@ -528,8 +546,8 @@ export class App {
       this.selected = null;
       this.hintFen = null;
       this.restartAnalysis();
-      if (mode === 'play') this.opponent.start();
       this.updateSettings({ mode });
+      this.warmOpponent();
     });
     seg(el.sideSeg, (v) => {
       const side = v as Color;
@@ -580,8 +598,8 @@ export class App {
 
     window.addEventListener('hashchange', () => {
       if (!this.readPracticeLink()) return;
-      this.opponent.start();
       this.positionChanged();
+      this.warmOpponent();
     });
 
     document.addEventListener('keydown', (e) => {
@@ -872,14 +890,16 @@ export class App {
   }
 
   private renderChip(): void {
-    const a = this.analysis.status;
-    const thinking = a === 'thinking' || this.opponent.status === 'thinking';
+    const statuses: EngineStatus[] = [];
+    if (this.started.analysis) statuses.push(this.analysis.status);
+    if (this.started.opponent) statuses.push(this.opponent.status);
+    const thinking = statuses.includes('thinking');
     let cls = 'chip';
     let text: string;
-    if (a === 'failed') {
+    if (statuses.includes('failed')) {
       cls += ' failed';
       text = 'Engine failed to load';
-    } else if (a === 'loading') {
+    } else if (statuses.includes('loading')) {
       text = 'Loading engine…';
     } else {
       cls += thinking ? ' thinking' : ' ready';
