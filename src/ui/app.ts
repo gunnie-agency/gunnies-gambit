@@ -567,8 +567,12 @@ export class App {
       them: mode === 'play' ? 'The computer' : 'Your opponent',
     });
     this.selected = null;
-    this.view = null;
-    this.viewGame = null;
+    if (this.view !== null) {
+      // The review closes on the live position: forget the lines of the earlier one.
+      this.view = null;
+      this.viewGame = null;
+      this.restartAnalysis();
+    }
     this.syncEngines();
     this.render();
     document.getElementById('review')?.focus();
