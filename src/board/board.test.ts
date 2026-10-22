@@ -1,6 +1,6 @@
 import { Chess } from 'chess.js';
 import { describe, expect, it } from 'vitest';
-import { boardHtml, squareColor } from './board';
+import { boardHtml, defaultTabStop, squareColor } from './board';
 
 describe('squareColor', () => {
   it('colours the board with a dark square at a1 and a light one at h1', () => {
@@ -48,5 +48,37 @@ describe('boardHtml', () => {
     expect(html).toContain('class="sq light last target capture" data-sq="d5" aria-label="d5, black pawn, legal move"');
     expect(html).toContain('class="sq dark target" data-sq="e5" aria-label="e5, legal move"');
     expect(html).toContain('class="sq light last" data-sq="d7"');
+  });
+});
+
+/** The squares in the tab order. */
+function tabStops(html: string): string[] {
+  return [...html.matchAll(/data-sq="(\w\d)"[^>]*tabindex="0"/g)].map((m) => m[1] ?? '');
+}
+
+describe('tab order', () => {
+  it('puts one square of the board in the tab order and the other 63 out of it', () => {
+    const html = boardHtml({ game: new Chess(), orient: 'w', selected: null });
+    expect(tabStops(html)).toEqual(['e1']);
+    expect(html.match(/tabindex="-1"/g)).toHaveLength(63);
+  });
+
+  it('keeps the tab stop on the square it is given', () => {
+    expect(tabStops(boardHtml({ game: new Chess(), orient: 'b', selected: null }, 'c6'))).toEqual(['c6']);
+  });
+
+  it('defaults to the selected piece, else the king of the side to move', () => {
+    const game = new Chess();
+    expect(defaultTabStop({ game, orient: 'w', selected: 'g1' })).toBe('g1');
+    game.move('e4');
+    expect(defaultTabStop({ game, orient: 'w', selected: null })).toBe('e8');
+  });
+
+  it('falls back to a piece of the side to move, then to the bottom-left corner', () => {
+    const rook = new Chess('8/8/8/8/3R4/8/8/8 w - - 0 1', { skipValidation: true });
+    expect(defaultTabStop({ game: rook, orient: 'w', selected: null })).toBe('d4');
+    const empty = new Chess('8/8/8/8/8/8/8/8 w - - 0 1', { skipValidation: true });
+    expect(defaultTabStop({ game: empty, orient: 'w', selected: null })).toBe('a1');
+    expect(defaultTabStop({ game: empty, orient: 'b', selected: null })).toBe('h8');
   });
 });

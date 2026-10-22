@@ -48,13 +48,32 @@ interface SquareContext {
   /** Legal destinations of the selected piece: true for a capture. */
   targets: Map<string, boolean>;
   checkSquare: Square | undefined;
+  /** The one square in the tab order; the arrow keys reach the others. */
+  tabStop: Square;
+}
+
+/**
+ * The square that holds the board's tab stop when focus is elsewhere: the selected piece, else the king of the side to
+ * move, else one of its pieces (a free practice board has no king), else the bottom-left corner.
+ */
+export function defaultTabStop(view: BoardView): Square {
+  const { game, orient, selected } = view;
+  if (selected) return selected;
+  const turn = game.turn();
+  const king = game.findPiece({ type: 'k', color: turn })[0];
+  const piece = game
+    .board()
+    .flat()
+    .find((p) => p?.color === turn);
+  return king ?? piece?.square ?? (orient === 'w' ? 'a1' : 'h8');
 }
 
 /**
  * The 64 square buttons for a position, top-left first. Pure, so the build can put the start position into the HTML
- * and the pieces show before the script runs.
+ * and the pieces show before the script runs. Only `tabStop` is in the tab order (a roving tabindex), so Tab passes a
+ * board in one step instead of 64.
  */
-export function boardHtml(view: BoardView): string {
+export function boardHtml(view: BoardView, tabStop: Square = defaultTabStop(view)): string {
   const { game, orient, selected } = view;
   const targets = new Map<string, boolean>();
   if (selected) {
@@ -66,6 +85,7 @@ export function boardHtml(view: BoardView): string {
     last: view.last ?? game.history({ verbose: true }).at(-1),
     targets,
     checkSquare: game.inCheck() ? game.findPiece({ type: 'k', color: game.turn() })[0] : undefined,
+    tabStop,
   };
 
   let html = '';
@@ -77,14 +97,16 @@ export function boardHtml(view: BoardView): string {
 
 export function renderBoard(el: HTMLElement, view: BoardView): void {
   const focused = el.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.sq : undefined;
-  el.innerHTML = boardHtml(view);
+  // Away from the board the tab stop stays where the reader left it, unless a piece has been selected since.
+  const kept = view.selected ? undefined : el.querySelector<HTMLElement>('[data-sq][tabindex="0"]')?.dataset.sq;
+  el.innerHTML = boardHtml(view, (focused ?? kept ?? defaultTabStop(view)) as Square);
   if (focused) el.querySelector<HTMLElement>(`[data-sq="${focused}"]`)?.focus();
 }
 
 /** One square's button, with the rank on the left edge and the file on the bottom edge. */
 function squareHtml(sq: Square, leftEdge: boolean, bottomEdge: boolean, ctx: SquareContext): string {
   const piece = ctx.game.get(sq);
-  let html = `<button type="button" class="${squareClasses(sq, ctx)}" data-sq="${sq}" aria-label="${squareLabel(sq, ctx)}">`;
+  let html = `<button type="button" class="${squareClasses(sq, ctx)}" data-sq="${sq}" aria-label="${squareLabel(sq, ctx)}" tabindex="${sq === ctx.tabStop ? 0 : -1}">`;
   if (leftEdge) html += `<span class="coord rank" aria-hidden="true">${sq[1]}</span>`;
   if (bottomEdge) html += `<span class="coord file" aria-hidden="true">${sq[0]}</span>`;
   if (piece) html += pieceImg(piece.color, piece.type);
@@ -110,8 +132,14 @@ function squareLabel(sq: Square, ctx: SquareContext): string {
   return label;
 }
 
-/** Arrow keys move focus between squares in screen direction. */
+/** Arrow keys move focus between squares in screen direction, and the tab stop follows focus around the board. */
 export function enableArrowKeys(el: HTMLElement): void {
+  el.addEventListener('focusin', (e) => {
+    const square = (e.target as HTMLElement).closest<HTMLElement>('[data-sq]');
+    if (!square) return;
+    for (const other of el.querySelectorAll<HTMLElement>('[data-sq][tabindex="0"]')) other.tabIndex = -1;
+    square.tabIndex = 0;
+  });
   el.addEventListener('keydown', (e) => {
     const delta: Record<string, [number, number]> = {
       ArrowUp: [0, -1],
