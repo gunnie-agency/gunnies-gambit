@@ -1,27 +1,49 @@
 import { Chess, validateFen, type Move, type Square } from 'chess.js';
-import { parseUciMove, type UciMove } from './uci';
+import type { UciMove } from './uci';
+
+const UCI_LIKE = /^([a-h][1-8])-?([a-h][1-8])=?([qrbn])?[+#]?$/i;
+const CASTLING = /^[0o]-[0o](-[0o])?([+#]?)$/i;
+const PROMOTION_PIECE = /([a-h][18])=?([qrbn])([+#]?)$/i;
+const PROMOTION_SQUARE = /([a-h][18])([+#]?)$/;
 
 /**
- * Reads a move typed by the user: SAN (`Nf3`, `exd5`), sloppy SAN (`Ng1f3`), castling with zeros (`0-0`)
- * or UCI (`e7e8q`). Returns the move without playing it, or null when it is not legal in `fen`.
+ * Reads a move typed by the user: SAN (`Nf3`, `exd5`, `e8=Q`, `e8q`), sloppy SAN (`Ng1f3`), castling with letters
+ * or zeros in either case (`O-O`, `o-o`, `0-0-0`) or UCI (`e7e8q`). A promotion without a piece is a queen.
+ * Returns the move without playing it, or null when it is not legal in `fen`.
  */
 export function parseTypedMove(fen: string, text: string): UciMove | null {
   const raw = text.trim();
   if (!raw) return null;
-  const normalised = raw.replace(/0-0-0/g, 'O-O-O').replace(/0-0/g, 'O-O');
   const game = new Chess(fen);
-  const attempts: Array<string | UciMove> = [normalised];
-  const uci = parseUciMove(normalised);
-  if (uci) attempts.push(uci);
-  for (const attempt of attempts) {
-    try {
-      const m = game.move(attempt, { strict: false });
-      return toMove(m);
-    } catch {
-      // try the next interpretation
-    }
+
+  // UCI first: chess.js's sloppy SAN parser would read `e7e8` as an underpromotion.
+  const uci = UCI_LIKE.exec(raw);
+  if (uci) return uciMove(game, uci[1] as Square, uci[2] as Square, uci[3]?.toLowerCase());
+
+  const castling = CASTLING.exec(raw);
+  if (castling) return sanMove(game, `${castling[1] ? 'O-O-O' : 'O-O'}${castling[2] ?? ''}`);
+
+  const san = raw.replace(PROMOTION_PIECE, (_, sq: string, piece: string, mark: string) => {
+    return `${sq}=${piece.toUpperCase()}${mark}`;
+  });
+  const queen = san.replace(PROMOTION_SQUARE, '$1=Q$2');
+  return sanMove(game, san) ?? (queen === san ? null : sanMove(game, queen));
+}
+
+/** The legal move from `from` to `to`. A promotion takes `piece`, or a queen when none is given. */
+function uciMove(game: Chess, from: Square, to: Square, piece: string | undefined): UciMove | null {
+  const candidates = game.moves({ square: from, verbose: true }).filter((m) => m.to === to);
+  const promotion = candidates.some((m) => m.promotion) ? (piece ?? 'q') : piece;
+  const move = candidates.find((m) => m.promotion === promotion);
+  return move ? toMove(move) : null;
+}
+
+function sanMove(game: Chess, san: string): UciMove | null {
+  try {
+    return toMove(game.move(san, { strict: false }));
+  } catch {
+    return null;
   }
-  return null;
 }
 
 /** Legal moves that land on `square`. */
