@@ -19,8 +19,10 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-# The engine file names carry the full Stockfish version; pieces rarely change. Cache for a week.
+# The engine file names carry the full Stockfish version, so a new version is a new URL: cache forever too.
 /stockfish/*
-  Cache-Control: public, max-age=604800
+  Cache-Control: public, max-age=31536000, immutable
+
+# Pieces rarely change. Cache for a week.
 /pieces/*
   Cache-Control: public, max-age=604800
