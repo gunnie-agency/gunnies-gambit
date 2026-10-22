@@ -394,6 +394,16 @@ header.top {
   overflow: hidden;
   border: 1px solid var(--line-strong);
   box-shadow: 0 24px 60px -30px var(--board-shadow);
+  /* Square boards follow the width, so short windows cap them by height. On desktop the board and its buttons fit
+     under the header (71px, 18px gap, 12px gap, 42px buttons, about 16px to spare); on phones, where the status
+     sits above the board, the two-line status (52px, 14px gap) and the board fit in one screen. 240px keeps the
+     board usable in a sliver of a window. */
+  max-width: max(240px, 100svh - 160px);
+}
+@media (max-width: 860px) {
+  .board-box {
+    max-width: max(240px, 100svh - 104px);
+  }
 }
 .board {
   display: grid;
