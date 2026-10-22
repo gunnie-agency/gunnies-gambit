@@ -1,10 +1,15 @@
 import type { Square } from 'chess.js';
 import { askPromotion, closePromotion, enableArrowKeys, renderBoard } from '../board/board';
+import { LEVELS } from '../engine/levels';
+import { buildPracticeLink } from '../util/link';
 import { lessonById } from './lessons';
 import { Practice } from './practice';
 
 /** How long a puzzle waits before Black answers, so the reader sees their own move land first. */
 const REPLY_DELAY_MS = 600;
+
+/** Endgames are practised against the strongest level, which defends as well as it can. */
+const PRACTICE_LEVEL = LEVELS.at(-1)?.id ?? 'max';
 
 /**
  * Brings one practice board on the How to play page to life. The page carries the empty board, the intro text and
@@ -19,6 +24,11 @@ function mountLesson(root: HTMLElement): void {
   const hint = root.querySelector<HTMLButtonElement>('.lesson-hint');
   if (!lesson || !board || !promo || !message || !reset) throw new Error(`Incomplete lesson ${root.dataset.lesson}`);
   if (lesson.mode === 'puzzle' && !hint) throw new Error(`Puzzle ${lesson.id} has no hint button`);
+  if (lesson.practiseAs) {
+    const link = root.querySelector<HTMLAnchorElement>('.lesson-practise');
+    if (!link) throw new Error(`Endgame ${lesson.id} has no practice link`);
+    link.href = buildPracticeLink(lesson.fen, lesson.practiseAs, PRACTICE_LEVEL);
+  }
 
   const intro = message.textContent ?? '';
   const resetLabel = reset.textContent;

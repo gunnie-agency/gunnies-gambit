@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta
       name="description"
-      content="Learn to play chess: how every piece moves, check, checkmate, stalemate, castling, en passant and promotion, with a practice board for each rule. Free, no account."
+      content="Learn to play chess: how every piece moves, check, checkmate, stalemate and the special moves, then first tactics and basic endgames, with a practice board for each. Free, no account."
     />
     <meta name="color-scheme" content="dark light" />
     <meta name="theme-color" content="#0b0d11" />
@@ -70,6 +70,7 @@
               <li><a href="#special">Three special moves</a></li>
               <li><a href="#draws">Other ways to draw</a></li>
               <li><a href="#tactics">First tactics</a></li>
+              <li><a href="#endgames">Basic endgames</a></li>
               <li><a href="#app">Using %VITE_APP_NAME%</a></li>
               <li><a href="#start">Where to start</a></li>
             </ol>
@@ -491,6 +492,99 @@
               <div class="lesson-actions">
                 <button class="btn small lesson-hint" type="button">Hint</button>
                 <button class="btn small lesson-reset" type="button">Start again</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="learn-section" id="endgames" aria-labelledby="endgamesTitle">
+          <h2 id="endgamesTitle">Basic endgames</h2>
+          <p class="section-lead">
+            When most pieces have been traded, a single extra queen, rook or pawn decides the game, but only if you know
+            how to finish it. Try the moves for both sides on each board, then play the position out against the
+            computer at full strength: it defends as well as it can, so a win there means you have the technique.
+          </p>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>King and queen against king</h3>
+              <p>
+                Use the queen to shrink the box the enemy king can move in, a knight's move away from it, until the king
+                is stuck on the edge of the board. Then bring your own king close and give mate with the queen next to
+                the enemy king, protected by your king.
+              </p>
+              <p>
+                Watch out for stalemate: when the enemy king is on the edge, always leave it a square to move to until
+                the mating move.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="queen-mate">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: king and queen against king"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                White to move. Drive the black king to the edge, then mate it with queen and king together.
+              </p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-reset" type="button">Start again</button>
+                <a class="nav-link lesson-practise" href="./">Practise against the computer</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>King and rook against king</h3>
+              <p>
+                The rook mates on the edge too, but it needs more help from the king. Cut the enemy king off along a row
+                or column with the rook. Bring your king up until the two kings stand opposite each other with one
+                square between them, then check along the edge.
+              </p>
+              <p>
+                When the enemy king attacks your rook, move the rook to the far side of its row or column, out of reach,
+                and keep the cut-off line.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="rook-mate">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: king and rook against king"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                White to move. Cut the black king off with the rook and push it back row by row.
+              </p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-reset" type="button">Start again</button>
+                <a class="nav-link lesson-practise" href="./">Practise against the computer</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>King and pawn against king</h3>
+              <p>
+                A lone pawn only becomes a queen when its king clears the way. The key idea is the opposition: two kings
+                facing each other with one square between them. The side that does not have to move holds the
+                opposition, and the other king must step aside.
+              </p>
+              <p>
+                With your king in front of the pawn you can win, and a spare pawn move hands the obligation to move back
+                to the defender. With the king behind the pawn, the defending king can usually block it and draw.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="pawn-ending">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: king and pawn against king"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                White to move and win. The kings are in opposition, and it is your move.
+              </p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-reset" type="button">Start again</button>
+                <a class="nav-link lesson-practise" href="./">Practise against the computer</a>
               </div>
             </div>
           </div>

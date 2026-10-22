@@ -1,4 +1,4 @@
-import type { Chess, Move, PieceSymbol } from 'chess.js';
+import type { Chess, Color, Move, PieceSymbol } from 'chess.js';
 
 /**
  * How a practice board behaves after a move.
@@ -24,6 +24,8 @@ export interface Lesson {
   solution?: readonly string[];
   /** What to say once a puzzle is solved. */
   solved?: string;
+  /** The side the reader takes when they play this position out against the computer, from the board's link. */
+  practiseAs?: Color;
 }
 
 export const PIECE_NAME: Record<PieceSymbol, string> = {
@@ -149,6 +151,9 @@ export const LESSONS: readonly Lesson[] = [
     solution: ['c4g8', 'f8g8', 'h6f7'],
     solved: 'Checkmate. The queen lured the rook onto g8, and the king is smothered by its own pieces.',
   },
+  { id: 'queen-mate', mode: 'game', fen: '8/8/8/4k3/8/8/8/3QK3 w - - 0 1', practiseAs: 'w' },
+  { id: 'rook-mate', mode: 'game', fen: '8/8/8/4k3/8/8/8/R3K3 w - - 0 1', practiseAs: 'w' },
+  { id: 'pawn-ending', mode: 'game', fen: '8/4k3/8/4K3/8/4P3/8/8 w - - 0 1', practiseAs: 'w' },
 ];
 
 export function lessonById(id: string | undefined): Lesson | undefined {

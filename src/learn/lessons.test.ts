@@ -1,5 +1,6 @@
 import { Chess, type PieceSymbol } from 'chess.js';
 import { describe, expect, it } from 'vitest';
+import { buildPracticeLink, parsePracticeLink } from '../util/link';
 import { parseUciMove } from '../util/uci';
 import { LESSONS, lessonById, type Lesson } from './lessons';
 
@@ -103,5 +104,22 @@ describe('puzzles', () => {
     }
     for (const uci of rest) playUci(game, uci);
     expect(balance(game) - start).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('endgames', () => {
+  const endgames = LESSONS.filter((l) => l.practiseAs);
+
+  it.each(endgames.map((l) => [l.id, l] as const))('%s links to a game the app accepts', (_, lesson) => {
+    const side = lesson.practiseAs ?? 'w';
+    const game = new Chess(lesson.fen);
+    expect(game.turn()).toBe(side);
+    expect(game.isGameOver()).toBe(false);
+    const link = buildPracticeLink(lesson.fen, side, 'max');
+    expect(parsePracticeLink(link.slice(link.indexOf('#')))).toEqual({ fen: lesson.fen, side, level: 'max' });
+  });
+
+  it('cover the queen, the rook and the pawn ending', () => {
+    expect(endgames.map((l) => l.id)).toEqual(['queen-mate', 'rook-mate', 'pawn-ending']);
   });
 });
