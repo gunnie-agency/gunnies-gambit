@@ -1,6 +1,7 @@
 import { Chess, DEFAULT_POSITION, type Color } from 'chess.js';
 import { DEFAULT_LEVEL_ID, LEVELS } from './engine/levels';
 import type { PositionEval } from './review/classify';
+import { fenProblem } from './util/moves';
 import { parseUciMove, toUci } from './util/uci';
 
 export type Mode = 'play' | 'analysis';
@@ -61,8 +62,15 @@ export function loadSaved(): SavedGame | null {
     showEval: s.showEval === true,
     showBest: s.showBest === true,
     startFen: typeof s.startFen === 'string' ? s.startFen : DEFAULT_POSITION,
-    moves: Array.isArray(s.moves) ? s.moves.filter((m): m is string => typeof m === 'string') : [],
+    moves: leadingStrings(s.moves),
   };
+}
+
+/** The strings at the start of `v`. Dropping a bad entry from the middle instead would replay a different game. */
+function leadingStrings(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  const end = v.findIndex((m) => typeof m !== 'string');
+  return (end === -1 ? v : v.slice(0, end)) as string[];
 }
 
 export function settingsOf(saved: SavedGame): Settings {
@@ -79,15 +87,13 @@ export function saveGame(game: Chess, startFen: string, settings: Settings): voi
   }
 }
 
-/** Rebuilds a game from a start position and UCI moves, stopping at the first move that does not apply. */
+/**
+ * Rebuilds a game from a start position and UCI moves, stopping at the first move that does not apply. A start
+ * position that cannot be played (see {@link fenProblem}) is replaced by the standard one.
+ */
 export function replay(startFen: string, moves: readonly string[]): { game: Chess; startFen: string } {
-  const game = new Chess();
-  let fen = startFen;
-  try {
-    game.load(startFen);
-  } catch {
-    fen = DEFAULT_POSITION;
-  }
+  const fen = fenProblem(startFen) === null ? startFen : DEFAULT_POSITION;
+  const game = new Chess(fen);
   for (const uci of moves) {
     const move = parseUciMove(uci);
     if (!move) break;
