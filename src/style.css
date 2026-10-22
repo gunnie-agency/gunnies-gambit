@@ -1015,6 +1015,16 @@ button.m {
 button.m:hover {
   background: var(--accent-fill);
 }
+/* On touch screens the review's move buttons get a finger-sized height (WCAG 2.5.8 asks 24px, 40px is comfortable);
+   the move numbers centre on the taller rows. */
+@media (pointer: coarse) {
+  .moves {
+    align-items: center;
+  }
+  button.m {
+    min-height: 40px;
+  }
+}
 .moves .mark {
   font-weight: 700;
   margin-left: 2px;
