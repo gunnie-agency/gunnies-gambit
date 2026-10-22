@@ -18,7 +18,7 @@ import {
   type SideSummary,
 } from './classify';
 import { graphMarkup, positionAt } from './graph';
-import { cacheKey, gamePositions, ReviewRunner, type GamePosition, type ReviewJob } from './runner';
+import { cacheKey, gamePositions, ReviewRunner, reviewWorkerCount, type GamePosition, type ReviewJob } from './runner';
 
 /**
  * Search limit per position. A node count, unlike a time, gives the same result on every device; unlike a depth,
@@ -77,7 +77,7 @@ export class Review {
   private positions: GamePosition[] = [];
   private sans: string[] = [];
   private runner: ReviewRunner | null = null;
-  private engine: Engine<ReviewJob> | null = null;
+  private engines: Array<Engine<ReviewJob>> = [];
   private engineFailed = false;
   private reviews: Array<MoveReview | undefined> = [];
   private cursor = 0;
@@ -120,22 +120,24 @@ export class Review {
     this.engineFailed = false;
     this.announcedDone = false;
 
-    const engine = new Engine<ReviewJob>({
-      url: STOCKFISH_URL,
-      onInfo: (job, info) => this.runner?.handleInfo(job, info),
-      onBestMove: (job, move) => this.runner?.handleBestMove(job, move),
-      onStatus: (status) => {
-        if (status !== 'failed') return;
-        this.engineFailed = true;
-        this.render();
-      },
+    const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+    const engines = Array.from({ length: reviewWorkerCount(navigator.hardwareConcurrency, memory) }, () => {
+      const engine: Engine<ReviewJob> = new Engine<ReviewJob>({
+        url: STOCKFISH_URL,
+        onInfo: (job, info) => this.runner?.handleInfo(job, info),
+        onBestMove: (job, move) => this.runner?.handleBestMove(job, move),
+        onStatus: (status) => {
+          if (status === 'failed') this.onEngineFailed(engine);
+        },
+      });
+      return engine;
     });
-    const runner = new ReviewRunner(engine, this.positions, REVIEW_GO, this.cache, () => this.onResult());
-    this.engine = engine;
+    const runner = new ReviewRunner(engines, this.positions, REVIEW_GO, this.cache, () => this.onResult());
+    this.engines = engines;
     this.runner = runner;
     this.updateReviews();
     if (!runner.finished) {
-      engine.start();
+      engines.forEach((e) => e.start());
       runner.start();
     }
     this.el.panel.hidden = false;
@@ -145,9 +147,9 @@ export class Review {
   close(): void {
     if (!this.game) return;
     this.runner?.cancel();
-    this.engine?.terminate();
+    this.engines.forEach((e) => e.terminate());
     this.runner = null;
-    this.engine = null;
+    this.engines = [];
     this.game = null;
     this.boardCache = null;
     this.el.panel.hidden = true;
@@ -224,6 +226,14 @@ export class Review {
   }
 
   // ---------- results ----------
+
+  /** The others carry on without a failed engine; the review only stops when none is left. */
+  private onEngineFailed(engine: Engine<ReviewJob>): void {
+    this.runner?.removeEngine(engine);
+    if (this.engines.some((e) => e.status !== 'failed')) return;
+    this.engineFailed = true;
+    this.render();
+  }
 
   private onResult(): void {
     if (!this.game || !this.runner) return;

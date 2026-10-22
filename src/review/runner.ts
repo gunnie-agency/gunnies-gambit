@@ -52,22 +52,49 @@ export function cacheKey(go: string, fen: string): string {
 }
 
 /**
- * Evaluates the positions of a game one after another, the first first, so the review fills in from the start
- * while the engine works. Positions found in the cache, or where the game is over, need no search.
+ * How many engines a review runs side by side. Each Stockfish lite worker is a single thread with its own WASM
+ * memory (about 115 MB measured in Node), and a review scales almost linearly with workers until the cores run out.
+ * Two workers leave room for the page on a quad-core; a third one only where the browser reports plenty of memory,
+ * which phones with eight small cores usually do not. `deviceMemory` is Chromium-only, so others get at most two.
+ */
+export function reviewWorkerCount(cores: number, memoryGb?: number): number {
+  if (cores >= 8 && memoryGb !== undefined && memoryGb >= 8) return 3;
+  return cores >= 4 ? 2 : 1;
+}
+
+/**
+ * UCI options for every review search. Clearing the hash first makes a result depend on the position alone, not on
+ * which worker searched it or what that worker searched before, so a review comes out the same with any number of
+ * workers and in any order.
+ */
+export const REVIEW_OPTIONS = { 'Clear Hash': true } as const;
+
+interface Search {
+  job: ReviewJob;
+  engine: ReviewEngine;
+  lastScore: Score | null;
+}
+
+/**
+ * Evaluates the positions of a game on a pool of engines, each searching one position at a time, always the first
+ * positions still open, so the review fills in from the start while the engines work. Results may arrive in any
+ * order. Positions found in the cache, or where the game is over, need no search.
  */
 export class ReviewRunner {
   readonly evals: Array<PositionEval | undefined>;
-  private current: number | null = null;
-  private lastScore: Score | null = null;
+  private readonly engines: ReviewEngine[];
+  /** The running searches by position index. */
+  private readonly searches = new Map<number, Search>();
   private stopped = false;
 
   constructor(
-    private readonly engine: ReviewEngine,
+    engines: readonly ReviewEngine[],
     private readonly positions: readonly GamePosition[],
     private readonly go: string,
     private readonly cache: Map<string, PositionEval>,
     private readonly onUpdate: () => void,
   ) {
+    this.engines = [...engines];
     this.evals = positions.map((p) => p.final ?? cache.get(cacheKey(go, p.fen)));
   }
 
@@ -90,33 +117,55 @@ export class ReviewRunner {
 
   cancel(): void {
     this.stopped = true;
-    if (this.current !== null) this.engine.cancel();
-    this.current = null;
+    for (const search of this.searches.values()) search.engine.cancel();
+    this.searches.clear();
+  }
+
+  /** Stops using an engine that failed; its position goes to another engine. */
+  removeEngine(engine: ReviewEngine): void {
+    const i = this.engines.indexOf(engine);
+    if (i < 0) return;
+    this.engines.splice(i, 1);
+    for (const [index, search] of this.searches) if (search.engine === engine) this.searches.delete(index);
+    this.requestNext();
   }
 
   handleInfo(job: ReviewJob, info: EngineInfo): void {
-    if (job.index !== this.current || info.multipv !== 1) return;
-    this.lastScore = info.score;
+    const search = this.searchFor(job);
+    if (search && info.multipv === 1) search.lastScore = info.score;
   }
 
   handleBestMove(job: ReviewJob, move: string | null): void {
-    if (job.index !== this.current) return;
+    const search = this.searchFor(job);
+    if (!search) return;
     const position = this.positions[job.index];
-    const evaluation: PositionEval = { score: this.lastScore ?? EQUAL, best: move };
+    const evaluation: PositionEval = { score: search.lastScore ?? EQUAL, best: move };
     this.evals[job.index] = evaluation;
     if (position) this.cache.set(cacheKey(this.go, position.fen), evaluation);
-    this.current = null;
+    this.searches.delete(job.index);
     this.requestNext();
     this.onUpdate();
   }
 
+  /** The running search `job` belongs to, or undefined for output of a search that was cancelled or replaced. */
+  private searchFor(job: ReviewJob): Search | undefined {
+    const search = this.searches.get(job.index);
+    return search?.job === job ? search : undefined;
+  }
+
   private requestNext(): void {
-    if (this.stopped || this.current !== null) return;
-    const index = this.evals.findIndex((e) => !e);
-    const position = this.positions[index];
-    if (index < 0 || !position) return;
-    this.current = index;
-    this.lastScore = null;
-    this.engine.request({ fen: position.fen, go: this.go, index });
+    if (this.stopped) return;
+    const busy = new Set([...this.searches.values()].map((s) => s.engine));
+    let from = 0;
+    for (const engine of this.engines) {
+      if (busy.has(engine)) continue;
+      const index = this.evals.findIndex((e, i) => i >= from && !e && !this.searches.has(i));
+      const position = this.positions[index];
+      if (index < 0 || !position) return;
+      from = index + 1;
+      const job: ReviewJob = { fen: position.fen, go: this.go, options: REVIEW_OPTIONS, index };
+      this.searches.set(index, { job, engine, lastScore: null });
+      engine.request(job);
+    }
   }
 }

@@ -1,7 +1,7 @@
 import { DEFAULT_POSITION } from 'chess.js';
 import { describe, expect, it } from 'vitest';
 import type { PositionEval } from './classify';
-import { cacheKey, gamePositions, ReviewRunner, type ReviewJob } from './runner';
+import { cacheKey, gamePositions, REVIEW_OPTIONS, ReviewRunner, reviewWorkerCount, type ReviewJob } from './runner';
 
 const GO = 'nodes 1000';
 const info = (value: number, multipv = 1) => ({
@@ -13,18 +13,27 @@ const info = (value: number, multipv = 1) => ({
 // Fool's mate: the last position is checkmate and needs no search.
 const FOOLS_MATE = ['f2f3', 'e7e5', 'g2g4', 'd8h4'];
 
-function setup(moves: string[], cache = new Map<string, PositionEval>()) {
+function setup(moves: string[], cache = new Map<string, PositionEval>(), workers = 1) {
   const requests: ReviewJob[] = [];
-  let cancels = 0;
+  const engines = Array.from({ length: workers }, () => ({
+    jobs: [] as ReviewJob[],
+    cancels: 0,
+    request(job: ReviewJob) {
+      this.jobs.push(job);
+      requests.push(job);
+    },
+    cancel() {
+      this.cancels++;
+    },
+  }));
   let updates = 0;
-  const engine = { request: (job: ReviewJob) => requests.push(job), cancel: () => cancels++ };
-  const runner = new ReviewRunner(engine, gamePositions(DEFAULT_POSITION, moves), GO, cache, () => updates++);
-  return { runner, requests, cache, cancels: () => cancels, updates: () => updates };
+  const runner = new ReviewRunner(engines, gamePositions(DEFAULT_POSITION, moves), GO, cache, () => updates++);
+  const cancels = () => engines.reduce((n, e) => n + e.cancels, 0);
+  return { runner, engines, requests, cache, cancels, updates: () => updates };
 }
 
-/** Plays the engine's part for the latest request. */
-function answer(t: ReturnType<typeof setup>, score: number, best = 'e2e4') {
-  const job = t.requests[t.requests.length - 1] as ReviewJob;
+/** Plays the engine's part for a job, by default the latest request. */
+function answer(t: ReturnType<typeof setup>, score: number, best = 'e2e4', job = t.requests.at(-1) as ReviewJob) {
   t.runner.handleInfo(job, info(score));
   t.runner.handleBestMove(job, best);
 }
@@ -47,7 +56,7 @@ describe('ReviewRunner', () => {
   it('searches the positions one by one, from the start', () => {
     const t = setup(['e2e4', 'e7e5']);
     t.runner.start();
-    expect(t.requests).toEqual([{ fen: DEFAULT_POSITION, go: GO, index: 0 }]);
+    expect(t.requests).toEqual([{ fen: DEFAULT_POSITION, go: GO, options: REVIEW_OPTIONS, index: 0 }]);
     answer(t, 30);
     expect(t.requests.map((r) => r.index)).toEqual([0, 1]);
     expect(t.runner.evals[0]).toEqual({ score: { kind: 'cp', value: 30 }, best: 'e2e4' });
@@ -93,6 +102,7 @@ describe('ReviewRunner', () => {
     const t = setup(['e2e4', 'e7e5']);
     t.runner.start();
     t.runner.handleBestMove({ fen: 'x', go: GO, index: 1 }, 'e7e5');
+    t.runner.handleBestMove({ ...(t.requests[0] as ReviewJob) }, 'e2e4');
     expect(t.runner.done).toBe(0);
     t.runner.cancel();
     expect(t.cancels()).toBe(1);
@@ -108,5 +118,79 @@ describe('ReviewRunner', () => {
     t.runner.cancel();
     t.runner.start();
     expect(t.requests.map((r) => r.index)).toEqual([0, 1, 1]);
+  });
+
+  it('keeps one search running per engine', () => {
+    const t = setup(['e2e4', 'e7e5', 'g1f3'], undefined, 2);
+    t.runner.start();
+    expect(t.engines.map((e) => e.jobs.map((j) => j.index))).toEqual([[0], [1]]);
+    answer(t, 30, 'e2e4', t.engines[0]?.jobs[0]);
+    expect(t.engines.map((e) => e.jobs.map((j) => j.index))).toEqual([[0, 2], [1]]);
+    expect(t.runner.done).toBe(1);
+  });
+
+  it('takes results in any order', () => {
+    const t = setup(['e2e4', 'e7e5'], undefined, 2);
+    t.runner.start();
+    const [first, second] = t.requests as [ReviewJob, ReviewJob];
+    t.runner.handleInfo(first, info(30));
+    t.runner.handleInfo(second, info(-25));
+    t.runner.handleBestMove(second, 'g1f3');
+    expect(t.runner.evals[1]).toEqual({ score: { kind: 'cp', value: -25 }, best: 'g1f3' });
+    expect(t.runner.evals[0]).toBeUndefined();
+    expect(t.engines[1]?.jobs.map((j) => j.index)).toEqual([1, 2]);
+    t.runner.handleBestMove(first, 'e2e4');
+    expect(t.runner.evals[0]).toEqual({ score: { kind: 'cp', value: 30 }, best: 'e2e4' });
+    answer(t, 28);
+    expect(t.runner.finished).toBe(true);
+    expect(t.requests).toHaveLength(3);
+  });
+
+  it('cancels every running search and ignores their late output', () => {
+    const t = setup(['e2e4', 'e7e5', 'g1f3'], undefined, 3);
+    t.runner.start();
+    answer(t, 10, 'e2e4', t.requests[2]);
+    t.runner.cancel();
+    expect(t.cancels()).toBe(3);
+    for (const job of t.requests) answer(t, 0, 'e2e4', job);
+    expect(t.runner.done).toBe(1);
+    expect(t.requests).toHaveLength(4);
+    t.runner.start();
+    expect(t.requests.slice(4).map((r) => r.index)).toEqual([0, 1, 3]);
+  });
+
+  it('searches only the positions missing from the cache, spread over the engines', () => {
+    const positions = gamePositions(DEFAULT_POSITION, ['e2e4', 'e7e5', 'g1f3']);
+    const cached: PositionEval = { score: { kind: 'cp', value: 20 }, best: null };
+    const cache = new Map([0, 2].map((i) => [cacheKey(GO, positions[i]?.fen ?? ''), cached]));
+    const t = setup(['e2e4', 'e7e5', 'g1f3'], cache, 3);
+    t.runner.start();
+    expect(t.requests.map((r) => r.index)).toEqual([1, 3]);
+    expect(t.engines[2]?.jobs).toEqual([]);
+  });
+
+  it('moves the search of a failed engine to another one', () => {
+    const t = setup(['e2e4', 'e7e5'], undefined, 2);
+    t.runner.start();
+    const [broken, working] = t.engines;
+    if (!broken || !working) throw new Error('two engines expected');
+    t.runner.removeEngine(broken);
+    answer(t, 0, 'e7e5', working.jobs[0]);
+    expect(working.jobs.map((j) => j.index)).toEqual([1, 0]);
+    answer(t, 0);
+    answer(t, 0);
+    expect(working.jobs.map((j) => j.index)).toEqual([1, 0, 2]);
+    expect(t.runner.finished).toBe(true);
+  });
+});
+
+describe('reviewWorkerCount', () => {
+  it('uses two workers from four cores and a third only with plenty of memory', () => {
+    expect(reviewWorkerCount(2)).toBe(1);
+    expect(reviewWorkerCount(4)).toBe(2);
+    expect(reviewWorkerCount(8)).toBe(2);
+    expect(reviewWorkerCount(8, 4)).toBe(2);
+    expect(reviewWorkerCount(8, 8)).toBe(3);
+    expect(reviewWorkerCount(4, 8)).toBe(2);
   });
 });
