@@ -1538,3 +1538,17 @@ button.import-game:hover {
 #moveHint {
   min-height: 3em;
 }
+
+/* How to play, tactics grouped by theme: a group heading with its own lead, and each puzzle titled one level below. */
+.learn .learn-group {
+  margin: 22px 0 6px;
+  font-size: 1.15rem;
+}
+.learn h4 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.lesson-text p + p {
+  margin-top: 10px;
+}

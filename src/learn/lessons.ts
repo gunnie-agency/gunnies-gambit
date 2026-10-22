@@ -6,7 +6,8 @@ import type { Chess, Color, Move, PieceSymbol } from 'chess.js';
  * - `free`: White is to move again after every move, so the reader can keep moving a piece around.
  * - `task`: the board waits for one White move, says what it did, and stays put until it is reset.
  * - `game`: both sides take turns, as in a real game.
- * - `puzzle`: the reader plays White's moves of `solution` and the board answers with Black's, until it is solved.
+ * - `puzzle`: the reader plays the moves of `solution` for the side to move, and the board answers with the other
+ *   side's, until it is solved. The board is turned so the reader's side is at the bottom.
  */
 export type LessonMode = 'free' | 'task' | 'game' | 'puzzle';
 
@@ -20,7 +21,7 @@ export interface Lesson {
   setup?: string[];
   /** What to say about the reader's move. Without it the board names the move. */
   respond?(move: Move, after: Chess): string;
-  /** A puzzle's moves in UCI, White's and Black's in turn. Any checkmate also solves it. */
+  /** A puzzle's moves in UCI, the reader's and the other side's in turn. Any checkmate also solves it. */
   solution?: readonly string[];
   /** What to say once a puzzle is solved. */
   solved?: string;
@@ -150,6 +151,55 @@ export const LESSONS: readonly Lesson[] = [
     fen: '5r1k/pp4pp/7N/8/2Q5/8/PP3PPP/6K1 w - - 0 1',
     solution: ['c4g8', 'f8g8', 'h6f7'],
     solved: 'Checkmate. The queen lured the rook onto g8, and the king is smothered by its own pieces.',
+  },
+  {
+    id: 'discovered-attack',
+    mode: 'puzzle',
+    fen: '3k3q/8/8/8/3N4/8/1B3PPP/6K1 w - - 0 1',
+    solution: ['d4e6', 'd8d7', 'b2h8'],
+    solved: 'Solved. The knight gave check and opened the long diagonal, so the bishop took the queen.',
+  },
+  {
+    id: 'double-check',
+    mode: 'puzzle',
+    fen: '3qkb2/5ppp/8/8/4N3/8/5PPP/4R1K1 w - - 0 1',
+    solution: ['e4f6'],
+    solved: 'Checkmate. Knight and rook both give check, so only a king move could help, and the king has no square.',
+  },
+  {
+    id: 'skewer',
+    mode: 'puzzle',
+    fen: '8/6k1/8/8/b3K3/8/8/7Q b - - 0 1',
+    solution: ['a4c6', 'e4e3', 'c6h1'],
+    solved: 'Solved. The king had to step off the diagonal, and the bishop took the queen behind it.',
+  },
+  {
+    id: 'remove-defender',
+    mode: 'puzzle',
+    fen: '4r1k1/p4pp1/7p/8/1b2B3/2N5/PP3PPP/6K1 b - - 0 1',
+    solution: ['b4c3', 'b2c3', 'e8e4'],
+    solved: 'Solved. Without the knight nothing guarded the bishop, and your rook took it.',
+  },
+  {
+    id: 'arabian',
+    mode: 'puzzle',
+    fen: '6k1/5ppp/8/8/8/5n2/PP2r3/3R3K b - - 0 1',
+    solution: ['e2h2'],
+    solved: 'Checkmate. The knight guards the rook and the square next to the king; the rook does the rest.',
+  },
+  {
+    id: 'anastasia',
+    mode: 'puzzle',
+    fen: '5r1k/4N1pp/8/7Q/8/3R4/5PPP/6K1 w - - 0 1',
+    solution: ['h5h7', 'h8h7', 'd3h3'],
+    solved: "Checkmate. The queen opened the h-file, and the knight covers the king's last squares.",
+  },
+  {
+    id: 'ladder',
+    mode: 'puzzle',
+    fen: '8/6k1/R7/8/8/8/5PPP/1R4K1 w - - 0 1',
+    solution: ['b1b7', 'g7g8', 'a6a8'],
+    solved: 'Checkmate. One rook holds a row while the other checks on the next, step by step to the edge.',
   },
   { id: 'queen-mate', mode: 'game', fen: '8/8/8/4k3/8/8/8/3QK3 w - - 0 1', practiseAs: 'w' },
   { id: 'rook-mate', mode: 'game', fen: '8/8/8/4k3/8/8/8/R3K3 w - - 0 1', practiseAs: 'w' },

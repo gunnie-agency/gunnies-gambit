@@ -38,8 +38,8 @@ function mountLesson(root: HTMLElement): void {
   let promoting: Square | null = null;
 
   const render = () => {
-    const { game, selected, last } = practice;
-    renderBoard(board, { game, orient: 'w', selected, last });
+    const { game, side, selected, last } = practice;
+    renderBoard(board, { game, orient: side, selected, last });
     if (practice.hint) markHint(board, practice.hint);
     message.textContent = practice.message ?? intro;
     // Every move leaves a message, so there is something to undo exactly when there is one.

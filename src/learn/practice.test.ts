@@ -173,6 +173,29 @@ describe('Practice', () => {
     expect(p.done).toBe(false);
   });
 
+  it('lets the reader play Black when Black is to move, and answers for White', () => {
+    const p = practice('skewer');
+    expect(p.side).toBe('b');
+    p.tap('h1');
+    expect(p.selected).toBeNull();
+    tapMove(p, 'a4', 'b5');
+    expect(p.message).toBe('Not quite: Bb5 is not the move here. Try again.');
+    tapMove(p, 'a4', 'c6');
+    expect(p.message).toBe('Bc6+. Good, now see what White does.');
+    p.reply();
+    expect(p.message).toBe('White answered Ke3. Your move.');
+    expect(p.side).toBe('b');
+    tapMove(p, 'c6', 'h1');
+    expect(p.done).toBe(true);
+    p.reset();
+    expect(p.side).toBe('b');
+  });
+
+  it('keeps White at the bottom of boards that start with a setup move for Black', () => {
+    expect(practice('en-passant').side).toBe('w');
+    expect(practice('start').side).toBe('w');
+  });
+
   it('points a hint at the piece to move, and clears it on the next move', () => {
     const p = practice('smothered');
     p.showHint();

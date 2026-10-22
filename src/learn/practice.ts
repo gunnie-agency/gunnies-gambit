@@ -1,4 +1,4 @@
-import { Chess, type Move, type Square } from 'chess.js';
+import { Chess, type Color, type Move, type Square } from 'chess.js';
 import { parseUciMove, toUci, type PromotionPiece, type UciMove } from '../util/uci';
 import { PIECE_NAME, type Lesson } from './lessons';
 
@@ -24,13 +24,15 @@ function whiteToMove(fen: string): string {
  */
 export class Practice {
   game!: Chess;
+  /** The side the reader plays: the side to move once the setup moves are played. The board shows it at the bottom. */
+  side!: Color;
   selected: Square | null = null;
   last: { from: Square; to: Square } | undefined;
   /** What the board says after a move; null while the page's intro text applies. */
   message: string | null = null;
   /** A task lesson after its move, or a solved puzzle: the board takes no input until it is reset. */
   done = false;
-  /** A puzzle waiting for Black's scripted reply, which `reply` plays. */
+  /** A puzzle waiting for the other side's scripted reply, which `reply` plays. */
   waiting = false;
   /** The square of the piece a puzzle's hint points at. */
   hint: Square | null = null;
@@ -47,6 +49,7 @@ export class Practice {
     for (const san of this.lesson.setup ?? []) this.game.move(san);
     const last = this.game.history({ verbose: true }).at(-1);
     this.last = last && { from: last.from, to: last.to };
+    this.side = this.game.turn();
     this.selected = null;
     this.message = null;
     this.done = false;
@@ -109,7 +112,7 @@ export class Practice {
     this.message = piece ? `Hint: move your ${PIECE_NAME[piece.type]}.` : null;
   }
 
-  /** Plays Black's scripted answer in a puzzle, once the reader's move has been accepted. */
+  /** Plays the other side's scripted answer in a puzzle, once the reader's move has been accepted. */
   reply(): void {
     const next = this.nextMove();
     if (!this.waiting || !next) return;
@@ -117,7 +120,7 @@ export class Practice {
     this.ply++;
     this.waiting = false;
     this.last = { from: move.from, to: move.to };
-    this.message = `Black answered ${move.san}. Your move.`;
+    this.message = `${COLOR_NAME[move.color]} answered ${move.san}. Your move.`;
   }
 
   private nextMove(): UciMove | null {
@@ -140,7 +143,7 @@ export class Practice {
       this.message = this.lesson.solved ?? 'Solved.';
     } else {
       this.waiting = true;
-      this.message = `${move.san}. Good, now see what Black does.`;
+      this.message = `${move.san}. Good, now see what ${COLOR_NAME[this.game.turn()]} does.`;
     }
   }
 

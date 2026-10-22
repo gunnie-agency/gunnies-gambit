@@ -383,13 +383,20 @@
           <h2 id="tacticsTitle">First tactics</h2>
           <p class="section-lead">
             A tactic is a short sequence of moves that wins material or checkmates, because the other side cannot answer
-            every threat at once. Each board below is a puzzle with White to move. Play your move and the board answers
-            for Black. A wrong move is taken back, so you can try again; Hint shows which piece to move.
+            every threat at once. Each board below is a puzzle for the side to move, shown at the bottom of the board.
+            Play your move and the board answers for the other side. A wrong move is taken back, so you can try again;
+            Hint shows which piece to move.
+          </p>
+
+          <h3 class="learn-group">Double attacks</h3>
+          <p class="section-lead">
+            Most tactics come down to making two threats with one move. The other side can parry one of them, and you
+            carry out the other.
           </p>
 
           <div class="lesson-row">
             <div class="lesson-text">
-              <h3>The knight fork</h3>
+              <h4>The knight fork</h4>
               <p>
                 A fork is one piece attacking two at once. The knight is made for it: a knight's check cannot be
                 blocked, and the pieces it attacks cannot hit it back unless they are knights too. Look for a square
@@ -411,7 +418,7 @@
 
           <div class="lesson-row">
             <div class="lesson-text">
-              <h3>The queen fork</h3>
+              <h4>The queen fork</h4>
               <p>
                 The queen can fork too, along a row, a column and two diagonals at the same time. A check is the
                 strongest half of a fork, because the other side has to deal with it first and has no time to save the
@@ -435,7 +442,57 @@
 
           <div class="lesson-row">
             <div class="lesson-text">
-              <h3>The pin</h3>
+              <h4>The discovered attack</h4>
+              <p>
+                When a piece moves out of the way, the rook, bishop or queen behind it suddenly attacks along the line
+                it opened. Now two pieces threaten something at once: the one that moved and the one behind it. It is
+                strongest when the piece that moves gives check.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="discovered-attack">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: discovered attack puzzle"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">White to move and win the black queen.</p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-hint" type="button">Hint</button>
+                <button class="btn small lesson-reset" type="button">Start again</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h4>The double check</h4>
+              <p>
+                A double check is a discovered attack in which both pieces give check. No single move can capture or
+                block two checking pieces, so the king has to move. When it has no square to go to, a double check is
+                checkmate.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="double-check">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: double check puzzle"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">White to move and checkmate in one move.</p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-hint" type="button">Hint</button>
+                <button class="btn small lesson-reset" type="button">Start again</button>
+              </div>
+            </div>
+          </div>
+
+          <h3 class="learn-group">Attacks along a line</h3>
+          <p class="section-lead">
+            Rooks, bishops and queens attack along lines. When two enemy pieces stand on the same line, one behind the
+            other, the front one is in trouble or the back one is.
+          </p>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h4>The pin</h4>
               <p>
                 A piece is pinned when it stands on a line between an attacker and a more valuable piece behind it. When
                 that piece behind is the king, the pinned piece may not move off the line at all, because that would
@@ -457,7 +514,61 @@
 
           <div class="lesson-row">
             <div class="lesson-text">
-              <h3>Back-rank mate in two</h3>
+              <h4>The skewer</h4>
+              <p>
+                A skewer is a pin the other way round: the more valuable piece stands in front. When you attack it, it
+                has to step aside, and the piece behind it falls. A check makes the best skewer, because the king must
+                move.
+              </p>
+              <p>This puzzle is for Black, so the board is turned with Black at the bottom.</p>
+            </div>
+            <div class="lesson" data-lesson="skewer">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: skewer puzzle, Black to move"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">Black to move and win the white queen.</p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-hint" type="button">Hint</button>
+                <button class="btn small lesson-reset" type="button">Start again</button>
+              </div>
+            </div>
+          </div>
+
+          <h3 class="learn-group">Removing the defender</h3>
+          <p class="section-lead">
+            A piece that is attacked once and defended once is safe. Take away or lure away its defender, and it is not.
+          </p>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h4>Capture the defender</h4>
+              <p>
+                Count the attackers and defenders of a piece. If only one piece guards it, capturing that guard first
+                leaves the piece hanging, even when the capture itself is only an even trade.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="remove-defender">
+              <div class="board-box">
+                <fieldset
+                  class="board"
+                  aria-label="Practice board: removing the defender puzzle, Black to move"
+                ></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                Black to move and win a piece. Which white piece guards the bishop?
+              </p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-hint" type="button">Hint</button>
+                <button class="btn small lesson-reset" type="button">Start again</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h4>Back-rank mate in two</h4>
               <p>
                 A king behind its own unmoved pawns has no escape square. A rook or queen that reaches the back row then
                 gives checkmate, unless a defender covers that row. In this puzzle you first deal with the defender,
@@ -477,9 +588,14 @@
             </div>
           </div>
 
+          <h3 class="learn-group">Mating patterns</h3>
+          <p class="section-lead">
+            Some checkmates come up again and again. Once you know their shape, you spot them in your own games.
+          </p>
+
           <div class="lesson-row">
             <div class="lesson-text">
-              <h3>Smothered mate in two</h3>
+              <h4>Smothered mate in two</h4>
               <p>
                 A smothered mate is a knight's check against a king that is walled in by its own pieces. It often starts
                 with a sacrifice that forces one more defender into the last free square next to the king.
@@ -491,6 +607,74 @@
                 <div class="promo" hidden></div>
               </div>
               <p class="lesson-msg" aria-live="polite">White to move and checkmate in two moves.</p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-hint" type="button">Hint</button>
+                <button class="btn small lesson-reset" type="button">Start again</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h4>The Arabian mate</h4>
+              <p>
+                One of the oldest known checkmates: a rook and a knight against a king in the corner. The rook checks
+                next to the king, and the knight guards both the rook and the square the king would flee to.
+              </p>
+              <p>This puzzle is for Black, so the board is turned with Black at the bottom.</p>
+            </div>
+            <div class="lesson" data-lesson="arabian">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: Arabian mate, Black to move"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">Black to move and checkmate in one move.</p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-hint" type="button">Hint</button>
+                <button class="btn small lesson-reset" type="button">Start again</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h4>Anastasia's mate in two</h4>
+              <p>
+                In Anastasia's mate a knight guards the squares next to a king on the edge, while a rook or queen mates
+                along the edge. Here the edge is still closed. Giving up your queen can be worth it, if it forces the
+                king into the mating net.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="anastasia">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: Anastasia's mate in two"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">
+                White to move and checkmate in two moves. A queen sacrifice is allowed.
+              </p>
+              <div class="lesson-actions">
+                <button class="btn small lesson-hint" type="button">Hint</button>
+                <button class="btn small lesson-reset" type="button">Start again</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h4>The ladder mate</h4>
+              <p>
+                Two rooks mate a king on their own, without help from your king. One rook holds a row so the king cannot
+                step back; the other checks on the next row, pushing the king one step toward the edge. Then they swap
+                roles, like climbing a ladder.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="ladder">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: ladder mate in two"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">White to move and checkmate in two moves with the two rooks.</p>
               <div class="lesson-actions">
                 <button class="btn small lesson-hint" type="button">Hint</button>
                 <button class="btn small lesson-reset" type="button">Start again</button>
