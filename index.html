@@ -128,25 +128,6 @@
           <button class="btn" id="reviewExit" type="button">Back to the game</button>
         </section>
 
-        <form class="move-entry" id="moveForm" autocomplete="off">
-          <label for="moveInput">Type a move</label>
-          <p class="hint" id="moveNotation">
-            New to notation such as Nf3 or O-O? <a href="./how-to-play#app">How to play</a> explains how to enter moves.
-          </p>
-          <div class="row">
-            <input
-              type="text"
-              id="moveInput"
-              aria-describedby="moveNotation"
-              placeholder="e.g. Nf3, exd5, O-O, e7e8q"
-              autocapitalize="off"
-              spellcheck="false"
-            />
-            <button class="btn" type="submit">Add</button>
-          </div>
-          <p class="hint" id="moveHint"></p>
-        </form>
-
         <div class="settings" id="settings">
           <div class="setting">
             <span class="eyebrow" id="sideLabel">I play</span>
@@ -195,6 +176,25 @@
           </div>
           <div class="moves" id="moves"></div>
         </div>
+
+        <form class="move-entry" id="moveForm" autocomplete="off">
+          <label for="moveInput">Type a move</label>
+          <p class="hint" id="moveNotation">
+            New to notation such as Nf3 or O-O? <a href="./how-to-play#app">How to play</a> explains how to enter moves.
+          </p>
+          <div class="row">
+            <input
+              type="text"
+              id="moveInput"
+              aria-describedby="moveNotation"
+              placeholder="e.g. Nf3, exd5, O-O, e7e8q"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+            <button class="btn" type="submit">Add</button>
+          </div>
+          <p class="hint" id="moveHint"></p>
+        </form>
 
         <details class="tools">
           <summary>Position &amp; PGN</summary>
