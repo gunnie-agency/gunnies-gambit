@@ -183,7 +183,6 @@ export class App {
     this.opponentFen = null;
     this.hintFen = null;
     this.moveMessage = null;
-    this.restartAnalysis();
     this.settings = { ...this.settings, mode: 'analysis', side: options.side, orient: options.side };
     this.positionChanged();
     if (options.review) this.startReview();
