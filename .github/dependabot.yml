@@ -5,6 +5,11 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    # The engine and the rules library are pinned on purpose: a new version changes what reviews and lessons say,
+    # so they are upgraded by hand with a look at the results.
+    ignore:
+      - dependency-name: stockfish
+      - dependency-name: chess.js
     groups:
       npm:
         patterns: ['*']
