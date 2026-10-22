@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { LEVELS } from '../engine/levels';
+import { LESSONS } from '../learn/lessons';
 import {
+  PUZZLE_COUNT,
   faq,
   faqHtml,
   howToPlayStructuredData,
@@ -155,5 +158,22 @@ describe('the How to play page', () => {
   it('is linked from llms.txt and the FAQ', () => {
     expect(llmsTxt(site)).toContain('https://chess.example/how-to-play');
     expect(faq(site).some((q) => q.answer.includes('https://chess.example/how-to-play'))).toBe(true);
+  });
+});
+
+describe('what the texts claim', () => {
+  const answer = (question: string) => faq(site).find((q) => q.question === question)?.answer ?? '';
+
+  it('counts the puzzles the How to play page has', () => {
+    expect(PUZZLE_COUNT).toBe(LESSONS.filter((lesson) => lesson.mode === 'puzzle').length);
+    expect(answer('Are there puzzles?')).toContain(`${PUZZLE_COUNT} tactics puzzles`);
+  });
+
+  it('describes every Elo level the way the level picker does', () => {
+    const strength = answer('How strong is the computer?');
+    for (const { label } of LEVELS.filter((level) => level.id.startsWith('elo'))) {
+      const [, elo, who] = /^Elo (\d+) · (.+)$/.exec(label) ?? [];
+      expect(strength).toMatch(new RegExp(`${elo} \\(an? ${who}\\)`));
+    }
   });
 });

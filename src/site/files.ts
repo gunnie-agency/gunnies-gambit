@@ -42,7 +42,11 @@ export const HOW_TO_PLAY_PATH = '/how-to-play';
 const HOW_TO_PLAY_TITLE = 'How to play chess';
 const HOW_TO_PLAY_SUMMARY =
   'The rules of chess for beginners: how each piece moves, check, checkmate, stalemate, castling, en passant and ' +
-  'promotion, with a practice board for each. Then how to use the app to play, get hints and review your games.';
+  'promotion, with a practice board for each. Then first tactics puzzles, the basic endgames, and how to use the ' +
+  'app to play, get hints and review your games.';
+
+/** How many tactics puzzles the How to play page has; a test checks it against the lessons. */
+export const PUZZLE_COUNT = 12;
 
 const GUNNIE_NODE = { '@type': 'Organization', '@id': GUNNIE, name: 'Gunnie', url: 'https://gunnie.nl/' };
 const JEROEN_NODE = {
@@ -58,10 +62,15 @@ const FEATURES = [
   'Hints on request; evaluation and best move can each be switched on',
   'Analysis board with best move, evaluation, top three lines and arrows',
   'Game review that marks inaccuracies, mistakes and blunders, shows the better move and an accuracy per side',
+  'Practise your own mistakes from a reviewed game',
+  'Review your finished games from Lichess or Chess.com by username',
+  'Opening names in the move list and the review',
   'Move entry by tapping or typing SAN or UCI',
-  'FEN and PGN import and export',
+  'FEN and PGN import and export; download or share the game as PGN',
+  'Works offline after the first visit',
   'Dark and light theme, keyboard accessible',
-  'A How to play page with the rules and a practice board for every piece and special move',
+  'A How to play page with the rules, a practice board for every piece and special move, tactics puzzles and basic ' +
+    'endgames',
 ];
 
 export function faq(site: Site): Faq[] {
@@ -87,15 +96,22 @@ export function faq(site: Site): Faq[] {
       question: 'How strong is the computer?',
       answer:
         'There are seven levels. Beginner and Novice play weak moves on purpose and miss simple tactics. The Elo ' +
-        'levels play at roughly 1400, 1700, 2000 and 2400, and Full strength is the complete engine, stronger than ' +
-        'any human player.',
+        'levels play at roughly 1400 (a casual player), 1700 (a club player), 2000 (an expert) and 2400 (a master), ' +
+        'and Full strength is the complete engine, stronger than any human player.',
     },
     {
       question: 'Can I analyse my own games?',
       answer:
         'Yes. Switch to Analyse, then paste a PGN or a FEN position under "Position & PGN", or enter the moves on ' +
-        'the board. You see the best move, the evaluation and the top three lines for the position on the board. ' +
+        'the board. You see the best move, the evaluation, the top three lines and the name of the opening. ' +
         'Review game then goes through the whole game and marks the mistakes.',
+    },
+    {
+      question: 'Can I review my games from Lichess or Chess.com?',
+      answer:
+        'Yes. Open "Your games", pick the site and type your username. You get your most recent finished games; ' +
+        'pick one to open it in Analyse and review it. Only the username is sent, straight from your browser to ' +
+        'the site you picked, without cookies. No password or account link is needed.',
     },
     {
       question: 'How does the game review work?',
@@ -104,18 +120,42 @@ export function faq(site: Site): Faq[] {
         'evaluates every position and marks a move as an inaccuracy (?!), mistake (?) or blunder (??) by how much ' +
         'of your winning chances it gave away, with the better move shown on the board. The thresholds and the ' +
         'accuracy percentage follow the Lichess method, so the figures are close to Lichess’s but not identical. ' +
-        'A 40-move game takes about half a minute on a laptop and a few minutes on an older phone.',
+        'Computers with more cores run up to three engines side by side: a 40-move game takes about 15 to 40 ' +
+        'seconds on a recent laptop or desktop, and longer on a phone.',
+    },
+    {
+      question: 'How do I learn from my mistakes?',
+      answer:
+        'After a review, choose Practise my mistakes. It takes you back to the position before each of your ' +
+        'mistakes and blunders, and you look for a better move. The engine’s choice counts, and so does any move ' +
+        'the review would not have marked. Your opponent’s mistakes are left out.',
+    },
+    {
+      question: 'Are there puzzles?',
+      answer:
+        `How to play has ${PUZZLE_COUNT} tactics puzzles, grouped by theme: double attacks, attacks along a line, ` +
+        'removing the defender and mating patterns. It also has the basic endgames: mate with king and queen, and ' +
+        'with king and rook, against a lone king that the page moves for you, and king and pawn against king. Your ' +
+        'browser remembers which ones you solved.',
     },
     {
       question: 'Do my games leave my device?',
       answer:
-        'No. The engine runs in your browser and your games and settings are stored there too. The only thing sent ' +
-        'anywhere is an anonymous, cookieless visit count.',
+        'No. The engine runs in your browser and your games, settings and puzzle progress are stored there too. ' +
+        'Apart from an anonymous, cookieless visit count, the only thing sent anywhere is the username you type ' +
+        'under "Your games", to the site you pick.',
     },
     {
       question: 'Does it work on my phone?',
       answer:
         'Yes. It works in any modern browser on a phone, tablet or computer, and you can add it to your home screen.',
+    },
+    {
+      question: 'Does it work offline?',
+      answer:
+        'Yes, after the first visit. The pages and the engine are then stored in your browser, so you can play, ' +
+        'analyse, review and solve puzzles without a connection. Only fetching your games from Lichess or ' +
+        'Chess.com needs the internet.',
     },
     {
       question: 'Can I use it during an online game?',
@@ -141,7 +181,6 @@ export function faqHtml(site: Site): string {
     .join('\n');
 }
 
-/** The last word of the app name: the header's accent word and the manifest's short name. */
 /** schema.org's dateModified from the date of the last change, when it is known. */
 function modified(site: Site): { dateModified?: string } {
   return site.lastmod ? { dateModified: site.lastmod } : {};
@@ -189,6 +228,7 @@ const RULES: ReadonlyArray<{ anchor: string; title: string; text: string }> = [
   },
 ];
 
+/** The last word of the app name: the header's accent word and the manifest's short name. */
 export function shortName(name: string): string {
   const trimmed = name.trim();
   return trimmed.slice(trimmed.lastIndexOf(' ') + 1);
@@ -273,6 +313,8 @@ export function howToPlayStructuredData(site: Site): object {
           'Check, checkmate and stalemate',
           'Castling, en passant and promotion',
           'How a chess game can end in a draw',
+          'First tactics: forks, pins, skewers and mating patterns',
+          'Basic endgames: mate with queen or rook, and king and pawn against king',
         ],
         isAccessibleForFree: true,
         breadcrumb: { '@id': `${page}#breadcrumb` },
@@ -350,19 +392,25 @@ export function llmsTxt(site: Site): string {
       `# ${site.name}`,
       `> ${SUMMARY}`,
       `${site.name} (${site.url}/) is a free, open-source chess practice app that runs in the browser. ` +
-        'Despite the name, it is not a chess opening. It has two modes and a game review:',
+        'Despite the name, it is not a chess opening. It has two modes, a game review and a page for learning:',
       [
         '- Play: a game against the computer at a chosen strength, from Beginner and Novice through Elo 1400 to ' +
           '2400 up to full strength. Hints on request; the evaluation and the best move can each be switched on.',
         '- Analyse: an analysis board. Enter moves for both sides by tapping or typing SAN or UCI, and see the best ' +
-          'move, the evaluation and the top three lines. Positions load from FEN, games from PGN.',
+          'move, the evaluation, the top three lines and the name of the opening. Positions load from FEN, games ' +
+          'from PGN, and the game downloads as PGN.',
         '- Review: after a game against the computer, or for any game in Analyse, the engine evaluates every ' +
           'position and marks inaccuracies, mistakes and blunders by lost winning chances, with the better move ' +
-          'and an accuracy percentage per side.',
+          'and an accuracy percentage per side. Practise my mistakes then goes back to the position before each of ' +
+          'your own mistakes and blunders, to find a better move.',
+        '- Your games: your recent finished games on Lichess or Chess.com, found by username, to open and review.',
+        `- How to play: the rules with a practice board for each, ${PUZZLE_COUNT} tactics puzzles by theme and the ` +
+          'basic endgames.',
       ].join('\n'),
       `The engine is Stockfish ${site.stockfishVersion}, compiled to WebAssembly and run in the browser. There is no ` +
-        'backend and no account: games and settings stay in the browser. Visits are counted with cookieless ' +
-        'Cloudflare Web Analytics.',
+        'backend and no account: games, settings and puzzle progress stay in the browser, and after the first ' +
+        'visit the app works offline. Only Your games contacts another site: the browser sends the username to ' +
+        'Lichess or Chess.com, whichever you pick. Visits are counted with cookieless Cloudflare Web Analytics.',
       '## Fair play',
       `${site.name} is for practice, games against computer bots and reviewing your own games. Using engine help in ` +
         'any online game against a human, rated or casual, or in an over-the-board tournament is against the rules ' +
@@ -373,7 +421,7 @@ export function llmsTxt(site: Site): string {
       ...faq(site).map(({ question, answer }) => `### ${question}\n\n${answer}`),
       '## Links',
       [
-        `- [How to play](${site.url}${HOW_TO_PLAY_PATH}): the rules for beginners, with a practice board for each piece and special move`,
+        `- [How to play](${site.url}${HOW_TO_PLAY_PATH}): the rules for beginners, with a practice board for each piece and special move, tactics puzzles and basic endgames`,
         `- [Source code](${SOURCE_URL}): GPL-3.0-or-later`,
         '- [Gunnie](https://gunnie.nl/): the Dutch Magento and e-commerce agency that made it',
       ].join('\n'),
