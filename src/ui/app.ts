@@ -4,6 +4,7 @@ import { Engine, STOCKFISH_URL, type EngineStatus } from '../engine/engine';
 import type { EngineInfo } from '../engine/info';
 import { LEVELS, levelById } from '../engine/levels';
 import type { SearchJob } from '../engine/queue';
+import { showOpening } from '../openings/view';
 import { Review } from '../review/view';
 import { DEFAULT_SETTINGS, loadSaved, replay, saveGame, settingsOf, type Mode, type Settings } from '../state';
 import { escapeHtml } from '../util/html';
@@ -143,6 +144,7 @@ export class App {
       {
         panel: $('review'),
         title: $('reviewTitle'),
+        opening: $('reviewOpening'),
         move: $('reviewMove'),
         detail: $('reviewDetail'),
         nav: $('reviewNav'),
@@ -855,6 +857,7 @@ export class App {
   private renderMoves(): void {
     if (this.review.active) return; // the review draws its own, clickable move list
     const sans = this.played.map((m) => m.san);
+    showOpening($('opening'), this.startFen, sans);
     const el = this.el.moves;
     if (!sans.length) {
       el.innerHTML = '<span class="empty">No moves yet.</span>';

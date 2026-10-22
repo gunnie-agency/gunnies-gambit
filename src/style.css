@@ -1493,3 +1493,26 @@ button.import-game:hover {
   font-size: 0.82rem;
   color: var(--muted);
 }
+
+/* Opening name (src/openings/view.ts), next to the "Moves" eyebrow and under the review title. Filled by the script
+   after the opening data loads, so it is always one line high, empty or not, and a long name is cut off with an
+   ellipsis (the full name is in its title) rather than wrapping and moving what is below it. */
+.opening {
+  flex: none;
+  min-width: 0;
+  height: 1.4em;
+  line-height: 1.4;
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.moves-head .opening {
+  flex: 1;
+}
+.opening-eco {
+  font: 500 11px var(--font-mono);
+  letter-spacing: 0.07em;
+  color: var(--accent-text);
+}

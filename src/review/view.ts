@@ -1,6 +1,7 @@
 import { Chess, type Color } from 'chess.js';
 import type { Arrow } from '../board/board';
 import { Engine, STOCKFISH_URL } from '../engine/engine';
+import { showOpening } from '../openings/view';
 import { loadReviewCache, saveReviewCache } from '../state';
 import { escapeHtml } from '../util/html';
 import { numberMoves } from '../util/san';
@@ -51,6 +52,8 @@ export interface ReviewGame {
 export interface ReviewElements {
   panel: HTMLElement;
   title: HTMLElement;
+  /** The opening reached by the shown move, under the title. */
+  opening: HTMLElement;
   move: HTMLElement;
   detail: HTMLElement;
   nav: HTMLElement;
@@ -267,6 +270,7 @@ export class Review {
 
   private renderMove(): void {
     const { title, move, detail } = this.el;
+    showOpening(this.el.opening, this.game?.startFen ?? '', this.sans.slice(0, this.cursor));
     const index = this.cursor - 1;
     const san = this.sans[index];
     const before = this.positions[index];
