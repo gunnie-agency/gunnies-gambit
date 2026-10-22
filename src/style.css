@@ -1378,9 +1378,10 @@ footer .made-by {
     padding-left: 0;
   }
   /* A hidden eval bar gives its 14px and the 8px gap back to the board: 343px instead of 321px on a 375px phone.
-     The bar starts hidden in the HTML, the default, and theme-init.js marks a stored "evaluation shown" before
-     the first paint, so nothing moves on load. Switching the evaluation on is a user action and may move the board;
-     a visitor who started with it shown keeps the reserved space until the next visit. */
+     The bar starts hidden in the HTML, the default, and the inline theme script (themeInit in vite.config.ts) marks a
+     stored "evaluation shown" before the first paint, so nothing moves on load. Switching the evaluation on is a user
+     action and may move the board; a visitor who started with it shown keeps the reserved space until the next
+     visit. */
   :root:not([data-evalbar='on']) .evalbar.off {
     display: none;
   }
