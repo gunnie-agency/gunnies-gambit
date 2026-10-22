@@ -69,6 +69,25 @@ function preloadBodyFont(): Plugin {
   };
 }
 
+/**
+ * Fails the build when a font ends up base64-inlined in a stylesheet. Vite inlines assets under 4 KB, which for font
+ * subsets means bytes in the render-blocking CSS for scripts the site never shows; src/fonts.ts imports only the
+ * Latin files, and this keeps it that way.
+ */
+function noInlinedFonts(): Plugin {
+  return {
+    name: 'no-inlined-fonts',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      for (const file of Object.values(bundle)) {
+        if (file.type === 'asset' && file.fileName.endsWith('.css') && String(file.source).includes('data:font')) {
+          this.error(`${file.fileName} inlines a font as data: URL; import a larger subset or a single file instead`);
+        }
+      }
+    },
+  };
+}
+
 /** The commit date of HEAD, so the sitemap's lastmod only moves when the site changes. */
 function lastCommitDate(): string | undefined {
   try {
@@ -159,7 +178,12 @@ export default defineConfig(({ mode }) => {
     define: {
       __STOCKFISH_FILE__: JSON.stringify(`stockfish/stockfish-${stockfish.version}-lite-single.js`),
     },
-    plugins: [siteFiles(site, env.INDEXNOW_KEY), preloadBodyFont(), cloudflareAnalytics(env.VITE_CF_ANALYTICS_TOKEN)],
+    plugins: [
+      siteFiles(site, env.INDEXNOW_KEY),
+      preloadBodyFont(),
+      noInlinedFonts(),
+      cloudflareAnalytics(env.VITE_CF_ANALYTICS_TOKEN),
+    ],
     build: {
       rollupOptions: {
         input: Object.fromEntries(

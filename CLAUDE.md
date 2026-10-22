@@ -55,6 +55,7 @@ tournament games is against the rules and gets accounts banned on Chess.com and 
 ```
 src/
   main.ts       bootstrap
+  fonts.ts      web font imports shared by both pages (Latin subsets)
   state.ts      settings, game and review-cache persistence (localStorage)
   board/        board rendering, arrows, promotion picker
   engine/       UCI worker wrapper, info parsing, search queue, strength levels
@@ -77,8 +78,9 @@ GitHub Actions (`.github/workflows/ci.yml`): every push to `master` and every pu
 tests and build. A push to `master` then deploys the tested `dist/` with `wrangler deploy`, using the
 `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets, and pings IndexNow (`scripts/indexnow.mjs`, key
 `INDEXNOW_KEY` in `.env`). Caching and security headers are in `public/_headers`: HTML is `no-cache`, `/assets/*`
-immutable, and the CSP needs `'wasm-unsafe-eval'` for the engine and `data:` fonts because Vite inlines small font
-subsets. Cloudflare allows one `*` per `_headers` rule.
+immutable, and the CSP needs `'wasm-unsafe-eval'` for the engine. Fonts are imported once, in `src/fonts.ts`, Latin
+subsets only, so no font is small enough for Vite to inline; the build fails if a `data:` font reaches the CSS, and
+`font-src` is `'self'` only. Cloudflare allows one `*` per `_headers` rule.
 
 ## Next milestones
 

@@ -1,8 +1,4 @@
-import '@fontsource-variable/instrument-sans/wght.css';
-import '@fontsource/instrument-serif/400-italic.css';
-import '@fontsource/jetbrains-mono/400.css';
-import '@fontsource/jetbrains-mono/500.css';
-import '@fontsource/jetbrains-mono/600.css';
+import './fonts';
 import './style.css';
 import { setupGameImport } from './import/view';
 import { App } from './ui/app';
