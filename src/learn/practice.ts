@@ -32,6 +32,8 @@ export class Practice {
   message: string | null = null;
   /** A task lesson after its move, or a solved puzzle: the board takes no input until it is reset. */
   done = false;
+  /** The lesson's goal is reached: the puzzle is solved. */
+  solved = false;
   /** A puzzle waiting for the other side's scripted reply, which `reply` plays. */
   waiting = false;
   /** The square of the piece a puzzle's hint points at. */
@@ -53,6 +55,7 @@ export class Practice {
     this.selected = null;
     this.message = null;
     this.done = false;
+    this.solved = false;
     this.waiting = false;
     this.hint = null;
     this.ply = 0;
@@ -140,6 +143,7 @@ export class Practice {
     this.last = { from: move.from, to: move.to };
     if (this.game.isCheckmate() || this.ply >= solution.length) {
       this.done = true;
+      this.solved = true;
       this.message = this.lesson.solved ?? 'Solved.';
     } else {
       this.waiting = true;

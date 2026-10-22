@@ -4,6 +4,7 @@ import { LEVELS } from '../engine/levels';
 import { buildPracticeLink } from '../util/link';
 import { lessonById } from './lessons';
 import { Practice } from './practice';
+import { hasGoal, loadSolved, progressText, saveSolved } from './progress';
 
 /** How long a puzzle waits before Black answers, so the reader sees their own move land first. */
 const REPLY_DELAY_MS = 600;
@@ -11,11 +12,17 @@ const REPLY_DELAY_MS = 600;
 /** Endgames are practised against the strongest level, which defends as well as it can. */
 const PRACTICE_LEVEL = LEVELS.at(-1)?.id ?? 'max';
 
+/** The lessons this browser has solved, and what to do when one more is. */
+interface Progress {
+  solved: ReadonlySet<string>;
+  record(id: string): void;
+}
+
 /**
  * Brings one practice board on the How to play page to life. The page carries the empty board, the intro text and
  * the buttons, so its layout is final before this runs; this fills in the squares and handles the moves.
  */
-function mountLesson(root: HTMLElement): void {
+function mountLesson(root: HTMLElement, progress: Progress): void {
   const lesson = lessonById(root.dataset.lesson);
   const board = root.querySelector<HTMLElement>('.board');
   const promo = root.querySelector<HTMLElement>('.promo');
@@ -24,6 +31,8 @@ function mountLesson(root: HTMLElement): void {
   const hint = root.querySelector<HTMLButtonElement>('.lesson-hint');
   if (!lesson || !board || !promo || !message || !reset) throw new Error(`Incomplete lesson ${root.dataset.lesson}`);
   if (lesson.mode === 'puzzle' && !hint) throw new Error(`Puzzle ${lesson.id} has no hint button`);
+  if (hasGoal(lesson) && !root.querySelector('.lesson-solved'))
+    throw new Error(`Lesson ${lesson.id} has no solved mark`);
   if (lesson.practiseAs) {
     const link = root.querySelector<HTMLAnchorElement>('.lesson-practise');
     if (!link) throw new Error(`Endgame ${lesson.id} has no practice link`);
@@ -46,6 +55,8 @@ function mountLesson(root: HTMLElement): void {
     reset.disabled = practice.message === null;
     if (lesson.mode === 'puzzle') reset.textContent = practice.done ? 'Again' : resetLabel;
     if (hint) hint.disabled = practice.done || practice.waiting;
+    if (practice.solved && !progress.solved.has(lesson.id)) progress.record(lesson.id);
+    root.classList.toggle('solved', progress.solved.has(lesson.id));
     if (practice.waiting && replyTimer === undefined) {
       replyTimer = setTimeout(() => {
         replyTimer = undefined;
@@ -108,6 +119,26 @@ function markHint(board: HTMLElement, sq: Square): void {
   button?.setAttribute('aria-label', `${button.getAttribute('aria-label') ?? sq}, hint`);
 }
 
+/** Fills in each section's "n of m solved" line, which the page renders with nothing solved yet. */
+function showProgress(solved: ReadonlySet<string>): void {
+  for (const line of document.querySelectorAll<HTMLElement>('.lesson-progress')) {
+    const ids = [...(line.closest('section')?.querySelectorAll<HTMLElement>('[data-lesson]') ?? [])]
+      .map((el) => el.dataset.lesson ?? '')
+      .filter((id) => hasGoal(lessonById(id)));
+    line.textContent = progressText(ids, solved);
+  }
+}
+
 export function mountLessons(): void {
-  document.querySelectorAll<HTMLElement>('[data-lesson]').forEach(mountLesson);
+  const solved = loadSolved();
+  const progress: Progress = {
+    solved,
+    record(id) {
+      solved.add(id);
+      saveSolved(solved);
+      showProgress(solved);
+    },
+  };
+  document.querySelectorAll<HTMLElement>('[data-lesson]').forEach((root) => mountLesson(root, progress));
+  showProgress(solved);
 }

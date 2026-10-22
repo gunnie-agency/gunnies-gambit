@@ -108,6 +108,11 @@ describe('puzzles', () => {
     expect(introTexts().get(p.id)).toMatch(new RegExp(`^${side} to move`));
   });
 
+  it('are counted on the page before the script runs', () => {
+    const html = readFileSync('how-to-play.html', 'utf8');
+    expect(html).toContain(`<p class="lesson-progress">0 of ${PUZZLES.length} solved</p>`);
+  });
+
   it.each(Object.entries(MATES))('%s mates in %i with a single first move, and the solution ends in mate', (id, n) => {
     const p = lessonById(id);
     const solution = solutionOf(p);

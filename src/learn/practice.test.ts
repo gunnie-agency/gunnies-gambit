@@ -185,10 +185,13 @@ describe('Practice', () => {
     p.reply();
     expect(p.message).toBe('White answered Ke3. Your move.');
     expect(p.side).toBe('b');
+    expect(p.solved).toBe(false);
     tapMove(p, 'c6', 'h1');
     expect(p.done).toBe(true);
+    expect(p.solved).toBe(true);
     p.reset();
     expect(p.side).toBe('b');
+    expect(p.solved).toBe(false);
   });
 
   it('keeps White at the bottom of boards that start with a setup move for Black', () => {

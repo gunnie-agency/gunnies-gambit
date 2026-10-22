@@ -1552,3 +1552,22 @@ button.import-game:hover {
 .lesson-text p + p {
   margin-top: 10px;
 }
+/* Progress: the "n of m solved" line under a section's lead, filled in by the script, and a mark next to the buttons
+   of each solved puzzle. Both always take their space, so nothing moves when they change. */
+.learn-section .lesson-progress {
+  min-height: 1.5em;
+  margin-bottom: 14px;
+  font: 500 11px/1.5 var(--font-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+.lesson-solved {
+  visibility: hidden;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--good);
+}
+.lesson.solved .lesson-solved {
+  visibility: visible;
+}
