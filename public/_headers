@@ -14,6 +14,9 @@
   Cache-Control: no-cache
 /how-to-play
   Cache-Control: no-cache
+# The browser checks the service worker for updates on every visit; it must never get a stale copy.
+/sw.js
+  Cache-Control: no-cache
 
 # Content-hashed by Vite: safe to cache forever.
 /assets/*

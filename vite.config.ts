@@ -2,8 +2,8 @@
 import { Chess } from 'chess.js';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
-import { basename, join, resolve } from 'node:path';
+import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { basename, join, relative, resolve, sep } from 'node:path';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import {
   faqHtml,
@@ -20,6 +20,7 @@ import {
 } from './src/site/files.ts';
 import { boardHtml } from './src/board/board.ts';
 import { footerHtml, logoSymbol } from './src/site/partials.ts';
+import { cacheVersion, fillServiceWorker, precacheEntries } from './src/sw/precache.ts';
 
 const stockfish = JSON.parse(readFileSync('node_modules/stockfish/package.json', 'utf8')) as { version: string };
 
@@ -211,6 +212,47 @@ function siteFiles(site: Site, indexNowKey: string | undefined): Plugin {
   };
 }
 
+/** Every file under a directory, as paths relative to it with forward slashes. */
+function filesIn(dir: string): string[] {
+  return readdirSync(dir, { recursive: true, encoding: 'utf8' })
+    .filter((name) => statSync(join(dir, name)).isFile())
+    .map((name) => relative(dir, join(dir, name)).split(sep).join('/'));
+}
+
+const SERVICE_WORKER = 'sw.js';
+
+/**
+ * Builds the offline service worker (src/sw/sw.ts) to /sw.js, with the list of files to precache and a cache version
+ * filled in from the finished bundle plus the copied public files (see src/sw/precache.ts). Runs after the other
+ * plugins, so the pages it hashes are the final HTML.
+ */
+function serviceWorker(): Plugin {
+  let publicDir = '';
+  return {
+    name: 'service-worker',
+    apply: 'build',
+    enforce: 'post',
+    configResolved(config) {
+      publicDir = config.publicDir;
+    },
+    generateBundle(_options, bundle) {
+      const worker = bundle[SERVICE_WORKER];
+      if (worker?.type !== 'chunk') return this.error(`service-worker: ${SERVICE_WORKER} missing from the bundle`);
+      const contents = new Map<string, string | Uint8Array>();
+      for (const name of filesIn(publicDir)) contents.set(name, readFileSync(join(publicDir, name)));
+      for (const file of Object.values(bundle)) {
+        if (file !== worker) contents.set(file.fileName, file.type === 'chunk' ? file.code : file.source);
+      }
+      const entries = precacheEntries([...contents.keys()]).map(({ file, url }) => ({
+        url,
+        content: contents.get(file) ?? '',
+      }));
+      const urls = entries.map((entry) => entry.url);
+      worker.code = fillServiceWorker(worker.code, urls, cacheVersion(entries));
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   // The '' prefix also loads INDEXNOW_KEY, which only the build needs.
   const env = loadEnv(mode, process.cwd(), '');
@@ -232,12 +274,20 @@ export default defineConfig(({ mode }) => {
       preloadBodyFont(),
       noInlinedFonts(),
       cloudflareAnalytics(env.VITE_CF_ANALYTICS_TOKEN),
+      serviceWorker(),
     ],
     build: {
       rollupOptions: {
-        input: Object.fromEntries(
-          Object.entries(PAGES).map(([file, name]) => [name, resolve(import.meta.dirname, file)]),
-        ),
+        input: {
+          ...Object.fromEntries(
+            Object.entries(PAGES).map(([file, name]) => [name, resolve(import.meta.dirname, file)]),
+          ),
+          sw: resolve(import.meta.dirname, 'src/sw/sw.ts'),
+        },
+        // The service worker keeps a fixed name at the root: its URL is its identity, and its scope is its directory.
+        output: {
+          entryFileNames: (chunk) => (chunk.name === 'sw' ? SERVICE_WORKER : 'assets/[name]-[hash].js'),
+        },
       },
     },
     test: {
