@@ -1378,8 +1378,10 @@ footer .made-by {
   :root:not([data-evalbar='on']) .evalbar.off {
     display: none;
   }
+  /* On a 375px phone the longest small line, Analyse's 66 characters, wraps to two lines: reserve them. */
   .status {
     font-size: 1.2rem;
+    min-height: calc(1.2em + 6px + 2 * 0.9rem * 1.2);
   }
 }
 
