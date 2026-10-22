@@ -75,8 +75,14 @@ export class Practice {
     return null;
   }
 
+  /** Plays a move. An illegal one, such as a promotion picked after the position changed, is ignored. */
   play(from: Square, to: Square, promotion?: PromotionPiece): void {
-    const move = this.game.move({ from, to, promotion });
+    let move: Move;
+    try {
+      move = this.game.move({ from, to, promotion });
+    } catch {
+      return;
+    }
     this.selected = null;
     if (this.lesson.mode === 'puzzle') {
       this.judge(move);

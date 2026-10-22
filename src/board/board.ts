@@ -200,7 +200,15 @@ export function renderArrows(svg: SVGElement, orient: Color, arrows: readonly Ar
     .join('');
 }
 
-/** Shows the promotion picker over the board. `onPick` receives null when cancelled. */
+/** The board the promotion picker covers: its sibling in the board box. */
+function boardUnder(box: HTMLElement): HTMLElement | null {
+  return box.parentElement?.querySelector<HTMLElement>('.board') ?? null;
+}
+
+/**
+ * Shows the promotion picker over the board. `onPick` receives null when cancelled. The board is inert meanwhile, so
+ * the picker is modal: no other move can be made, by mouse or keyboard, while the choice is open.
+ */
 export function askPromotion(box: HTMLElement, color: Color, onPick: (piece: PromotionPiece | null) => void): void {
   const pieces: PromotionPiece[] = ['q', 'r', 'b', 'n'];
   box.innerHTML =
@@ -210,6 +218,8 @@ export function askPromotion(box: HTMLElement, color: Color, onPick: (piece: Pro
       .join('') +
     '</div><button class="btn" type="button" data-p="">Cancel</button></div>';
   box.hidden = false;
+  const board = boardUnder(box);
+  if (board) board.inert = true;
   box.onclick = (e) => {
     const button = (e.target as HTMLElement).closest<HTMLElement>('[data-p]');
     if (!button) return;
@@ -220,6 +230,8 @@ export function askPromotion(box: HTMLElement, color: Color, onPick: (piece: Pro
 }
 
 export function closePromotion(box: HTMLElement): void {
+  const board = boardUnder(box);
+  if (board) board.inert = false;
   box.hidden = true;
   box.onclick = null;
   box.innerHTML = '';

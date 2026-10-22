@@ -133,6 +133,16 @@ describe('Practice', () => {
     expect(p.message).toMatch(/became a knight/);
   });
 
+  it('ignores a promotion that is no longer legal when the piece is picked', () => {
+    const p = practice('promotion');
+    tapMove(p, 'e7', 'e8');
+    tapMove(p, 'a1', 'b1');
+    const fen = p.game.fen();
+    expect(() => p.play('e7', 'e8', 'q')).not.toThrow();
+    expect(p.game.fen()).toBe(fen);
+    expect(p.message).toMatch(/^The king/);
+  });
+
   it('takes back a wrong puzzle move and lets the reader try again', () => {
     const p = practice('knight-fork');
     tapMove(p, 'd5', 'b6');

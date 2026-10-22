@@ -34,6 +34,8 @@ function mountLesson(root: HTMLElement): void {
   const resetLabel = reset.textContent;
   const practice = new Practice(lesson);
   let replyTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The pawn waiting in the promotion picker, so a cancel can give it focus back. */
+  let promoting: Square | null = null;
 
   const render = () => {
     const { game, selected, last } = practice;
@@ -59,7 +61,9 @@ function mountLesson(root: HTMLElement): void {
     if (!sq) return;
     const pending = practice.tap(sq);
     if (pending) {
+      promoting = pending.from;
       askPromotion(promo, practice.game.turn(), (piece) => {
+        promoting = null;
         if (piece) practice.play(pending.from, pending.to, piece);
         else practice.selected = null;
         render();
@@ -70,6 +74,16 @@ function mountLesson(root: HTMLElement): void {
   });
   enableArrowKeys(board);
 
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !promoting) return;
+    const pawn = promoting;
+    promoting = null;
+    closePromotion(promo);
+    practice.selected = null;
+    render();
+    focusSquare(pawn);
+  });
+
   hint?.addEventListener('click', () => {
     practice.showHint();
     render();
@@ -78,6 +92,7 @@ function mountLesson(root: HTMLElement): void {
   reset.addEventListener('click', () => {
     clearTimeout(replyTimer);
     replyTimer = undefined;
+    promoting = null;
     closePromotion(promo);
     practice.reset();
     render();
