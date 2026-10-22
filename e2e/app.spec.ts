@@ -32,6 +32,53 @@ test.describe('play and analyse', () => {
   });
 });
 
+test.describe('the move list', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('./');
+    await page.locator('#modeSeg').getByRole('button', { name: 'Analyse' }).click();
+    for (const move of ['e4', 'e5', 'Nf3']) {
+      await page.locator('#moveInput').fill(move);
+      await page.locator('#moveInput').press('Enter');
+    }
+  });
+
+  test('steps back with the keyboard, and a move there starts a line that Undo takes back', async ({ page }) => {
+    const moves = page.locator('#moves');
+    const opening = page.locator('#opening');
+    await expect(opening).not.toBeEmpty();
+    const liveOpening = await opening.textContent();
+    await moves.getByRole('button', { name: '2. Nf3' }).focus();
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    const current = moves.locator('[aria-current="true"]');
+    await expect(current).toHaveAccessibleName('1. e4');
+    await expect(current).toBeFocused();
+    await expect(page.locator('#status')).toContainText('After 1. e4');
+    await expect(page.locator('#liveBtn')).toBeVisible();
+    await expect(opening).not.toHaveText(liveOpening ?? ''); // the opening follows the shown position
+
+    await page.locator('#moveInput').fill('c5');
+    await page.locator('#moveInput').press('Enter');
+    await expect(moves.locator('.m')).toHaveText(['e4', 'c5']);
+    await page.locator('#undoBtn').click();
+    await expect(moves.locator('.m')).toHaveText(['e4', 'e5', 'Nf3']);
+
+    await page.locator('#liveBtn').click();
+    await expect(current).toHaveAccessibleName('2. Nf3');
+    await expect(page.locator('#liveBtn')).toBeHidden();
+  });
+
+  test('downloads the game as PGN', async ({ page }) => {
+    await page.locator('details.tools summary').click();
+    const [download] = await Promise.all([page.waitForEvent('download'), page.locator('#downloadPgn').click()]);
+    expect(download.suggestedFilename()).toMatch(/^chess-\d{4}-\d{2}-\d{2}-\d{4}\.pgn$/);
+    const pgn = readFileSync(await download.path(), 'utf8');
+    expect(pgn).toContain('[Event "Analysis"]');
+    expect(pgn).toContain('[Result "*"]');
+    expect(pgn).toMatch(/1\. e4 e5 2\. Nf3 \*\s*$/);
+  });
+});
+
 test('the theme switch is remembered across a reload', async ({ page }) => {
   await page.goto('./');
   const root = page.locator('html');
