@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   faq,
@@ -49,6 +50,18 @@ describe('structured data', () => {
     expect(faqPage.mainEntity.map((q) => q.name)).toEqual(faq(site).map((q) => q.question));
   });
 
+  it('dates both pages from the last change, and leaves the date out when it is unknown', () => {
+    const graph = (data: object) => (data as { '@graph': Record<string, unknown>[] })['@graph'];
+    const app = graph(structuredData(site)).find((node) => node['@type'] === 'WebApplication');
+    const page = graph(howToPlayStructuredData(site)).find(
+      (node) => node['@id'] === 'https://chess.example/how-to-play#page',
+    );
+    expect(app?.dateModified).toBe('2026-10-12');
+    expect(page?.dateModified).toBe('2026-10-12');
+    const undated = { ...site, lastmod: undefined };
+    expect(JSON.stringify([structuredData(undated), howToPlayStructuredData(undated)])).not.toContain('dateModified');
+  });
+
   it('cannot close its script element', () => {
     const script = jsonLdScript(structuredData({ ...site, name: '</script><script>alert(1)</script>' }));
     expect(script).not.toContain('<');
@@ -88,6 +101,16 @@ describe('llmsTxt', () => {
     expect(text).toContain('## Fair play');
     expect(text).toContain('not a chess opening');
     expect(text).toContain(`### ${faq(site)[0]?.question}`);
+  });
+});
+
+describe('llmsTxt rules in brief', () => {
+  it('links every rule to a section that exists on the How to play page', () => {
+    const page = readFileSync(new URL('../../how-to-play.html', import.meta.url), 'utf8');
+    const section = llmsTxt(site).split('## Rules in brief\n\n')[1]?.split('\n\n')[0] ?? '';
+    const anchors = [...section.matchAll(/\(https:\/\/chess\.example\/how-to-play#([\w-]+)\)/g)].map((m) => m[1]);
+    expect(anchors).toEqual(['goal', 'pieces', 'check', 'special', 'draws']);
+    for (const anchor of anchors) expect(page).toContain(`id="${anchor}"`);
   });
 });
 

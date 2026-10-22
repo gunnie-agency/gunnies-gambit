@@ -142,6 +142,53 @@ export function faqHtml(site: Site): string {
 }
 
 /** The last word of the app name: the header's accent word and the manifest's short name. */
+/** schema.org's dateModified from the date of the last change, when it is known. */
+function modified(site: Site): { dateModified?: string } {
+  return site.lastmod ? { dateModified: site.lastmod } : {};
+}
+
+/** The rules in one line each, linked to the How to play section that explains them (ids in how-to-play.html). */
+const RULES: ReadonlyArray<{ anchor: string; title: string; text: string }> = [
+  {
+    anchor: 'goal',
+    title: 'The goal',
+    text:
+      "checkmate the opponent's king, attacking it so that it cannot escape. White moves first, then the players take " +
+      'turns; nobody can pass.',
+  },
+  {
+    anchor: 'pieces',
+    title: 'How the pieces move',
+    text:
+      'the king one square in any direction; the queen any distance in a straight line or diagonally; the rook any ' +
+      'distance in a straight line; the bishop any distance diagonally; the knight in an L shape, jumping over ' +
+      'pieces; the pawn one square forward (two from its starting square), capturing one square diagonally ' +
+      'forward.',
+  },
+  {
+    anchor: 'check',
+    title: 'Check, checkmate and stalemate',
+    text:
+      'a king under attack is in check and must get out of it at once. A player in check with no way out is ' +
+      'checkmated and loses; a player not in check but without a legal move is stalemated, and the game is a draw.',
+  },
+  {
+    anchor: 'special',
+    title: 'Three special moves',
+    text:
+      'castling (the king moves two squares towards a rook, which jumps to its other side), en passant (a pawn ' +
+      'captures an enemy pawn that has just moved two squares past it) and promotion (a pawn reaching the far side ' +
+      'becomes a queen, rook, bishop or knight).',
+  },
+  {
+    anchor: 'draws',
+    title: 'Other ways to draw',
+    text:
+      'by agreement, by threefold repetition, by the 50-move rule, or when neither side has enough pieces left to ' +
+      'checkmate.',
+  },
+];
+
 export function shortName(name: string): string {
   const trimmed = name.trim();
   return trimmed.slice(trimmed.lastIndexOf(' ') + 1);
@@ -183,6 +230,7 @@ export function structuredData(site: Site): object {
         isPartOf: { '@id': `${home}#website` },
         author: { '@id': JEROEN },
         publisher: { '@id': GUNNIE },
+        ...modified(site),
       },
       {
         '@type': 'FAQPage',
@@ -230,6 +278,7 @@ export function howToPlayStructuredData(site: Site): object {
         breadcrumb: { '@id': `${page}#breadcrumb` },
         author: { '@id': JEROEN },
         publisher: { '@id': GUNNIE },
+        ...modified(site),
       },
       {
         '@type': 'BreadcrumbList',
@@ -292,6 +341,9 @@ export function webManifest(site: Site): string {
 }
 
 export function llmsTxt(site: Site): string {
+  const rules = RULES.map(
+    ({ anchor, title, text }) => `- [${title}](${site.url}${HOW_TO_PLAY_PATH}#${anchor}): ${text}`,
+  );
   // One line per paragraph or list item: the values filled in would make hard wraps ragged.
   return (
     [
@@ -315,6 +367,8 @@ export function llmsTxt(site: Site): string {
       `${site.name} is for practice, games against computer bots and reviewing your own games. Using engine help in ` +
         'any online game against a human, rated or casual, or in an over-the-board tournament is against the rules ' +
         'and gets accounts banned on Chess.com and Lichess. It has no features for reading moves from other sites.',
+      '## Rules in brief',
+      rules.join('\n'),
       '## Questions',
       ...faq(site).map(({ question, answer }) => `### ${question}\n\n${answer}`),
       '## Links',
