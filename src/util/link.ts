@@ -1,5 +1,6 @@
-import { validateFen, type Color } from 'chess.js';
+import type { Color } from 'chess.js';
 import { LEVELS } from '../engine/levels';
+import { fenProblem } from './moves';
 
 /** A position to play out against the computer, as passed from the How to play page to the app. */
 export interface PracticeLink {
@@ -24,6 +25,6 @@ export function parsePracticeLink(hash: string): PracticeLink | null {
   if (params.get('mode') !== 'play' || fen === null || level === null) return null;
   if (side !== 'w' && side !== 'b') return null;
   if (!LEVELS.some((l) => l.id === level)) return null;
-  if (!validateFen(fen).ok) return null;
+  if (fenProblem(fen) !== null) return null;
   return { fen, side, level };
 }

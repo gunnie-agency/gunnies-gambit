@@ -40,6 +40,10 @@ describe('parsePracticeLink', () => {
       'a fen without a black king',
       `#fen=${encodeURIComponent('8/8/8/4K3/8/4P3/8/8 w - - 0 1')}&mode=play&side=w&level=max`,
     ],
+    [
+      'a position where the side not to move is in check',
+      `#fen=${encodeURIComponent('4k3/8/8/8/8/8/8/q3K3 b - - 0 1')}&mode=play&side=w&level=max`,
+    ],
   ])('returns null for %s', (_, hash) => {
     expect(parsePracticeLink(hash)).toBeNull();
   });
