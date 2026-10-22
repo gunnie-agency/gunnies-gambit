@@ -159,6 +159,27 @@ export class App {
     this.positionChanged();
   }
 
+  /** Opens a finished game in Analyse with the user's side set, optionally starting its review. False if unreadable. */
+  loadGame(pgn: string, options: { side: Color; review: boolean }): boolean {
+    const parsed = new Chess();
+    try {
+      parsed.loadPgn(pgn, { strict: false });
+    } catch {
+      return false;
+    }
+    const restored = replay(parsed.getHeaders().FEN ?? DEFAULT_POSITION, parsed.history({ verbose: true }).map(toUci));
+    this.game = restored.game;
+    this.startFen = restored.startFen;
+    this.opponentFen = null;
+    this.hintFen = null;
+    this.moveMessage = null;
+    this.restartAnalysis();
+    this.settings = { ...this.settings, mode: 'analysis', side: options.side, orient: options.side };
+    this.positionChanged();
+    if (options.review) this.startReview();
+    return true;
+  }
+
   // ---------- derived state ----------
 
   private get fen(): string {

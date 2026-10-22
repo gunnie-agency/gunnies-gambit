@@ -204,6 +204,31 @@
             <p class="hint" id="toolsHint"></p>
           </div>
         </details>
+
+        <details class="import" id="importGames">
+          <summary>Your games</summary>
+          <form class="tools-body" id="importForm" autocomplete="off">
+            <p class="hint">
+              Review your finished games from Lichess or Chess.com. Only the username is sent, to the site you pick.
+            </p>
+            <div>
+              <span class="label" id="importSiteLabel">Site</span>
+              <fieldset class="seg" id="importSite" aria-labelledby="importSiteLabel">
+                <button type="button" data-v="lichess" aria-pressed="true">Lichess</button>
+                <button type="button" data-v="chesscom" aria-pressed="false">Chess.com</button>
+              </fieldset>
+            </div>
+            <div>
+              <label for="importUser">Username</label>
+              <div class="row">
+                <input type="text" id="importUser" autocapitalize="off" spellcheck="false" maxlength="30" required />
+                <button class="btn primary" type="submit" id="importSubmit">Show finished games</button>
+              </div>
+            </div>
+            <p class="hint" id="importStatus" role="status" aria-live="polite"></p>
+            <ol class="import-list" id="importList" aria-label="Finished games" hidden></ol>
+          </form>
+        </details>
       </main>
 
       <section class="about" aria-labelledby="aboutTitle">
