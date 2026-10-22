@@ -7,6 +7,7 @@ import type { SearchJob } from '../engine/queue';
 import { Review } from '../review/view';
 import { DEFAULT_SETTINGS, loadSaved, replay, saveGame, settingsOf, type Mode, type Settings } from '../state';
 import { escapeHtml } from '../util/html';
+import { parsePracticeLink } from '../util/link';
 import { fenProblem, gameEnd, parseTypedMove, uniqueMoveTo, type GameEnd } from '../util/moves';
 import { numberMoves, pvToSan } from '../util/san';
 import { evalBarPercent, formatScore, toWhitePov, verdict, type Score } from '../util/score';
@@ -156,6 +157,7 @@ export class App {
   }
 
   start(): void {
+    this.readPracticeLink();
     this.analysis.start();
     if (this.settings.mode === 'play') this.opponent.start();
     this.positionChanged();
@@ -442,6 +444,23 @@ export class App {
     this.render();
   }
 
+  /**
+   * Opens a practice link (`#fen=…&mode=play&side=…&level=…`, see util/link.ts) in place of the current game, says so
+   * in the move hint, and removes the hash so a reload does not load it again. Anything else in the hash is ignored.
+   * Returns whether a position was loaded; the caller then runs positionChanged.
+   */
+  private readPracticeLink(): boolean {
+    const link = parsePracticeLink(location.hash);
+    if (!link) return false;
+    history.replaceState(null, '', location.pathname + location.search);
+    this.game.load(link.fen);
+    this.startFen = link.fen;
+    this.settings = { ...this.settings, mode: 'play', side: link.side, orient: link.side, level: link.level };
+    this.opponentFen = null;
+    this.moveMessage = { text: 'Loaded the practice position.', err: false };
+    return true;
+  }
+
   // ---------- events ----------
 
   private bindEvents(): void {
@@ -558,6 +577,12 @@ export class App {
     });
     el.copyFen.addEventListener('click', () => this.copy(this.fen, 'FEN copied.', el.fenInput));
     el.copyPgn.addEventListener('click', () => this.copy(this.game.pgn(), 'PGN copied.', el.pgnInput));
+
+    window.addEventListener('hashchange', () => {
+      if (!this.readPracticeLink()) return;
+      this.opponent.start();
+      this.positionChanged();
+    });
 
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
