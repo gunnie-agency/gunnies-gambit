@@ -129,10 +129,14 @@
 
         <form class="move-entry" id="moveForm" autocomplete="off">
           <label for="moveInput">Type a move</label>
+          <p class="hint" id="moveNotation">
+            New to notation such as Nf3 or O-O? <a href="./how-to-play#app">How to play</a> explains how to enter moves.
+          </p>
           <div class="row">
             <input
               type="text"
               id="moveInput"
+              aria-describedby="moveNotation"
               placeholder="e.g. Nf3, exd5, O-O, e7e8q"
               autocapitalize="off"
               spellcheck="false"
@@ -164,8 +168,14 @@
           </div>
           <div class="setting" id="helpSetting">
             <span class="eyebrow">Engine help</span>
-            <label class="check"><input type="checkbox" id="showEval" /> Show evaluation</label>
-            <label class="check"><input type="checkbox" id="showBest" /> Show best move</label>
+            <label class="check"
+              ><input type="checkbox" id="showEval" aria-describedby="showEvalHelp" /> Show evaluation</label
+            >
+            <p class="hint" id="showEvalHelp">Who is ahead, in pawns: +1 means White is about a pawn up.</p>
+            <label class="check"
+              ><input type="checkbox" id="showBest" aria-describedby="showBestHelp" /> Show best move</label
+            >
+            <p class="hint" id="showBestHelp">The move the engine would play in this position.</p>
           </div>
         </div>
 
