@@ -12,9 +12,11 @@ import { escapeHtml } from '../util/html';
 import { parsePracticeLink } from '../util/link';
 import { fenProblem, gameEnd, parseTypedMove, uniqueMoveTo, type GameEnd } from '../util/moves';
 import { buildPgn, pgnFileName } from '../util/pgn';
+import { moveSound } from '../util/sounds';
 import { numberMoves, pvToSan } from '../util/san';
 import { evalBarPercent, formatScore, toWhitePov, verdict, type Score } from '../util/score';
 import { parseUciMove, toUci, type UciMove } from '../util/uci';
+import { Sounds } from './sound';
 
 interface Line {
   depth: number;
@@ -78,6 +80,7 @@ export class App {
     helpSetting: $('helpSetting'),
     showEval: $<HTMLInputElement>('showEval'),
     showBest: $<HTMLInputElement>('showBest'),
+    soundOn: $<HTMLInputElement>('soundOn'),
     moves: $('moves'),
     liveBtn: $<HTMLButtonElement>('liveBtn'),
     undoBtn: $<HTMLButtonElement>('undoBtn'),
@@ -130,6 +133,7 @@ export class App {
   /** Engines are started on first use, so a worker that is never needed never loads. */
   private readonly started = { analysis: false, opponent: false };
   private readonly review: Review;
+  private readonly sounds = new Sounds();
 
   constructor() {
     const saved = loadSaved();
@@ -138,6 +142,7 @@ export class App {
     this.played = this.game.history({ verbose: true });
     this.startFen = restored.startFen;
     this.settings = saved ? settingsOf(saved) : { ...DEFAULT_SETTINGS };
+    this.sounds.enabled = this.settings.sound;
 
     this.analysis = new Engine({
       url: STOCKFISH_URL,
@@ -404,13 +409,17 @@ export class App {
   /** Plays a move on the live game: the user's, or the opponent's reply. */
   private playMove(move: UciMove): boolean {
     try {
-      this.game.move(move);
+      this.playSound(this.game.move(move));
     } catch {
       return false;
     }
     this.moveMessage = null;
     this.positionChanged();
     return true;
+  }
+
+  private playSound(move: Move): void {
+    this.sounds.play(moveSound(move, this.isOver));
   }
 
   /**
@@ -432,7 +441,7 @@ export class App {
     }
     const dropped = this.played.slice(at);
     for (let i = 0; i < dropped.length; i++) this.game.undo();
-    this.game.move(move);
+    this.playSound(this.game.move(move));
     this.view = null;
     const later = dropped.length === 1 ? 'The move that followed is' : `The ${dropped.length} moves that followed are`;
     this.moveMessage = { text: `New line from here. ${later} gone; Undo brings them back.`, err: false };
@@ -709,6 +718,16 @@ export class App {
     });
     el.showEval.addEventListener('change', () => this.updateSettings({ showEval: el.showEval.checked }));
     el.showBest.addEventListener('change', () => this.updateSettings({ showBest: el.showBest.checked }));
+    el.soundOn.addEventListener('change', () => {
+      this.sounds.enabled = el.soundOn.checked;
+      this.updateSettings({ sound: el.soundOn.checked });
+      this.sounds.unlock();
+      this.sounds.play('move'); // a sample, so the user hears what they switched on
+    });
+    // Audio may only start from a user gesture: every press is one, the first move included.
+    const unlock = () => this.sounds.unlock();
+    document.addEventListener('pointerdown', unlock, true);
+    document.addEventListener('keydown', unlock, true);
 
     el.loadFen.addEventListener('click', () => {
       const fen = el.fenInput.value.trim();
@@ -1117,7 +1136,7 @@ export class App {
   }
 
   private renderSettings(): void {
-    const { mode, side, think, level, showEval, showBest } = this.settings;
+    const { mode, side, think, level, showEval, showBest, sound } = this.settings;
     const press = (container: HTMLElement, value: string) =>
       container
         .querySelectorAll<HTMLElement>('button[data-v]')
@@ -1128,6 +1147,7 @@ export class App {
     this.el.levelSelect.value = level;
     this.el.showEval.checked = showEval;
     this.el.showBest.checked = showBest;
+    this.el.soundOn.checked = sound;
     this.el.levelSetting.hidden = mode !== 'play';
     this.el.helpSetting.hidden = mode !== 'play';
     this.el.thinkSetting.hidden = mode !== 'analysis';

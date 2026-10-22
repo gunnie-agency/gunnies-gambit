@@ -22,6 +22,8 @@ export interface Settings {
   showEval: boolean;
   /** In play mode: show the best move, arrows and engine lines all the time instead of only on request. */
   showBest: boolean;
+  /** Short synthesised sounds for moves, captures, checks and the game's end. */
+  sound: boolean;
 }
 
 export interface SavedGame extends Settings {
@@ -37,6 +39,7 @@ export const DEFAULT_SETTINGS: Settings = {
   level: DEFAULT_LEVEL_ID,
   showEval: false,
   showBest: false,
+  sound: false,
 };
 
 const KEY = 'gunnies-gambit.v2';
@@ -61,6 +64,7 @@ export function loadSaved(): SavedGame | null {
     level: LEVELS.some((l) => l.id === s.level) ? (s.level as string) : DEFAULT_SETTINGS.level,
     showEval: s.showEval === true,
     showBest: s.showBest === true,
+    sound: s.sound === true,
     startFen: typeof s.startFen === 'string' ? s.startFen : DEFAULT_POSITION,
     moves: leadingStrings(s.moves),
   };
@@ -74,8 +78,8 @@ function leadingStrings(v: unknown): string[] {
 }
 
 export function settingsOf(saved: SavedGame): Settings {
-  const { mode, side, orient, think, level, showEval, showBest } = saved;
-  return { mode, side, orient, think, level, showEval, showBest };
+  const { mode, side, orient, think, level, showEval, showBest, sound } = saved;
+  return { mode, side, orient, think, level, showEval, showBest, sound };
 }
 
 /** Stores the game as its start position and UCI moves, with the settings. */

@@ -50,6 +50,15 @@ describe('saved game', () => {
     expect(loadSaved()).toEqual({ ...DEFAULT_SETTINGS, startFen: DEFAULT_POSITION, moves: [] });
   });
 
+  it('reads the sound setting, off for older saves without it and for anything but true', () => {
+    saveGame(DEFAULT_POSITION, [], { ...DEFAULT_SETTINGS, sound: true });
+    expect(loadSaved()?.sound).toBe(true);
+    store[KEY] = JSON.stringify({ mode: 'analysis', side: 'b', showEval: true, moves: ['e2e4'] });
+    expect(loadSaved()).toMatchObject({ mode: 'analysis', showEval: true, sound: false, moves: ['e2e4'] });
+    store[KEY] = JSON.stringify({ sound: 'on' });
+    expect(loadSaved()?.sound).toBe(false);
+  });
+
   it('keeps the moves only up to the first one that is not a string', () => {
     store[KEY] = JSON.stringify({ moves: ['e2e4', 5, 'g1f3'] });
     expect(loadSaved()?.moves).toEqual(['e2e4']);
