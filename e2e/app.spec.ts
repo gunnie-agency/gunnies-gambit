@@ -116,6 +116,27 @@ test('How to play: a puzzle gives a hint and turns down a wrong move', async ({ 
   await expect(message).toHaveText(/^Not quite: Nb6 is not the move here/);
 });
 
+test("How to play: a Black-to-move puzzle is solved from Black's side and stays solved", async ({ page }) => {
+  await page.goto('./how-to-play');
+  const lesson = page.locator('[data-lesson="skewer"]');
+  const message = lesson.locator('.lesson-msg');
+  const progress = page.locator('#tactics .lesson-progress');
+  await expect(progress).toHaveText(/^0 of \d+ solved$/);
+  // Black is at the bottom, so h1 is the top-left square.
+  await expect(lesson.locator('[data-sq]').first()).toHaveAttribute('data-sq', 'h1');
+  await lesson.locator('[data-sq="a4"]').click();
+  await lesson.locator('[data-sq="c6"]').click();
+  await expect(message).toHaveText('White answered Ke3. Your move.');
+  await lesson.locator('[data-sq="c6"]').click();
+  await lesson.locator('[data-sq="h1"]').click();
+  await expect(message).toHaveText(/^Solved\./);
+  await expect(lesson.locator('.lesson-solved')).toBeVisible();
+  await expect(progress).toHaveText(/^1 of \d+ solved$/);
+  await page.reload();
+  await expect(progress).toHaveText(/^1 of \d+ solved$/);
+  await expect(lesson.locator('.lesson-solved')).toBeVisible();
+});
+
 test('Your games lists finished games from Lichess', async ({ page }) => {
   const games = readFileSync('src/import/fixtures/lichess-drnykterstein.ndjson', 'utf8');
   await page.route('https://lichess.org/api/games/user/**', (route) =>
