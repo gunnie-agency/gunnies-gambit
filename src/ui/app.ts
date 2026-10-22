@@ -75,9 +75,6 @@ export class App {
     sideSeg: $('sideSeg'),
     thinkSeg: $('thinkSeg'),
     levelSelect: $<HTMLSelectElement>('levelSelect'),
-    levelSetting: $('levelSetting'),
-    thinkSetting: $('thinkSetting'),
-    helpSetting: $('helpSetting'),
     showEval: $<HTMLInputElement>('showEval'),
     showBest: $<HTMLInputElement>('showBest'),
     soundOn: $<HTMLInputElement>('soundOn'),
@@ -96,6 +93,9 @@ export class App {
     sharePgn: $<HTMLButtonElement>('sharePgn'),
     toolsHint: $('toolsHint'),
   };
+
+  /** The move hint from the HTML, shown when there is no message: in the page so its lines are there on load. */
+  private readonly moveHintHtml = this.el.moveHint.innerHTML;
 
   private game: Chess;
   /** The moves of `game`, refreshed in positionChanged: every chess.js history() call replays the whole game. */
@@ -1148,9 +1148,10 @@ export class App {
     this.el.showEval.checked = showEval;
     this.el.showBest.checked = showBest;
     this.el.soundOn.checked = sound;
-    this.el.levelSetting.hidden = mode !== 'play';
-    this.el.helpSetting.hidden = mode !== 'play';
-    this.el.thinkSetting.hidden = mode !== 'analysis';
+    // The settings and the hint text that differ per mode follow this attribute (style.css). The theme script sets
+    // it from the saved game before the first paint, so a returning user sees nothing appear or vanish on load.
+    if (mode === 'analysis') document.documentElement.dataset.mode = mode;
+    else delete document.documentElement.dataset.mode;
   }
 
   private renderMoveHint(): void {
@@ -1161,10 +1162,7 @@ export class App {
       return;
     }
     hint.className = 'hint';
-    hint.textContent =
-      this.settings.mode === 'analysis'
-        ? 'Tap a piece and then its square, or just the square when only one piece can go there. Enter the moves of both sides.'
-        : 'Tap a piece and then its square, or just the square when only one piece can go there.';
+    if (hint.innerHTML !== this.moveHintHtml) hint.innerHTML = this.moveHintHtml;
   }
 
   private renderChip(): void {

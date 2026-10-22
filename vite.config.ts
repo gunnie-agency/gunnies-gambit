@@ -95,7 +95,8 @@ function noInlinedFonts(): Plugin {
 /**
  * Runs before first paint: applies a stored light theme, so the page does not flash dark (key as in src/ui/chrome.ts),
  * and marks a stored "evaluation shown" (analysis mode or the play-mode setting, see src/state.ts), so on phones the
- * eval bar's space is reserved from the start rather than pushing the board aside when the app script runs. When
+ * eval bar's space is reserved from the start rather than pushing the board aside when the app script runs. It also
+ * marks a stored Analyse mode, so the settings and hint text that differ per mode are right on first paint. When
  * storage is blocked or unreadable the defaults apply: dark theme, no evaluation. Inline in each page's head rather
  * than a file, so it costs no request; the CSP allows exactly this text by its hash.
  */
@@ -103,6 +104,7 @@ const THEME_INIT =
   'try{const root=document.documentElement;' +
   "if(localStorage.getItem('gunnies-gambit.theme')==='light')root.dataset.theme='light';" +
   "const saved=JSON.parse(localStorage.getItem('gunnies-gambit.v2')??'null');" +
+  "if(saved?.mode==='analysis')root.dataset.mode='analysis';" +
   "if(saved?.mode==='analysis'||saved?.showEval===true)root.dataset.evalbar='on'}catch{}";
 const THEME_INIT_HASH_PLACEHOLDER = '%THEME_INIT_SHA256%';
 

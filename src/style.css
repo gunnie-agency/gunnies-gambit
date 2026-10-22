@@ -1526,3 +1526,15 @@ button.import-game:hover {
   justify-content: flex-end;
   gap: 8px;
 }
+/* What differs per mode follows a root attribute that the theme script sets from the saved game before the first
+   paint, so a returning Analyse user does not see the play settings vanish once the app script runs. */
+:root:not([data-mode='analysis']) #thinkSetting,
+:root:not([data-mode='analysis']) #moveHint .analysis-only,
+:root[data-mode='analysis'] #levelSetting,
+:root[data-mode='analysis'] #helpSetting {
+  display: none;
+}
+/* Two lines, the default hint on most widths, so a shorter message after a move does not move what follows. */
+#moveHint {
+  min-height: 3em;
+}

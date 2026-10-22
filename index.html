@@ -174,7 +174,7 @@
               <button class="btn small" id="reviewBtn" type="button" disabled>Review game</button>
             </div>
           </div>
-          <div class="moves" id="moves"></div>
+          <div class="moves" id="moves"><span class="empty">No moves yet.</span></div>
         </div>
 
         <form class="move-entry" id="moveForm" autocomplete="off">
@@ -193,7 +193,10 @@
             />
             <button class="btn" type="submit">Add</button>
           </div>
-          <p class="hint" id="moveHint"></p>
+          <p class="hint" id="moveHint">
+            Tap a piece and then its square, or just the square when only one piece can go there.
+            <span class="analysis-only">Enter the moves of both sides.</span>
+          </p>
         </form>
 
         <details class="tools">
