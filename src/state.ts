@@ -2,7 +2,7 @@ import { Chess, DEFAULT_POSITION, type Color } from 'chess.js';
 import { DEFAULT_LEVEL_ID, LEVELS } from './engine/levels';
 import type { PositionEval } from './review/classify';
 import { fenProblem } from './util/moves';
-import { parseUciMove, toUci } from './util/uci';
+import { parseUciMove } from './util/uci';
 
 export type Mode = 'play' | 'analysis';
 
@@ -78,8 +78,9 @@ export function settingsOf(saved: SavedGame): Settings {
   return { mode, side, orient, think, level, showEval, showBest };
 }
 
-export function saveGame(game: Chess, startFen: string, settings: Settings): void {
-  const saved: SavedGame = { ...settings, startFen, moves: game.history({ verbose: true }).map(toUci) };
+/** Stores the game as its start position and UCI moves, with the settings. */
+export function saveGame(startFen: string, moves: readonly string[], settings: Settings): void {
+  const saved: SavedGame = { ...settings, startFen, moves: [...moves] };
   try {
     localStorage.setItem(KEY, JSON.stringify(saved));
   } catch {

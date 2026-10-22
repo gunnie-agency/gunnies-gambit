@@ -1,4 +1,4 @@
-import { Chess, DEFAULT_POSITION, type Color, type Square } from 'chess.js';
+import { Chess, DEFAULT_POSITION, type Color, type Move, type Square } from 'chess.js';
 import { askPromotion, closePromotion, enableArrowKeys, renderArrows, renderBoard, type Arrow } from '../board/board';
 import { Engine, STOCKFISH_URL, type EngineStatus } from '../engine/engine';
 import type { EngineInfo } from '../engine/info';
@@ -89,6 +89,8 @@ export class App {
   };
 
   private game: Chess;
+  /** The moves of `game`, refreshed in positionChanged: every chess.js history() call replays the whole game. */
+  private played: Move[];
   private startFen: string;
   private settings: Settings;
   private selected: Square | null = null;
@@ -106,6 +108,8 @@ export class App {
   private opponentFen: string | null = null;
   private replyTimer: ReturnType<typeof setTimeout> | undefined;
   private renderQueued = false;
+  /** What the arrows layer shows, so a render that changes nothing leaves the SVG alone. */
+  private arrowsKey = '';
 
   private readonly analysis: Engine;
   private readonly opponent: Engine<MoveJob>;
@@ -117,6 +121,7 @@ export class App {
     const saved = loadSaved();
     const restored = replay(saved?.startFen ?? DEFAULT_POSITION, saved?.moves ?? []);
     this.game = restored.game;
+    this.played = this.game.history({ verbose: true });
     this.startFen = restored.startFen;
     this.settings = saved ? settingsOf(saved) : { ...DEFAULT_SETTINGS };
 
@@ -207,7 +212,7 @@ export class App {
 
   /** Review needs moves, and in play mode a finished game. */
   private get canReview(): boolean {
-    return this.game.history().length > 0 && (this.settings.mode === 'analysis' || this.isOver);
+    return this.played.length > 0 && (this.settings.mode === 'analysis' || this.isOver);
   }
 
   /** Whether any analysis output is shown (and so computed) for the current position. */
@@ -329,7 +334,8 @@ export class App {
     this.hintFen = null;
     this.promotionFrom = null;
     closePromotion(this.el.promo);
-    saveGame(this.game, this.startFen, this.settings);
+    this.played = this.game.history({ verbose: true });
+    this.save();
     this.syncEngines();
     this.render();
   }
@@ -438,7 +444,7 @@ export class App {
     const { side, mode } = this.settings;
     this.review.open({
       startFen: this.startFen,
-      moves: this.game.history({ verbose: true }).map(toUci),
+      moves: this.played.map(toUci),
       you: side,
       them: mode === 'play' ? 'The computer' : 'Your opponent',
     });
@@ -455,9 +461,13 @@ export class App {
     this.el.reviewBtn.focus();
   }
 
+  private save(): void {
+    saveGame(this.startFen, this.played.map(toUci), this.settings);
+  }
+
   private updateSettings(patch: Partial<Settings>): void {
     this.settings = { ...this.settings, ...patch };
-    saveGame(this.game, this.startFen, this.settings);
+    this.save();
     this.syncEngines();
     this.render();
   }
@@ -591,7 +601,7 @@ export class App {
       this.startFen = restored.startFen;
       this.opponentFen = null;
       this.positionChanged();
-      this.toolsHint(`Imported ${this.game.history().length} moves.`);
+      this.toolsHint(`Imported ${this.played.length} moves.`);
     });
     el.copyFen.addEventListener('click', () => this.copy(this.fen, 'FEN copied.', el.fenInput));
     el.copyPgn.addEventListener('click', () => this.copy(this.game.pgn(), 'PGN copied.', el.pgnInput));
@@ -651,7 +661,7 @@ export class App {
     this.renderMoveHint();
     this.renderChip();
     this.el.fenInput.value = this.fen;
-    this.el.undoBtn.disabled = this.game.history().length === 0;
+    this.el.undoBtn.disabled = this.played.length === 0;
     const reviewing = this.review.active;
     this.el.advice.hidden = reviewing;
     this.el.moveForm.hidden = reviewing;
@@ -660,23 +670,28 @@ export class App {
   }
 
   private renderBoardOnly(): void {
-    const game = this.review.active ? this.review.board : this.game;
-    renderBoard(this.el.board, { game, orient: this.settings.orient, selected: this.selected });
+    const { orient } = this.settings;
+    if (this.review.active) renderBoard(this.el.board, { game: this.review.board, orient, selected: this.selected });
+    else renderBoard(this.el.board, { game: this.game, orient, selected: this.selected, last: this.played.at(-1) });
     this.renderArrowsOnly();
   }
 
   private renderArrowsOnly(): void {
-    if (this.review.active) {
-      renderArrows(this.el.arrows, this.settings.orient, this.review.arrows);
-      return;
-    }
+    const arrows = this.review.active ? this.review.arrows : this.analysisArrows();
+    const key = [this.settings.orient, ...arrows.map((a) => (a.primary ? a.uci : `(${a.uci})`))].join(' ');
+    if (key === this.arrowsKey) return;
+    this.arrowsKey = key;
+    renderArrows(this.el.arrows, this.settings.orient, arrows);
+  }
+
+  private analysisArrows(): Arrow[] {
     const arrows: Arrow[] = [];
     const [l1, l2] = this.lines;
     if (this.showAnalysis && this.bestVisible && l1?.pv[0]) {
       arrows.push({ uci: l1.pv[0], primary: true });
       if (this.linesVisible && l2?.pv[0] && l2.pv[0] !== l1.pv[0]) arrows.push({ uci: l2.pv[0], primary: false });
     }
-    renderArrows(this.el.arrows, this.settings.orient, arrows);
+    return arrows;
   }
 
   private renderStatus(): void {
@@ -840,7 +855,7 @@ export class App {
 
   private renderMoves(): void {
     if (this.review.active) return; // the review draws its own, clickable move list
-    const sans = this.game.history();
+    const sans = this.played.map((m) => m.san);
     const el = this.el.moves;
     if (!sans.length) {
       el.innerHTML = '<span class="empty">No moves yet.</span>';

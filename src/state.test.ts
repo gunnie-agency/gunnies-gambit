@@ -1,4 +1,4 @@
-import { Chess, DEFAULT_POSITION } from 'chess.js';
+import { DEFAULT_POSITION } from 'chess.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SETTINGS, loadReviewCache, loadSaved, replay, saveGame, saveReviewCache, settingsOf } from './state';
 
@@ -20,11 +20,8 @@ describe('saved game', () => {
   });
 
   it('reads back what it saved', () => {
-    const game = new Chess();
-    game.move('e4');
-    game.move('c5');
     const settings = { ...DEFAULT_SETTINGS, mode: 'analysis' as const, side: 'b' as const, showEval: true };
-    saveGame(game, DEFAULT_POSITION, settings);
+    saveGame(DEFAULT_POSITION, ['e2e4', 'c7c5'], settings);
     const saved = loadSaved();
     expect(saved).toEqual({ ...settings, startFen: DEFAULT_POSITION, moves: ['e2e4', 'c7c5'] });
     expect(saved && settingsOf(saved)).toEqual(settings);
@@ -68,13 +65,13 @@ describe('saved game', () => {
       },
     });
     expect(loadSaved()).toBeNull();
-    expect(() => saveGame(new Chess(), DEFAULT_POSITION, DEFAULT_SETTINGS)).not.toThrow();
+    expect(() => saveGame(DEFAULT_POSITION, [], DEFAULT_SETTINGS)).not.toThrow();
   });
 
   it('survives storage that is missing entirely', () => {
     vi.stubGlobal('localStorage', undefined);
     expect(loadSaved()).toBeNull();
-    expect(() => saveGame(new Chess(), DEFAULT_POSITION, DEFAULT_SETTINGS)).not.toThrow();
+    expect(() => saveGame(DEFAULT_POSITION, [], DEFAULT_SETTINGS)).not.toThrow();
   });
 });
 
