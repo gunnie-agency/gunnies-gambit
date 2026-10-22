@@ -319,7 +319,9 @@ header.top {
   height: 18px;
 }
 
-/* Grid areas let the board span the whole right column on desktop and keep the advice right under it on phones. */
+/* Grid areas let the board span the whole right column on desktop and keep the advice right under it on phones.
+   On phones the settings and the move list come before the move entry: a beginner needs the opponent and colour
+   first, and typing moves is the rarer way in once the board is right there to tap. */
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
@@ -339,7 +341,7 @@ header.top {
   .layout {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;
-    grid-template-areas: 'status' 'board' 'verdict' 'entry' 'settings' 'moves' 'tools';
+    grid-template-areas: 'status' 'board' 'verdict' 'settings' 'moves' 'entry' 'tools';
     gap: 14px;
   }
 }
