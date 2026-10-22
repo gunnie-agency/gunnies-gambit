@@ -124,6 +124,27 @@
             </thead>
             <tbody id="reviewSummary"></tbody>
           </table>
+          <button class="btn primary" id="reviewPracticeStart" type="button" hidden>Practise my mistakes</button>
+          <div class="review-practice" id="reviewPractice" tabindex="-1" hidden>
+            <p class="verdict-meta" id="reviewPracticeText" aria-live="polite"></p>
+            <form class="row" id="reviewPracticeForm" autocomplete="off">
+              <label class="visually-hidden" for="reviewPracticeInput">Type your move</label>
+              <input
+                type="text"
+                id="reviewPracticeInput"
+                placeholder="or type it, e.g. Nf3"
+                autocapitalize="off"
+                spellcheck="false"
+              />
+              <button class="btn" type="submit">Play</button>
+            </form>
+            <div class="review-practice-actions">
+              <button class="btn" type="button" data-practice="best" hidden>Show the best move</button>
+              <button class="btn" type="button" data-practice="skip">Skip</button>
+              <button class="btn primary" type="button" data-practice="next" hidden>Next</button>
+              <button class="btn" type="button" data-practice="done">Back to the review</button>
+            </div>
+          </div>
           <p class="visually-hidden" id="reviewLive" aria-live="polite"></p>
           <button class="btn" id="reviewExit" type="button">Back to the game</button>
         </section>

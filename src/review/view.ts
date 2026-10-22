@@ -4,9 +4,10 @@ import { Engine, STOCKFISH_URL } from '../engine/engine';
 import { showOpening } from '../openings/view';
 import { loadReviewCache, saveReviewCache } from '../state';
 import { escapeHtml } from '../util/html';
+import { parseTypedMove } from '../util/moves';
 import { numberMoves } from '../util/san';
 import { formatScore, toWhitePov } from '../util/score';
-import { parseUciMove } from '../util/uci';
+import { parseUciMove, toUci, type UciMove } from '../util/uci';
 import {
   JUDGEMENT_SYMBOL,
   reviewGame,
@@ -18,6 +19,7 @@ import {
   type SideSummary,
 } from './classify';
 import { graphMarkup, positionAt } from './graph';
+import { isGoodAnswer, positionAfter, retryItems, RetryRun } from './retry';
 import { cacheKey, gamePositions, ReviewRunner, reviewWorkerCount, type GamePosition, type ReviewJob } from './runner';
 
 /**
@@ -66,6 +68,10 @@ export interface ReviewElements {
   summary: HTMLElement;
   live: HTMLElement;
   moves: HTMLElement;
+  /** "Practise my mistakes", under the summary once the review is finished and the user has some. */
+  practiceStart: HTMLButtonElement;
+  /** The practice controls: a live message, a form to type the move, and buttons marked `data-practice`. */
+  practice: HTMLElement;
 }
 
 /**
@@ -85,6 +91,13 @@ export class Review {
   private cursor = 0;
   private boardCache: { index: number; game: Chess } | null = null;
   private announcedDone = false;
+  /** The practice run over the user's mistakes, while one is open. */
+  private practice: RetryRun | null = null;
+  /** The answer whose position is being searched because the review never searched it. */
+  private checking: { uci: string; runner: ReviewRunner } | null = null;
+  private practiceMessage = '';
+  /** The review position to go back to when the practice ends. */
+  private reviewCursor = 0;
 
   constructor(
     private readonly el: ReviewElements,
@@ -96,11 +109,20 @@ export class Review {
     });
     el.moves.addEventListener('click', (e) => {
       const index = (e.target as HTMLElement).closest<HTMLElement>('button[data-i]')?.dataset.i;
-      if (this.active && index !== undefined) this.goTo(Number(index));
+      if (this.active && !this.practice && index !== undefined) this.goTo(Number(index));
     });
     el.graph.addEventListener('click', (e) => {
       const box = el.graph.getBoundingClientRect();
       if (box.width) this.goTo(positionAt((e.clientX - box.left) / box.width, this.positions.length));
+    });
+    el.practiceStart.addEventListener('click', () => this.startPractice());
+    el.practice.addEventListener('click', (e) => {
+      const action = (e.target as HTMLElement).closest<HTMLElement>('button[data-practice]')?.dataset.practice;
+      if (action) this.onPracticeAction(action);
+    });
+    el.practice.querySelector('form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.onTypedAnswer();
     });
     document.addEventListener('keydown', (e) => this.onKey(e));
   }
@@ -126,8 +148,14 @@ export class Review {
     const engines = Array.from({ length: reviewWorkerCount(navigator.hardwareConcurrency, memory) }, () => {
       const engine: Engine<ReviewJob> = new Engine<ReviewJob>({
         url: STOCKFISH_URL,
-        onInfo: (job, info) => this.runner?.handleInfo(job, info),
-        onBestMove: (job, move) => this.runner?.handleBestMove(job, move),
+        onInfo: (job, info) => {
+          this.runner?.handleInfo(job, info);
+          this.checking?.runner.handleInfo(job, info);
+        },
+        onBestMove: (job, move) => {
+          this.runner?.handleBestMove(job, move);
+          this.checking?.runner.handleBestMove(job, move);
+        },
         onStatus: (status) => {
           if (status === 'failed') this.onEngineFailed(engine);
         },
@@ -148,6 +176,7 @@ export class Review {
 
   close(): void {
     if (!this.game) return;
+    this.endPractice();
     this.runner?.cancel();
     this.engines.forEach((e) => e.terminate());
     this.runner = null;
@@ -170,8 +199,30 @@ export class Review {
     return this.boardCache.game;
   }
 
-  /** For a marked move, the better move, drawn on the position after it. */
+  /** While practising, the side the user played, so the board is seen from their side; otherwise null. */
+  get orient(): Color | null {
+    return this.practice ? (this.game?.you ?? null) : null;
+  }
+
+  /** Whether the board takes moves: while practising, until the current position is answered well. */
+  get acceptsMoves(): boolean {
+    return this.practice?.item !== undefined && !this.practice.answered && !this.checking;
+  }
+
+  /** The status line above the board, as HTML. */
+  get status(): string {
+    return this.practice
+      ? 'Practise your mistakes<small>Find a better move in each position where you went wrong.</small>'
+      : 'Game review<small>Step through the moves with the buttons or the arrow keys, or jump to the next mistake.</small>';
+  }
+
+  /** For a marked move, the better move, drawn on the position after it; while practising, the best move once found or shown. */
   get arrows(): Arrow[] {
+    if (this.practice) {
+      const item = this.practice.item;
+      const show = item && (this.practice.answered || this.practice.bestShown);
+      return show ? [{ uci: item.best, primary: true }] : [];
+    }
     const r = this.reviews[this.cursor - 1];
     return r?.judgement && r.best ? [{ uci: r.best, primary: true }] : [];
   }
@@ -215,7 +266,7 @@ export class Review {
   }
 
   private onKey(e: KeyboardEvent): void {
-    if (!this.active || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (!this.active || this.practice || e.altKey || e.ctrlKey || e.metaKey) return;
     const target = e.target instanceof Element ? e.target : document.body;
     // The board uses the arrow keys to move between squares, and text fields need them too.
     if (target.closest('input, textarea, select, [contenteditable], .board, .promo')) return;
@@ -232,8 +283,14 @@ export class Review {
   /** The others carry on without a failed engine; the review only stops when none is left. */
   private onEngineFailed(engine: Engine<ReviewJob>): void {
     this.runner?.removeEngine(engine);
+    this.checking?.runner.removeEngine(engine);
     if (this.engines.some((e) => e.status !== 'failed')) return;
     this.engineFailed = true;
+    if (this.checking) {
+      this.checking = null;
+      this.practice?.answer(false);
+      this.practiceMessage = 'The engine could not check that move. Show the best move, or skip this one.';
+    }
     this.render();
   }
 
@@ -256,6 +313,145 @@ export class Review {
     this.reviews = reviewGame(start.turn, this.game.moves.slice(0, this.sans.length), this.runner.evals);
   }
 
+  // ---------- practice ----------
+
+  /** The user's mistakes and blunders, once every move has been analysed. */
+  private get practiceItems() {
+    if (!this.game || !this.runner?.finished) return [];
+    return retryItems(this.reviews, this.positions, this.game.you);
+  }
+
+  private startPractice(): void {
+    const items = this.practiceItems;
+    if (!items.length) return;
+    this.practice = new RetryRun(items);
+    this.reviewCursor = this.cursor;
+    this.el.panel.classList.add('practising');
+    this.showItem();
+    this.el.practice.focus();
+  }
+
+  /** Back to the review, on the position it showed before the practice. */
+  private stopPractice(): void {
+    this.endPractice();
+    this.cursor = this.reviewCursor;
+    this.render();
+    this.onChange();
+    this.el.practiceStart.focus();
+  }
+
+  private endPractice(): void {
+    this.checking?.runner.cancel();
+    this.checking = null;
+    this.practice = null;
+    this.el.panel.classList.remove('practising');
+    this.el.practice.hidden = true;
+  }
+
+  /** Shows the position before the current mistake, or the result once the run is over. */
+  private showItem(): void {
+    const run = this.practice;
+    if (!run) return;
+    const item = run.item;
+    if (item) {
+      this.cursor = item.index;
+      const played = this.sans[item.index] ?? item.played;
+      this.practiceMessage =
+        `${run.current + 1} of ${run.total}: in the game you played ${played} here, ${JUDGEMENT_NAME[item.judgement]}. ` +
+        'Play a better move on the board, or type it.';
+    } else {
+      const all = run.found === run.total ? ' Well done.' : '';
+      this.practiceMessage = `You found ${run.found} of ${run.total}.${all} Go back to the review to look again.`;
+    }
+    this.render();
+    this.onChange();
+  }
+
+  private onPracticeAction(action: string): void {
+    const run = this.practice;
+    if (action === 'done') return this.stopPractice();
+    if (!run) return;
+    if (action === 'best') {
+      run.showBest();
+      const item = run.item;
+      if (item) this.practiceMessage = `The best move is ${this.sanOf(item.fen, item.best)}, shown by the arrow.`;
+      this.render();
+      this.onChange();
+    } else if (action === 'next' || action === 'skip') {
+      this.checking?.runner.cancel();
+      this.checking = null;
+      run.next();
+      this.showItem();
+    }
+    // A button that hides under the user drops focus to the page; keep it in the practice controls.
+    const focused = document.activeElement;
+    if (focused instanceof HTMLElement && focused.hidden) this.el.practice.focus();
+  }
+
+  private onTypedAnswer(): void {
+    const item = this.practice?.item;
+    const input = this.el.practice.querySelector('input');
+    const raw = input?.value.trim() ?? '';
+    if (!item || !input || !raw || !this.acceptsMoves) return;
+    const move = parseTypedMove(item.fen, raw);
+    if (!move) {
+      this.practiceMessage = `“${raw}” is not a legal move here.`;
+      this.render();
+      return;
+    }
+    input.value = '';
+    this.answer(move);
+  }
+
+  /**
+   * Judges a move played while practising. A position the review never searched is searched now, with the review's
+   * settings on its engines, which are idle: the practice only starts once the review itself is finished.
+   */
+  answer(move: UciMove): void {
+    const item = this.practice?.item;
+    const before = item ? this.runner?.evals[item.index] : undefined;
+    const uci = toUci(move);
+    const after = item ? positionAfter(item.fen, uci) : null;
+    if (!item || !before || !after || !this.acceptsMoves) return;
+    if (uci === item.best) return this.judge(uci, true);
+    const known = after.final ?? this.cache.get(cacheKey(REVIEW_GO, after.fen));
+    if (known) return this.judge(uci, isGoodAnswer(item, uci, before, known));
+    const runner = new ReviewRunner(this.engines, [after], REVIEW_GO, this.cache, () => this.onChecked());
+    this.checking = { uci, runner };
+    this.engines.forEach((e) => e.start());
+    runner.start();
+    this.practiceMessage = `Checking ${this.sanOf(item.fen, uci)}…`;
+    this.render();
+  }
+
+  private onChecked(): void {
+    const check = this.checking;
+    const item = this.practice?.item;
+    const before = item ? this.runner?.evals[item.index] : undefined;
+    const after = check?.runner.evals[0];
+    if (!check || !item || !before || !after) return;
+    this.checking = null;
+    this.judge(check.uci, isGoodAnswer(item, check.uci, before, after));
+  }
+
+  private judge(uci: string, good: boolean): void {
+    const run = this.practice;
+    const item = run?.item;
+    if (!run || !item) return;
+    run.answer(good);
+    const san = this.sanOf(item.fen, uci);
+    const played = this.sans[item.index] ?? item.played;
+    if (!good) this.practiceMessage = `${san}: not quite, try again.`;
+    else if (uci === item.best)
+      this.practiceMessage = `Good: ${san} is the engine’s best move. In the game you played ${played}.`;
+    else {
+      const best = this.sanOf(item.fen, item.best);
+      this.practiceMessage = `Good: ${san} keeps your chances. In the game you played ${played}; the engine’s best move is ${best}, shown by the arrow.`;
+    }
+    this.render();
+    this.onChange();
+  }
+
   private who(color: Color): string {
     if (!this.game) return COLOR_NAME[color];
     return color === this.game.you ? 'You' : this.game.them;
@@ -265,7 +461,8 @@ export class Review {
 
   private render(): void {
     if (!this.game || !this.runner) return;
-    this.renderMove();
+    if (this.practice) this.renderPractice();
+    else this.renderMove();
     this.renderNav();
     this.renderProgress();
     this.renderSummary();
@@ -354,6 +551,31 @@ export class Review {
     }
   }
 
+  private renderPractice(): void {
+    const run = this.practice;
+    if (!run) return;
+    const { title, move, practice } = this.el;
+    const item = run.item;
+    title.textContent = item ? `Your mistake ${run.current + 1} of ${run.total}` : 'Practice finished';
+    move.textContent = item ? 'Find a better move' : `You found ${run.found} of ${run.total}`;
+    move.className = this.checking ? 'best-san wait' : 'best-san';
+    practice.hidden = false;
+    const text = practice.querySelector('p');
+    // A live region: only touch it when the message changes.
+    if (text && text.textContent !== this.practiceMessage) text.textContent = this.practiceMessage;
+    const form = practice.querySelector('form');
+    if (form) form.hidden = !item || run.answered;
+    for (const button of practice.querySelectorAll<HTMLButtonElement>('button[data-practice]')) {
+      const action = button.dataset.practice;
+      if (action === 'best') button.hidden = !run.canShowBest;
+      else if (action === 'skip') button.hidden = !item || run.answered;
+      else if (action === 'next') {
+        button.hidden = !item || !run.answered;
+        button.textContent = run.current + 1 < run.total ? 'Next' : 'See the result';
+      }
+    }
+  }
+
   private renderNav(): void {
     const last = this.positions.length - 1;
     const buttons = [...this.el.nav.querySelectorAll<HTMLButtonElement>('button[data-nav]')];
@@ -383,6 +605,7 @@ export class Review {
     else if (finished) progressText.textContent = 'Every move analysed.';
     else progressText.textContent = `Analysing position ${runner.done + 1} of ${runner.total}…`;
 
+    this.el.practiceStart.hidden = this.practice !== null || this.practiceItems.length === 0;
     if (finished && !this.announcedDone) {
       this.announcedDone = true;
       const s = summarise(this.reviews);

@@ -90,6 +90,42 @@ test.describe('the move list', () => {
   });
 });
 
+test('practising my mistakes after a review finds the mate I missed', async ({ page }) => {
+  await page.goto('./');
+  await page.locator('#modeSeg').getByRole('button', { name: 'Analyse' }).click();
+  await page.locator('#sideSeg').getByRole('button', { name: 'White' }).click();
+  // 4. Qg4 hangs the queen and misses 4. Qxf7#.
+  for (const move of ['e4', 'e5', 'Bc4', 'Nc6', 'Qh5', 'Nf6', 'Qg4', 'Nxg4']) {
+    await page.locator('#moveInput').fill(move);
+    await page.locator('#moveInput').press('Enter');
+  }
+  await page.locator('#reviewBtn').click();
+  await expect(page.locator('#reviewProgressText')).toHaveText('Every move analysed.', { timeout: 30_000 });
+  await page.getByRole('button', { name: 'Practise my mistakes' }).click();
+
+  const message = page.locator('#reviewPracticeText');
+  const skip = page.locator('#reviewPractice').getByRole('button', { name: 'Skip' });
+  // Any earlier mistake of White's comes first; Black's are never in the list.
+  while (!(await message.textContent())?.includes('you played Qg4')) await skip.click();
+  await expect(page.locator('#reviewMove')).toHaveText('Find a better move');
+  // A typed move the review never searched is searched now; a3 still leaves the queen hanging.
+  await page.locator('#reviewPracticeInput').fill('a3');
+  await page.locator('#reviewPracticeInput').press('Enter');
+  await expect(message).toHaveText('a3: not quite, try again.', { timeout: 20_000 });
+  await expect(page.getByRole('button', { name: 'Show the best move' })).toBeVisible();
+  await square(page, 'h5').click();
+  await square(page, 'f7').click();
+  await expect(message).toHaveText(/^Good: Qxf7# is the engine’s best move\. In the game you played Qg4\./);
+  await page
+    .locator('#reviewPractice')
+    .getByRole('button', { name: /^(Next|See the result)$/ })
+    .click();
+  while (await skip.isVisible()) await skip.click();
+  await expect(page.locator('#reviewMove')).toHaveText(/^You found 1 of \d+$/);
+  await page.getByRole('button', { name: 'Back to the review' }).click();
+  await expect(page.getByRole('button', { name: 'Practise my mistakes' })).toBeFocused();
+});
+
 test('the theme switch is remembered across a reload', async ({ page }) => {
   await page.goto('./');
   const root = page.locator('html');

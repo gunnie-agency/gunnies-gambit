@@ -172,6 +172,8 @@ export class App {
         summary: $('reviewSummary'),
         live: $('reviewLive'),
         moves: $('moves'),
+        practiceStart: $<HTMLButtonElement>('reviewPracticeStart'),
+        practice: $('reviewPractice'),
       },
       () => this.render(),
     );
@@ -455,15 +457,22 @@ export class App {
     this.renderMoveHint();
   }
 
-  private tryUserMove(from: Square, to: Square, promotion: boolean): void {
+  private tryUserMove(game: Chess, from: Square, to: Square, promotion: boolean): void {
+    // While practising mistakes the review takes the move.
+    const play = (move: UciMove) => {
+      if (this.review.active) {
+        this.selected = null;
+        this.review.answer(move);
+      } else this.userMove(move);
+    };
     if (!promotion) {
-      this.userMove({ from, to });
+      play({ from, to });
       return;
     }
     this.promotionFrom = from;
-    askPromotion(this.el.promo, this.shown.turn(), (piece) => {
+    askPromotion(this.el.promo, game.turn(), (piece) => {
       this.promotionFrom = null;
-      if (piece) this.userMove({ from, to, promotion: piece });
+      if (piece) play({ from, to, promotion: piece });
       else {
         this.selected = null;
         this.renderBoardOnly();
@@ -476,11 +485,22 @@ export class App {
     this.el.board.querySelector<HTMLElement>(`[data-sq="${sq}"]`)?.focus();
   }
 
+  /**
+   * The position a tap on the board plays in, or null when the board takes no move now. In review that is only while
+   * the user practises their mistakes.
+   */
+  private inputGame(): Chess | null {
+    if (this.review.active) return this.review.acceptsMoves ? this.review.board : null;
+    if (this.viewOnly) {
+      this.blockViewOnly();
+      return null;
+    }
+    return this.shownOver || !this.canInput ? null : this.shown;
+  }
+
   private onSquare(sq: Square): void {
-    const game = this.shown;
-    if (this.review.active) return;
-    if (this.viewOnly) return this.blockViewOnly();
-    if (this.shownOver || !this.canInput) return;
+    const game = this.inputGame();
+    if (!game) return;
 
     if (this.selected) {
       if (sq === this.selected) {
@@ -491,6 +511,7 @@ export class App {
       const candidates = game.moves({ square: this.selected, verbose: true }).filter((m) => m.to === sq);
       if (candidates.length) {
         this.tryUserMove(
+          game,
           this.selected,
           sq,
           candidates.some((m) => m.promotion),
@@ -514,7 +535,7 @@ export class App {
     // Tapping only the destination plays the move when exactly one piece can go there.
     const unique = uniqueMoveTo(game, sq);
     if (unique) {
-      this.tryUserMove(unique.from, unique.to, unique.promotion);
+      this.tryUserMove(game, unique.from, unique.to, unique.promotion);
       return;
     }
     this.selected = null;
@@ -873,8 +894,13 @@ export class App {
     this.el.liveBtn.hidden = reviewing || this.view === null;
   }
 
+  /** The side at the bottom of the board: the user's while practising mistakes, else the setting. */
+  private get orient(): Color {
+    return this.review.orient ?? this.settings.orient;
+  }
+
   private renderBoardOnly(): void {
-    const { orient } = this.settings;
+    const { orient } = this;
     if (this.review.active) {
       renderBoard(this.el.board, { game: this.review.board, orient, selected: this.selected });
     } else {
@@ -886,10 +912,10 @@ export class App {
 
   private renderArrowsOnly(): void {
     const arrows = this.review.active ? this.review.arrows : this.analysisArrows();
-    const key = [this.settings.orient, ...arrows.map((a) => (a.primary ? a.uci : `(${a.uci})`))].join(' ');
+    const key = [this.orient, ...arrows.map((a) => (a.primary ? a.uci : `(${a.uci})`))].join(' ');
     if (key === this.arrowsKey) return;
     this.arrowsKey = key;
-    renderArrows(this.el.arrows, this.settings.orient, arrows);
+    renderArrows(this.el.arrows, this.orient, arrows);
   }
 
   private analysisArrows(): Arrow[] {
@@ -908,8 +934,7 @@ export class App {
   }
 
   private statusHtml(): string {
-    if (this.review.active)
-      return 'Game review<small>Step through the moves with the buttons or the arrow keys, or jump to the next mistake.</small>';
+    if (this.review.active) return this.review.status;
     if (this.view !== null) return this.viewHtml(this.view);
     const end = gameEnd(this.game);
     if (end) return this.endHtml(end);
@@ -1075,7 +1100,7 @@ export class App {
 
   private paintBar(percent: number, title: string): void {
     this.el.evalfill.style.height = `${percent.toFixed(1)}%`;
-    this.el.evalbar.classList.toggle('flipped', this.settings.orient === 'b');
+    this.el.evalbar.classList.toggle('flipped', this.orient === 'b');
     this.el.evalbar.title = title;
   }
 

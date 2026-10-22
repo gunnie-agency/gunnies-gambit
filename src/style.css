@@ -1571,3 +1571,32 @@ button.import-game:hover {
 .lesson.solved .lesson-solved {
   visibility: visible;
 }
+
+/* Practise my mistakes (src/review/view.ts): after a review, the user replays the positions before their own mistakes
+   and blunders. While practising, the panel shows only the title, the task and the practice controls. */
+#reviewPracticeStart {
+  align-self: flex-start;
+}
+.review.practising > :not(#reviewTitle, #reviewMove, .review-practice, #reviewLive) {
+  display: none;
+}
+.review-practice {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.review-practice:focus {
+  outline: none;
+}
+.review-practice .verdict-meta {
+  margin: 0;
+  min-height: 3em;
+}
+.review-practice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.review-practice-actions button.btn.primary {
+  margin-left: auto;
+}
