@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { Chess } from 'chess.js';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
@@ -16,6 +17,7 @@ import {
   webManifest,
   type Site,
 } from './src/site/files.ts';
+import { boardHtml } from './src/board/board.ts';
 import { footerHtml, logoSymbol } from './src/site/partials.ts';
 
 const stockfish = JSON.parse(readFileSync('node_modules/stockfish/package.json', 'utf8')) as { version: string };
@@ -102,6 +104,7 @@ function lastCommitDate(): string | undefined {
 const FAQ_PLACEHOLDER = '<!-- %FAQ% -->';
 const LOGO_PLACEHOLDER = '<!-- %LOGO_SYMBOL% -->';
 const FOOTER_PLACEHOLDER = '<!-- %FOOTER% -->';
+const BOARD_PLACEHOLDER = '<!-- %BOARD% -->';
 
 /** The HTML pages, by file name. */
 const PAGES = { 'index.html': 'index', 'how-to-play.html': 'howToPlay' } as const;
@@ -114,7 +117,8 @@ function fill(html: string, placeholder: string, markup: string, page: string): 
 
 /**
  * Fills in %APP_SHORT_NAME% (the header's accent word, so the header has its final size at first paint), the shared
- * logo symbol and footer, and the FAQ on the home page; adds each page's structured data to its head; and generates
+ * logo symbol and footer, and the FAQ and the start position on the home page (so the pieces show before the script
+ * runs); adds each page's structured data to its head; and generates
  * robots.txt, sitemap.xml, the web app manifest, llms.txt and the IndexNow key file from `.env` (see
  * src/site/files.ts). The files are emitted into the build and served by the dev server.
  */
@@ -138,7 +142,10 @@ function siteFiles(site: Site, indexNowKey: string | undefined): Plugin {
       out = fill(out, LOGO_PLACEHOLDER, logoSymbol(), page);
       out = fill(out, FOOTER_PLACEHOLDER, footerHtml(site.name), page);
       const isHome = PAGES[page as keyof typeof PAGES] === 'index';
-      if (isHome) out = fill(out, FAQ_PLACEHOLDER, faqHtml(site), page);
+      if (isHome) {
+        out = fill(out, FAQ_PLACEHOLDER, faqHtml(site), page);
+        out = fill(out, BOARD_PLACEHOLDER, boardHtml({ game: new Chess(), orient: 'w', selected: null }), page);
+      }
       const data = isHome ? structuredData(site) : howToPlayStructuredData(site);
       return {
         html: out,

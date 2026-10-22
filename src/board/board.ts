@@ -1,9 +1,10 @@
 import type { Chess, Color, PieceSymbol, Square } from 'chess.js';
-import type { PromotionPiece } from '../util/uci';
+import type { PromotionPiece } from '../util/uci.ts';
 
 const FILES = 'abcdefgh';
 const NAME: Record<PieceSymbol, string> = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' };
-const PIECE_BASE = `${import.meta.env.BASE_URL}pieces/cburnett/`;
+// Relative to the page, like Vite's relative base, so the same markup works when rendered into the HTML at build time.
+const PIECE_BASE = './pieces/cburnett/';
 
 function pieceUrl(color: Color, type: PieceSymbol): string {
   return `${PIECE_BASE}${color}${type.toUpperCase()}.svg`;
@@ -49,9 +50,12 @@ interface SquareContext {
   checkSquare: Square | undefined;
 }
 
-export function renderBoard(el: HTMLElement, view: BoardView): void {
+/**
+ * The 64 square buttons for a position, top-left first. Pure, so the build can put the start position into the HTML
+ * and the pieces show before the script runs.
+ */
+export function boardHtml(view: BoardView): string {
   const { game, orient, selected } = view;
-  const focused = el.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.sq : undefined;
   const targets = new Map<string, boolean>();
   if (selected) {
     for (const m of game.moves({ square: selected, verbose: true })) targets.set(m.to, m.isCapture());
@@ -68,7 +72,12 @@ export function renderBoard(el: HTMLElement, view: BoardView): void {
   for (let y = 0; y < 8; y++) {
     for (let x = 0; x < 8; x++) html += squareHtml(squareAt(x, y, orient), x === 0, y === 7, ctx);
   }
-  el.innerHTML = html;
+  return html;
+}
+
+export function renderBoard(el: HTMLElement, view: BoardView): void {
+  const focused = el.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.sq : undefined;
+  el.innerHTML = boardHtml(view);
   if (focused) el.querySelector<HTMLElement>(`[data-sq="${focused}"]`)?.focus();
 }
 
