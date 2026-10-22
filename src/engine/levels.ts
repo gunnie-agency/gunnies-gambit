@@ -25,9 +25,17 @@ export const LEVELS: readonly Level[] = [
     options: { MultiPV: 1, UCI_LimitStrength: false, 'Skill Level': 2 },
     go: 'depth 3',
   },
-  ...[1400, 1700, 2000, 2400].map((elo) => ({
+  ...(
+    [
+      [1400, 'casual player'],
+      [1700, 'club player'],
+      [2000, 'expert'],
+      [2400, 'master'],
+    ] as const
+  ).map(([elo, who]) => ({
     id: `elo${elo}`,
-    label: `Elo ${elo}`,
+    // Short enough for the select on a phone; the rating alone means little to a beginner.
+    label: `Elo ${elo} · ${who}`,
     options: { MultiPV: 1, 'Skill Level': 20, UCI_LimitStrength: true, UCI_Elo: elo },
     go: 'movetime 1000',
   })),
