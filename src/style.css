@@ -68,6 +68,11 @@
   --sq-sel: rgba(0, 161, 255, 0.45);
   --sq-check: rgba(235, 72, 60, 0.8);
   --sq-check-fade: rgba(235, 72, 60, 0.35);
+  /* Keyboard focus on a square: a near-black ring with a white one inside it. The squares have the same colours in
+     both themes, so one pair serves both: the dark ring is at least 4:1 against every square and highlight, and the
+     white one keeps it visible on the dark squares. Neutral, so it never looks like the blue selection. */
+  --focus-ring: #0b0d11;
+  --focus-ring-inner: #ffffff;
   --board-shadow: rgba(0, 0, 0, 0.7);
   --overlay: rgba(11, 13, 17, 0.6);
   --dot: rgba(11, 13, 17, 0.3);
@@ -447,8 +452,9 @@ header.top {
   background: radial-gradient(circle, var(--sq-check) 0%, var(--sq-check-fade) 55%, transparent 75%);
 }
 .sq:focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--focus-ring);
   outline-offset: -3px;
+  box-shadow: inset 0 0 0 5px var(--focus-ring-inner);
   z-index: 4;
   border-radius: 0;
 }
