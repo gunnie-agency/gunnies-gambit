@@ -11,6 +11,7 @@ import { clampView, moveName, shownMoves, STEP_KEYS, stepView, type Step, type V
 import { escapeHtml } from '../util/html';
 import { parsePracticeLink } from '../util/link';
 import { fenProblem, gameEnd, parseTypedMove, uniqueMoveTo, type GameEnd } from '../util/moves';
+import { buildPgn, pgnFileName } from '../util/pgn';
 import { numberMoves, pvToSan } from '../util/san';
 import { evalBarPercent, formatScore, toWhitePov, verdict, type Score } from '../util/score';
 import { parseUciMove, toUci, type UciMove } from '../util/uci';
@@ -88,6 +89,8 @@ export class App {
     copyFen: $<HTMLButtonElement>('copyFen'),
     loadPgn: $<HTMLButtonElement>('loadPgn'),
     copyPgn: $<HTMLButtonElement>('copyPgn'),
+    downloadPgn: $<HTMLButtonElement>('downloadPgn'),
+    sharePgn: $<HTMLButtonElement>('sharePgn'),
     toolsHint: $('toolsHint'),
   };
 
@@ -737,7 +740,11 @@ export class App {
       this.toolsHint(`Imported ${this.played.length} moves.`);
     });
     el.copyFen.addEventListener('click', () => this.copy(this.fen, 'FEN copied.', el.fenInput));
-    el.copyPgn.addEventListener('click', () => this.copy(this.game.pgn(), 'PGN copied.', el.pgnInput));
+    el.copyPgn.addEventListener('click', () => this.copy(this.pgn(), 'PGN copied.', el.pgnInput));
+    el.downloadPgn.addEventListener('click', () => this.downloadPgn());
+    // Phones and some desktops can hand the game to another app, such as a chess app or a chat.
+    el.sharePgn.hidden = typeof navigator.share !== 'function';
+    el.sharePgn.addEventListener('click', () => this.sharePgn());
 
     window.addEventListener('hashchange', () => {
       if (!this.readPracticeLink()) return;
@@ -765,6 +772,46 @@ export class App {
     };
     if (!navigator.clipboard) return fallback();
     navigator.clipboard.writeText(text).then(() => this.toolsHint(ok), fallback);
+  }
+
+  /** The whole game as PGN, with who played which side in play mode. */
+  private pgn(): string {
+    const { mode, side, level } = this.settings;
+    return buildPgn({
+      startFen: this.startFen,
+      moves: this.played.map(toUci),
+      players: mode === 'play' ? { mode, side, level: levelById(level).label } : { mode },
+      site: import.meta.env.VITE_SITE_URL,
+      date: new Date(),
+    });
+  }
+
+  private downloadPgn(): void {
+    const url = URL.createObjectURL(new Blob([this.pgn()], { type: 'application/x-chess-pgn' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = pgnFileName(new Date());
+    link.click();
+    // Revoking at once can cancel the download in some browsers.
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    this.toolsHint(`Saved as ${link.download}.`);
+  }
+
+  /** Shares the game as a .pgn file where the device accepts one, else as text. */
+  private sharePgn(): void {
+    const pgn = this.pgn();
+    const name = pgnFileName(new Date());
+    const file = new File([pgn], name, { type: 'application/x-chess-pgn' });
+    const data: ShareData = navigator.canShare?.({ files: [file] })
+      ? { files: [file], title: name }
+      : { title: name, text: pgn };
+    navigator.share(data).then(
+      () => this.toolsHint('PGN shared.'),
+      (e: unknown) => {
+        if (e instanceof DOMException && e.name === 'AbortError') return; // the user closed the share sheet
+        this.toolsHint('Sharing did not work. Copy or download the PGN instead.', true);
+      },
+    );
   }
 
   private toolsHint(text: string, err = false): void {
