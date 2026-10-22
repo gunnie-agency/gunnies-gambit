@@ -1516,3 +1516,12 @@ button.import-game:hover {
   letter-spacing: 0.07em;
   color: var(--accent-text);
 }
+
+/* App UX: stepping through the move list outside review, the PGN download, sounds and reserved hint space.
+   Kept together at the end so it does not mix with the rules above. */
+.moves-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}

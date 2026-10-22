@@ -7,6 +7,7 @@ import type { SearchJob } from '../engine/queue';
 import { showOpening } from '../openings/view';
 import { Review } from '../review/view';
 import { DEFAULT_SETTINGS, loadSaved, replay, saveGame, settingsOf, type Mode, type Settings } from '../state';
+import { clampView, moveName, shownMoves, STEP_KEYS, stepView, type Step, type View } from '../util/cursor';
 import { escapeHtml } from '../util/html';
 import { parsePracticeLink } from '../util/link';
 import { fenProblem, gameEnd, parseTypedMove, uniqueMoveTo, type GameEnd } from '../util/moves';
@@ -77,6 +78,7 @@ export class App {
     showEval: $<HTMLInputElement>('showEval'),
     showBest: $<HTMLInputElement>('showBest'),
     moves: $('moves'),
+    liveBtn: $<HTMLButtonElement>('liveBtn'),
     undoBtn: $<HTMLButtonElement>('undoBtn'),
     flipBtn: $<HTMLButtonElement>('flipBtn'),
     newBtn: $<HTMLButtonElement>('newBtn'),
@@ -98,6 +100,14 @@ export class App {
   /** The square of the pawn whose promotion piece is being asked, so focus can return there on Escape. */
   private promotionFrom: Square | null = null;
   private moveMessage: { text: string; err: boolean } | null = null;
+  /** The position shown outside review: the live one, or an earlier one picked in the move list. */
+  private view: View = null;
+  /** The game up to that earlier position, or null while the live position is shown. */
+  private viewGame: Chess | null = null;
+  /** The moves that a new line from an earlier position replaced in Analyse, so Undo can bring them back. */
+  private dropped: { at: number; moves: Move[] } | null = null;
+  /** What the move list shows, so a render that changes only the current move keeps the focused button. */
+  private movesKey = '';
 
   /** Analysis of the current position (best move, eval, lines). */
   private lines: Line[] = [];
@@ -185,6 +195,7 @@ export class App {
     this.opponentFen = null;
     this.hintFen = null;
     this.moveMessage = null;
+    this.view = null;
     this.settings = { ...this.settings, mode: 'analysis', side: options.side, orient: options.side };
     this.positionChanged();
     if (options.review) this.startReview();
@@ -193,17 +204,34 @@ export class App {
 
   // ---------- derived state ----------
 
-  private get fen(): string {
-    return this.game.fen();
+  /** The game whose position the board shows and the analysis follows: the live game or an earlier position. */
+  private get shown(): Chess {
+    return this.viewGame ?? this.game;
   }
 
+  private get fen(): string {
+    return this.shown.fen();
+  }
+
+  /** Whether the live game has ended. */
   private get isOver(): boolean {
     return gameEnd(this.game) !== null;
   }
 
-  /** Whether the user may enter a move for the side to move. */
+  /** Whether the shown position is final: an earlier position never is, unless the game was loaded that way. */
+  private get shownOver(): boolean {
+    return gameEnd(this.shown) !== null;
+  }
+
+  /** Whether the user may enter a move for the side to move. In play mode only on the live position. */
   private get canInput(): boolean {
-    return this.settings.mode === 'analysis' || this.game.turn() === this.settings.side;
+    if (this.settings.mode === 'analysis') return true;
+    return this.view === null && this.game.turn() === this.settings.side;
+  }
+
+  /** In play mode an earlier position is only for looking at. */
+  private get viewOnly(): boolean {
+    return this.view !== null && this.settings.mode === 'play';
   }
 
   private get isEngineTurn(): boolean {
@@ -218,7 +246,7 @@ export class App {
 
   /** Whether any analysis output is shown (and so computed) for the current position. */
   private get showAnalysis(): boolean {
-    if (this.isOver || this.review.active) return false;
+    if (this.review.active || this.viewOnly || this.shownOver) return false;
     if (this.settings.mode === 'analysis') return true;
     return this.game.turn() === this.settings.side && (this.evalVisible || this.bestVisible);
   }
@@ -269,13 +297,15 @@ export class App {
       this.analysis.cancel();
     }
 
+    // The opponent always answers the live position, also while the user looks at an earlier one.
+    const live = this.game.fen();
     if (this.isEngineTurn) {
-      if (this.opponentFen !== fen) {
-        this.opponentFen = fen;
+      if (this.opponentFen !== live) {
+        this.opponentFen = live;
         clearTimeout(this.replyTimer);
         const level = levelById(this.settings.level);
         this.startEngine('opponent');
-        this.opponent.request({ fen, go: level.go, options: level.options, requestedAt: Date.now() });
+        this.opponent.request({ fen: live, go: level.go, options: level.options, requestedAt: Date.now() });
       }
     } else if (this.opponentFen !== null) {
       this.opponentFen = null;
@@ -309,13 +339,13 @@ export class App {
   }
 
   private onOpponentMove(job: MoveJob, move: string | null): void {
-    if (job.fen !== this.fen || !this.isEngineTurn) return;
+    if (job.fen !== this.game.fen() || !this.isEngineTurn) return;
     const parsed = move ? parseUciMove(move) : null;
     if (!parsed) return;
     const wait = Math.max(0, MIN_REPLY_MS - (Date.now() - job.requestedAt));
     clearTimeout(this.replyTimer);
     this.replyTimer = setTimeout(() => {
-      if (this.fen === job.fen && this.isEngineTurn) this.playMove(parsed);
+      if (this.game.fen() === job.fen && this.isEngineTurn) this.playMove(parsed);
     }, wait);
   }
 
@@ -336,11 +366,39 @@ export class App {
     this.promotionFrom = null;
     closePromotion(this.el.promo);
     this.played = this.game.history({ verbose: true });
+    // An earlier position stays shown while the opponent replies; anything else that changes the game resets it.
+    this.view = clampView(this.view, this.played.length);
+    this.viewGame = this.view === null ? null : this.gameAfter(this.view);
+    this.dropped = null;
     this.save();
     this.syncEngines();
     this.render();
   }
 
+  /** The game up to its first `moves` moves. */
+  private gameAfter(moves: number): Chess {
+    return replay(this.startFen, this.played.slice(0, moves).map(toUci)).game;
+  }
+
+  /** Shows an earlier position, or the live one for null. Read-only in play mode; in Analyse the engine follows. */
+  private showView(view: View): void {
+    const next = clampView(view, this.played.length);
+    if (next === this.view) return;
+    this.view = next;
+    this.viewGame = next === null ? null : this.gameAfter(next);
+    this.selected = null;
+    this.hintFen = null;
+    this.moveMessage = null;
+    this.restartAnalysis();
+    this.syncEngines();
+    this.render();
+  }
+
+  private step(step: Step): void {
+    this.showView(stepView(this.view, this.played.length, step));
+  }
+
+  /** Plays a move on the live game: the user's, or the opponent's reply. */
   private playMove(move: UciMove): boolean {
     try {
       this.game.move(move);
@@ -352,15 +410,48 @@ export class App {
     return true;
   }
 
+  /**
+   * Plays the user's move on the shown position. From an earlier position in Analyse it starts a new line there: the
+   * later moves are dropped, and Undo brings them back. Asking first would interrupt every exploration, and an undo
+   * loses nothing.
+   */
+  private userMove(move: UciMove): boolean {
+    if (this.view === null) return this.playMove(move);
+    if (this.viewOnly) {
+      this.blockViewOnly();
+      return false;
+    }
+    const at = this.view;
+    try {
+      new Chess(this.fen).move(move);
+    } catch {
+      return false;
+    }
+    const dropped = this.played.slice(at);
+    for (let i = 0; i < dropped.length; i++) this.game.undo();
+    this.game.move(move);
+    this.view = null;
+    const later = dropped.length === 1 ? 'The move that followed is' : `The ${dropped.length} moves that followed are`;
+    this.moveMessage = { text: `New line from here. ${later} gone; Undo brings them back.`, err: false };
+    this.positionChanged();
+    this.dropped = { at, moves: dropped };
+    return true;
+  }
+
+  private blockViewOnly(): void {
+    this.moveMessage = { text: 'This is an earlier position. Go back to the game to play your move.', err: true };
+    this.renderMoveHint();
+  }
+
   private tryUserMove(from: Square, to: Square, promotion: boolean): void {
     if (!promotion) {
-      this.playMove({ from, to });
+      this.userMove({ from, to });
       return;
     }
     this.promotionFrom = from;
-    askPromotion(this.el.promo, this.game.turn(), (piece) => {
+    askPromotion(this.el.promo, this.shown.turn(), (piece) => {
       this.promotionFrom = null;
-      if (piece) this.playMove({ from, to, promotion: piece });
+      if (piece) this.userMove({ from, to, promotion: piece });
       else {
         this.selected = null;
         this.renderBoardOnly();
@@ -374,8 +465,10 @@ export class App {
   }
 
   private onSquare(sq: Square): void {
-    const game = this.game;
-    if (this.isOver || !this.canInput || this.review.active) return;
+    const game = this.shown;
+    if (this.review.active) return;
+    if (this.viewOnly) return this.blockViewOnly();
+    if (this.shownOver || !this.canInput) return;
 
     if (this.selected) {
       if (sq === this.selected) {
@@ -422,6 +515,17 @@ export class App {
 
   private undo(): void {
     clearTimeout(this.replyTimer);
+    const dropped = this.dropped;
+    if (dropped && this.played.length === dropped.at + 1) {
+      // Undo right after a new line: back to the earlier position, with the old line restored.
+      this.game.undo();
+      dropped.moves.forEach((m) => this.game.move({ from: m.from, to: m.to, promotion: m.promotion }));
+      this.view = dropped.at;
+      this.moveMessage = { text: 'The old line is back.', err: false };
+      this.positionChanged();
+      return;
+    }
+    this.view = null;
     if (!this.game.undo()) return;
     // In play mode, take back the engine's reply too, so it is the user's turn again.
     if (this.settings.mode === 'play' && this.game.turn() !== this.settings.side && this.game.history().length > 0) {
@@ -436,6 +540,7 @@ export class App {
     this.startFen = DEFAULT_POSITION;
     this.settings.orient = this.settings.side;
     this.moveMessage = null;
+    this.view = null;
     this.opponentFen = null;
     this.positionChanged();
   }
@@ -450,6 +555,8 @@ export class App {
       them: mode === 'play' ? 'The computer' : 'Your opponent',
     });
     this.selected = null;
+    this.view = null;
+    this.viewGame = null;
     this.syncEngines();
     this.render();
     document.getElementById('review')?.focus();
@@ -486,6 +593,7 @@ export class App {
     this.startFen = link.fen;
     this.settings = { ...this.settings, mode: 'play', side: link.side, orient: link.side, level: link.level };
     this.opponentFen = null;
+    this.view = null;
     this.moveMessage = { text: 'Loaded the practice position.', err: false };
     return true;
   }
@@ -502,7 +610,7 @@ export class App {
     el.playBest.addEventListener('click', () => {
       const best = this.lines[0]?.pv[0];
       const move = best ? parseUciMove(best) : null;
-      if (move && this.showAnalysis && this.canInput) this.playMove(move);
+      if (move && this.showAnalysis && this.canInput) this.userMove(move);
     });
     el.hintBtn.addEventListener('click', () => {
       this.hintFen = this.fen;
@@ -514,6 +622,23 @@ export class App {
     el.reviewBtn.addEventListener('click', () => this.startReview());
     el.reviewExit.addEventListener('click', () => this.exitReview());
 
+    // Outside review the move list steps through the game; while it is open the review handles it.
+    el.moves.addEventListener('click', (e) => {
+      const ply = (e.target as HTMLElement).closest<HTMLElement>('button[data-ply]')?.dataset.ply;
+      if (!this.review.active && ply !== undefined) this.showView(Number(ply));
+    });
+    el.moves.addEventListener('keydown', (e) => {
+      const step = STEP_KEYS[e.key];
+      if (this.review.active || !step || e.altKey || e.ctrlKey || e.metaKey) return;
+      e.preventDefault();
+      this.step(step);
+      el.moves.querySelector<HTMLElement>('[aria-current="true"]')?.focus();
+    });
+    el.liveBtn.addEventListener('click', () => {
+      this.showView(null);
+      el.moves.querySelector<HTMLElement>('[aria-current="true"]')?.focus();
+    });
+
     el.undoBtn.addEventListener('click', () => this.undo());
     el.flipBtn.addEventListener('click', () =>
       this.updateSettings({ orient: this.settings.orient === 'w' ? 'b' : 'w' }),
@@ -524,7 +649,11 @@ export class App {
       e.preventDefault();
       const raw = el.moveInput.value.trim();
       if (!raw) return;
-      if (this.isOver) {
+      if (this.viewOnly) {
+        this.blockViewOnly();
+        return;
+      }
+      if (this.shownOver) {
         this.moveMessage = { text: 'The game is over. Undo a move or start a new game.', err: true };
       } else if (!this.canInput) {
         this.moveMessage = { text: 'Wait for the computer to move.', err: true };
@@ -532,12 +661,13 @@ export class App {
         const move = parseTypedMove(this.fen, raw);
         if (move) {
           const san = new Chess(this.fen).move(move).san;
+          const newLine = this.view !== null;
           el.moveInput.value = '';
-          this.playMove(move);
-          this.moveMessage = { text: `Added ${san}.`, err: false };
+          this.userMove(move);
+          if (!newLine) this.moveMessage = { text: `Added ${san}.`, err: false };
         } else {
           this.moveMessage = {
-            text: `“${raw}” is not a legal move here. ${COLOR_NAME[this.game.turn()]} is to move.`,
+            text: `“${raw}” is not a legal move here. ${COLOR_NAME[this.shown.turn()]} is to move.`,
             err: true,
           };
         }
@@ -584,6 +714,7 @@ export class App {
       this.game.load(fen);
       this.startFen = fen;
       this.opponentFen = null;
+      this.view = null;
       this.positionChanged();
       this.toolsHint('Position loaded.');
     });
@@ -601,6 +732,7 @@ export class App {
       this.game = restored.game;
       this.startFen = restored.startFen;
       this.opponentFen = null;
+      this.view = null;
       this.positionChanged();
       this.toolsHint(`Imported ${this.played.length} moves.`);
     });
@@ -668,12 +800,17 @@ export class App {
     this.el.moveForm.hidden = reviewing;
     this.el.settingsBox.hidden = reviewing;
     this.el.reviewBtn.disabled = reviewing || !this.canReview;
+    this.el.liveBtn.hidden = reviewing || this.view === null;
   }
 
   private renderBoardOnly(): void {
     const { orient } = this.settings;
-    if (this.review.active) renderBoard(this.el.board, { game: this.review.board, orient, selected: this.selected });
-    else renderBoard(this.el.board, { game: this.game, orient, selected: this.selected, last: this.played.at(-1) });
+    if (this.review.active) {
+      renderBoard(this.el.board, { game: this.review.board, orient, selected: this.selected });
+    } else {
+      const last = this.played[shownMoves(this.view, this.played.length) - 1];
+      renderBoard(this.el.board, { game: this.shown, orient, selected: this.selected, last });
+    }
     this.renderArrowsOnly();
   }
 
@@ -703,6 +840,7 @@ export class App {
   private statusHtml(): string {
     if (this.review.active)
       return 'Game review<small>Step through the moves with the buttons or the arrow keys, or jump to the next mistake.</small>';
+    if (this.view !== null) return this.viewHtml(this.view);
     const end = gameEnd(this.game);
     if (end) return this.endHtml(end);
     const { side, mode } = this.settings;
@@ -718,6 +856,17 @@ export class App {
     if (this.game.turn() === side)
       return `${yourMove}<small>You play ${COLOR_NAME[side]} against the computer (${level}).</small>`;
     return `The computer is thinking…<small>Level: ${level}</small>`;
+  }
+
+  /** The status while an earlier position is shown. Short enough for the two lines the status reserves on a phone. */
+  private viewHtml(view: number): string {
+    const move = this.played[view - 1];
+    const where = move ? `After ${escapeHtml(moveName(move.before, move.san))}` : 'Start position';
+    const next =
+      this.settings.mode === 'play'
+        ? 'Looking back. Go back to the game to play your move.'
+        : 'Looking back. A move here starts a new line.';
+    return `${where}<small>${next}</small>`;
   }
 
   private endHtml(end: GameEnd): string {
@@ -739,7 +888,7 @@ export class App {
     }
 
     const { mode } = this.settings;
-    const yours = this.game.turn() === this.settings.side;
+    const yours = this.shown.turn() === this.settings.side;
     const showEval = this.evalVisible;
     el.hintBtn.hidden = true;
     el.reviewStart.hidden = true;
@@ -749,7 +898,13 @@ export class App {
     el.evalbar.classList.toggle('off', !showEval);
     el.lines.classList.toggle('no-score', !showEval);
 
-    if (this.isOver) {
+    if (this.viewOnly) {
+      this.waitAdvice('Earlier position', 'Looking back', 'The engine helps again on the live position.');
+      el.playBest.hidden = true;
+      this.setBar(null);
+      return;
+    }
+    if (this.shownOver) {
       this.waitAdvice('Result', 'Game over');
       el.playBest.hidden = true;
       el.reviewStart.hidden = !this.canReview;
@@ -818,7 +973,7 @@ export class App {
       this.el.bestMeta.textContent = this.analysis.status === 'failed' ? 'Engine unavailable' : 'Evaluating…';
       return;
     }
-    const white = toWhitePov(l1.score, this.game.turn());
+    const white = toWhitePov(l1.score, this.shown.turn());
     const v = verdict(white, this.settings.side);
     const score = `<b>${formatScore(white)}</b>`;
     this.el.bestMeta.innerHTML = `${score} · <span class="${v.tone}">${v.text}</span> · ${this.depthText()}`;
@@ -837,7 +992,7 @@ export class App {
           })
           .join(' ');
         const score = showEval
-          ? `<span class="score">${formatScore(toWhitePov(ln.score, this.game.turn()))}</span>`
+          ? `<span class="score">${formatScore(toWhitePov(ln.score, this.shown.turn()))}</span>`
           : '';
         return `<li>${score}<span class="pv">${moves}</span></li>`;
       })
@@ -854,25 +1009,64 @@ export class App {
     this.el.evalbar.title = title;
   }
 
+  /**
+   * The move list: one button per move, showing the position after it. Rebuilt only when the moves change, so the
+   * button that has focus while stepping through the game stays in place.
+   */
   private renderMoves(): void {
-    if (this.review.active) return; // the review draws its own, clickable move list
-    const sans = this.played.map((m) => m.san);
-    showOpening($('opening'), this.startFen, sans);
-    const el = this.el.moves;
-    if (!sans.length) {
-      el.innerHTML = '<span class="empty">No moves yet.</span>';
+    if (this.review.active) {
+      this.movesKey = ''; // the review draws its own move list
       return;
     }
+    const el = this.el.moves;
+    const sans = this.played.map((m) => m.san);
+    // The opening follows the shown position, as in the review.
+    showOpening($('opening'), this.startFen, sans.slice(0, shownMoves(this.view, sans.length)));
+    const key = `${this.startFen}|${sans.join(' ')}`;
+    if (key !== this.movesKey) {
+      this.movesKey = key;
+      const focused = el.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.ply : '';
+      el.innerHTML = sans.length ? this.movesHtml(sans) : '<span class="empty">No moves yet.</span>';
+      if (focused) el.querySelector<HTMLElement>(`[data-ply="${focused}"]`)?.focus();
+    }
+    const current = String(shownMoves(this.view, this.played.length));
+    let cur: HTMLElement | null = null;
+    for (const b of el.querySelectorAll<HTMLElement>('button[data-ply]')) {
+      const isCurrent = b.dataset.ply === current;
+      b.classList.toggle('cur', isCurrent);
+      if (isCurrent) {
+        b.setAttribute('aria-current', 'true');
+        cur = b;
+      } else b.removeAttribute('aria-current');
+    }
+    this.scrollMoves(this.view === null ? null : cur);
+  }
+
+  private movesHtml(sans: string[]): string {
     let html = '';
     const numbered = numberMoves(this.startFen, sans);
     if (this.startFen.split(' ')[1] === 'b')
       html += `<span class="n">${numbered[0]?.label.replace('…', '.')}</span><span class="m">…</span>`;
     numbered.forEach((m, i) => {
+      const move = this.played[i];
+      const label = move ? escapeHtml(moveName(move.before, m.san)) : '';
       if (m.label.endsWith('.')) html += `<span class="n">${m.label}</span>`;
-      html += `<span class="m${i === sans.length - 1 ? ' cur' : ''}">${m.san}</span>`;
+      html += `<button type="button" class="m" data-ply="${i + 1}" aria-label="${label}">${escapeHtml(m.san)}</button>`;
     });
-    el.innerHTML = html;
-    el.scrollTop = el.scrollHeight;
+    return html;
+  }
+
+  /** Keeps the current move in view without scrolling the page: the last move when live, else the shown one. */
+  private scrollMoves(cur: HTMLElement | null): void {
+    const el = this.el.moves;
+    if (!cur) {
+      el.scrollTop = this.view === null ? el.scrollHeight : 0;
+      return;
+    }
+    const top = cur.offsetTop - el.offsetTop;
+    if (top < el.scrollTop) el.scrollTop = top - 8;
+    else if (top + cur.offsetHeight > el.scrollTop + el.clientHeight)
+      el.scrollTop = top + cur.offsetHeight - el.clientHeight + 8;
   }
 
   private renderSettings(): void {
