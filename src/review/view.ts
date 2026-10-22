@@ -38,6 +38,8 @@ const JUDGEMENT_PLURAL: Record<Judgement, string> = {
   blunder: 'blunders',
 };
 const JUDGEMENTS: readonly Judgement[] = ['inaccuracy', 'mistake', 'blunder'];
+/** Where focus goes when a step button is disabled while focused: the step in the other direction. */
+const NAV_BACK: Record<string, string> = { first: 'next', prev: 'next', next: 'prev', last: 'prev' };
 
 export interface ReviewGame {
   startFen: string;
@@ -279,8 +281,15 @@ export class Review {
   }
 
   private renderMove(): void {
-    const { title, move, detail } = this.el;
     showOpening(this.el.opening, this.game?.startFen ?? '', this.sans.slice(0, this.cursor));
+    const detail = this.moveDetail();
+    // The detail is a live region and the panel re-renders after every result, so only touch it when it changes.
+    if (this.el.detail.textContent !== detail) this.el.detail.textContent = detail;
+  }
+
+  /** Sets the title and the move of the panel, and returns the detail text below them. */
+  private moveDetail(): string {
+    const { title, move } = this.el;
     const index = this.cursor - 1;
     const san = this.sans[index];
     const before = this.positions[index];
@@ -288,8 +297,7 @@ export class Review {
       title.textContent = 'Start position';
       move.textContent = this.sans.length ? 'Step through the game' : 'No moves to review';
       move.className = 'best-san wait';
-      detail.textContent = 'Use the buttons, the arrow keys or the move list. Marked moves lost winning chances.';
-      return;
+      return 'Use the buttons, the arrow keys or the move list. Marked moves lost winning chances.';
     }
     const r = this.reviews[index];
     const judgement = r?.judgement;
@@ -297,8 +305,8 @@ export class Review {
     title.textContent = `Move ${before.fen.split(' ')[5] ?? ''}, ${COLOR_NAME[before.turn]}${you}`;
     move.textContent = judgement ? san + JUDGEMENT_SYMBOL[judgement] : san;
     move.className = judgement ? `best-san ${judgement}` : 'best-san';
-    if (r) detail.textContent = this.moveText(r, san, before.fen) + this.outcomeText();
-    else detail.textContent = this.engineFailed ? 'The engine could not start.' : 'Analysing this move…';
+    if (r) return this.moveText(r, san, before.fen) + this.outcomeText();
+    return this.engineFailed ? 'The engine could not start.' : 'Analysing this move…';
   }
 
   /** What the review says about a move: its judgement, or that it was good, and the engine's choice. */
@@ -348,12 +356,19 @@ export class Review {
 
   private renderNav(): void {
     const last = this.positions.length - 1;
-    this.el.nav.querySelectorAll<HTMLButtonElement>('button[data-nav]').forEach((b) => {
+    const buttons = [...this.el.nav.querySelectorAll<HTMLButtonElement>('button[data-nav]')];
+    const focused = buttons.find((b) => b === document.activeElement);
+    for (const b of buttons) {
       const nav = b.dataset.nav;
       if (nav === 'first' || nav === 'prev') b.disabled = this.cursor === 0;
       else if (nav === 'next' || nav === 'last') b.disabled = this.cursor === last;
       else b.disabled = this.nextMarked() === null;
-    });
+    }
+    // A button that gets disabled under the user drops focus to the page; hand it to the step the other way instead.
+    if (!focused?.disabled) return;
+    const back = NAV_BACK[focused.dataset.nav ?? ''];
+    const target = buttons.find((b) => b.dataset.nav === back && !b.disabled) ?? buttons.find((b) => !b.disabled);
+    (target ?? this.el.panel).focus();
   }
 
   private renderProgress(): void {
@@ -403,6 +418,9 @@ export class Review {
       el.innerHTML = '<span class="empty">No moves yet.</span>';
       return;
     }
+    // The list is rebuilt after every step and every result; keep focus on the move that had it, so picking a move
+    // with Enter or Space, or reading the list while the review runs, does not drop focus to the page.
+    const focused = el.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.i : undefined;
     let html = '';
     const numbered = numberMoves(start.fen, this.sans);
     if (start.turn === 'b')
@@ -412,6 +430,7 @@ export class Review {
       html += this.moveButton(i, m.san);
     });
     el.innerHTML = html;
+    if (focused) el.querySelector<HTMLElement>(`button[data-i="${focused}"]`)?.focus({ preventScroll: true });
     const cur = el.querySelector<HTMLElement>('.cur');
     if (cur) {
       // Keep the current move visible without scrolling the page itself.
