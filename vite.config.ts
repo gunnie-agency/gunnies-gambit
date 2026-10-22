@@ -1,8 +1,9 @@
 /// <reference types="vitest/config" />
 import { Chess } from 'chess.js';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { basename, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import {
   faqHtml,
@@ -86,6 +87,46 @@ function noInlinedFonts(): Plugin {
           this.error(`${file.fileName} inlines a font as data: URL; import a larger subset or a single file instead`);
         }
       }
+    },
+  };
+}
+
+/**
+ * Runs before first paint: applies a stored light theme, so the page does not flash dark (key as in src/ui/chrome.ts),
+ * and marks a stored "evaluation shown" (analysis mode or the play-mode setting, see src/state.ts), so on phones the
+ * eval bar's space is reserved from the start rather than pushing the board aside when the app script runs. When
+ * storage is blocked or unreadable the defaults apply: dark theme, no evaluation. Inline in each page's head rather
+ * than a file, so it costs no request; the CSP allows exactly this text by its hash.
+ */
+const THEME_INIT =
+  'try{const root=document.documentElement;' +
+  "if(localStorage.getItem('gunnies-gambit.theme')==='light')root.dataset.theme='light';" +
+  "const saved=JSON.parse(localStorage.getItem('gunnies-gambit.v2')??'null');" +
+  "if(saved?.mode==='analysis'||saved?.showEval===true)root.dataset.evalbar='on'}catch{}";
+const THEME_INIT_HASH_PLACEHOLDER = '%THEME_INIT_SHA256%';
+
+/**
+ * Puts the theme script first in each page's head, and its SHA-256 into the CSP of the built `_headers` in place of
+ * %THEME_INIT_SHA256%. The hash is worked out from the script itself, so the two cannot drift apart.
+ */
+function themeInit(): Plugin {
+  let outDir = '';
+  return {
+    name: 'theme-init',
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    transformIndexHtml() {
+      return [{ tag: 'script', children: THEME_INIT, injectTo: 'head-prepend' }];
+    },
+    writeBundle() {
+      const file = join(outDir, '_headers');
+      const headers = readFileSync(file, 'utf8');
+      if (!headers.includes(THEME_INIT_HASH_PLACEHOLDER)) {
+        this.error(`theme-init: ${THEME_INIT_HASH_PLACEHOLDER} missing from public/_headers`);
+      }
+      const hash = createHash('sha256').update(THEME_INIT).digest('base64');
+      writeFileSync(file, headers.replaceAll(THEME_INIT_HASH_PLACEHOLDER, hash));
     },
   };
 }
@@ -187,6 +228,7 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       siteFiles(site, env.INDEXNOW_KEY),
+      themeInit(),
       preloadBodyFont(),
       noInlinedFonts(),
       cloudflareAnalytics(env.VITE_CF_ANALYTICS_TOKEN),

@@ -1,7 +1,7 @@
 # Cloudflare Workers static assets. One "*" per rule: a rule with two is silently ignored.
 
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://static.cloudflareinsights.com; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com https://lichess.org https://api.chess.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-%THEME_INIT_SHA256%' 'wasm-unsafe-eval' https://static.cloudflareinsights.com; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com https://lichess.org https://api.chess.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
@@ -13,8 +13,6 @@
 /index.html
   Cache-Control: no-cache
 /how-to-play
-  Cache-Control: no-cache
-/theme-init.js
   Cache-Control: no-cache
 
 # Content-hashed by Vite: safe to cache forever.

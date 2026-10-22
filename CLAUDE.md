@@ -78,7 +78,9 @@ GitHub Actions (`.github/workflows/ci.yml`): every push to `master` and every pu
 tests and build. A push to `master` then deploys the tested `dist/` with `wrangler deploy`, using the
 `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets, and pings IndexNow (`scripts/indexnow.mjs`, key
 `INDEXNOW_KEY` in `.env`). Caching and security headers are in `public/_headers`: HTML is `no-cache`, `/assets/*`
-immutable, and the CSP needs `'wasm-unsafe-eval'` for the engine. Fonts are imported once, in `src/fonts.ts`, Latin
+immutable, and the CSP needs `'wasm-unsafe-eval'` for the engine. The theme script that runs before first paint is
+inline in each page's head (`themeInit` in `vite.config.ts`); the build puts its hash into the CSP in place of
+`%THEME_INIT_SHA256%`, so edit the script there and never hand-write the hash. Fonts are imported once, in `src/fonts.ts`, Latin
 subsets only, so no font is small enough for Vite to inline; the build fails if a `data:` font reaches the CSS, and
 `font-src` is `'self'` only. Cloudflare allows one `*` per `_headers` rule.
 
