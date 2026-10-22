@@ -6,7 +6,7 @@ import { lessonById } from './lessons';
 import { Practice } from './practice';
 import { hasGoal, loadSolved, progressText, saveSolved } from './progress';
 
-/** How long a puzzle waits before Black answers, so the reader sees their own move land first. */
+/** How long a board waits before the other side answers, so the reader sees their own move land first. */
 const REPLY_DELAY_MS = 600;
 
 /** Endgames are practised against the strongest level, which defends as well as it can. */
@@ -53,7 +53,7 @@ function mountLesson(root: HTMLElement, progress: Progress): void {
     message.textContent = practice.message ?? intro;
     // Every move leaves a message, so there is something to undo exactly when there is one.
     reset.disabled = practice.message === null;
-    if (lesson.mode === 'puzzle') reset.textContent = practice.done ? 'Again' : resetLabel;
+    if (hasGoal(lesson)) reset.textContent = practice.done ? 'Again' : resetLabel;
     if (hint) hint.disabled = practice.done || practice.waiting;
     if (practice.solved && !progress.solved.has(lesson.id)) progress.record(lesson.id);
     root.classList.toggle('solved', progress.solved.has(lesson.id));

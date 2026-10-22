@@ -1,5 +1,6 @@
 import { Chess, type Color, type Move, type Square } from 'chess.js';
 import { parseUciMove, toUci, type PromotionPiece, type UciMove } from '../util/uci';
+import { defend } from './defender';
 import { PIECE_NAME, type Lesson } from './lessons';
 
 /** A move the reader has chosen but that still needs a promotion piece. */
@@ -9,6 +10,16 @@ export interface PendingMove {
 }
 
 const COLOR_NAME = { w: 'White', b: 'Black' } as const;
+
+const TRY_AGAIN = 'Start again to have another go.';
+
+/** Why a game that is over without a checkmate is drawn. */
+function drawReason(game: Chess): string {
+  if (game.isStalemate()) return 'Stalemate: Black is not in check but has no legal move, so the game is drawn.';
+  if (game.isInsufficientMaterial()) return 'Only the kings are left, so the game is drawn.';
+  if (game.isThreefoldRepetition()) return 'The same position came up three times, so the game is drawn.';
+  return 'Fifty moves passed without a capture or a pawn move, so the game is drawn.';
+}
 
 /** The same position with White to move again, so a free practice board never runs out of turns. */
 function whiteToMove(fen: string): string {
@@ -94,6 +105,10 @@ export class Practice {
       this.judge(move);
       return;
     }
+    if (this.lesson.mode === 'mate') {
+      this.afterMateMove(move);
+      return;
+    }
     this.last = { from, to };
     this.message = this.lesson.respond?.(move, this.game) ?? null;
     const { mode } = this.lesson;
@@ -115,15 +130,21 @@ export class Practice {
     this.message = piece ? `Hint: move your ${PIECE_NAME[piece.type]}.` : null;
   }
 
-  /** Plays the other side's scripted answer in a puzzle, once the reader's move has been accepted. */
+  /** Plays the other side's answer: the scripted one in a puzzle, the defender's in a mating endgame. */
   reply(): void {
-    const next = this.nextMove();
-    if (!this.waiting || !next) return;
+    if (!this.waiting) return;
+    const next = this.lesson.mode === 'mate' ? defend(this.game) : this.nextMove();
+    if (!next) return;
     const move = this.game.move(next);
     this.ply++;
     this.waiting = false;
     this.last = { from: move.from, to: move.to };
-    this.message = `${COLOR_NAME[move.color]} answered ${move.san}. Your move.`;
+    const answered = `${COLOR_NAME[move.color]} answered ${move.san}.`;
+    this.message = `${answered} Your move.`;
+    if (this.game.isDraw()) {
+      this.done = true;
+      this.message = `${answered} ${drawReason(this.game)} ${TRY_AGAIN}`;
+    }
   }
 
   private nextMove(): UciMove | null {
@@ -148,6 +169,23 @@ export class Practice {
     } else {
       this.waiting = true;
       this.message = `${move.san}. Good, now see what ${COLOR_NAME[this.game.turn()]} does.`;
+    }
+  }
+
+  /** In a mating endgame the reader's move mates, ends in a draw, or waits for the defender. */
+  private afterMateMove(move: Move): void {
+    this.last = { from: move.from, to: move.to };
+    if (this.game.isCheckmate()) {
+      const moves = Math.ceil(this.game.history().length / 2);
+      this.done = true;
+      this.solved = true;
+      this.message = `Checkmate in ${moves} ${moves === 1 ? 'move' : 'moves'}. ${this.lesson.solved ?? ''}`.trim();
+    } else if (this.game.isDraw()) {
+      this.done = true;
+      this.message = `${move.san}. ${drawReason(this.game)} ${TRY_AGAIN}`;
+    } else {
+      this.waiting = true;
+      this.message = this.gameMessage(move.san);
     }
   }
 

@@ -4,7 +4,7 @@ const KEY = 'gunnies-gambit.lessons.v1';
 
 /** Lessons with a goal the reader can reach, which the page counts as solved once they do. */
 export function hasGoal(lesson: Lesson | undefined): boolean {
-  return lesson?.mode === 'puzzle';
+  return lesson?.mode === 'puzzle' || lesson?.mode === 'mate';
 }
 
 const GOALS = new Set(LESSONS.filter(hasGoal).map((lesson) => lesson.id));

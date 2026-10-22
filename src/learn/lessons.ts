@@ -6,10 +6,12 @@ import type { Chess, Color, Move, PieceSymbol } from 'chess.js';
  * - `free`: White is to move again after every move, so the reader can keep moving a piece around.
  * - `task`: the board waits for one White move, says what it did, and stays put until it is reset.
  * - `game`: both sides take turns, as in a real game.
+ * - `mate`: the reader plays White against a lone king, which a simple scripted defender moves (see `defend`), until
+ *   it is mated or the game is drawn.
  * - `puzzle`: the reader plays the moves of `solution` for the side to move, and the board answers with the other
  *   side's, until it is solved. The board is turned so the reader's side is at the bottom.
  */
-export type LessonMode = 'free' | 'task' | 'game' | 'puzzle';
+export type LessonMode = 'free' | 'task' | 'game' | 'puzzle' | 'mate';
 
 /** One practice board on the How to play page. Its intro text lives in the page, next to the board. */
 export interface Lesson {
@@ -23,7 +25,7 @@ export interface Lesson {
   respond?(move: Move, after: Chess): string;
   /** A puzzle's moves in UCI, the reader's and the other side's in turn. Any checkmate also solves it. */
   solution?: readonly string[];
-  /** What to say once a puzzle is solved. */
+  /** What to say once a puzzle is solved or the lone king is mated. */
   solved?: string;
   /** The side the reader takes when they play this position out against the computer, from the board's link. */
   practiseAs?: Color;
@@ -201,8 +203,20 @@ export const LESSONS: readonly Lesson[] = [
     solution: ['b1b7', 'g7g8', 'a6a8'],
     solved: 'Checkmate. One rook holds a row while the other checks on the next, step by step to the edge.',
   },
-  { id: 'queen-mate', mode: 'game', fen: '8/8/8/4k3/8/8/8/3QK3 w - - 0 1', practiseAs: 'w' },
-  { id: 'rook-mate', mode: 'game', fen: '8/8/8/4k3/8/8/8/R3K3 w - - 0 1', practiseAs: 'w' },
+  {
+    id: 'queen-mate',
+    mode: 'mate',
+    fen: '8/8/8/4k3/8/8/8/3QK3 w - - 0 1',
+    solved: 'Ten moves or fewer is good technique.',
+    practiseAs: 'w',
+  },
+  {
+    id: 'rook-mate',
+    mode: 'mate',
+    fen: '8/8/8/4k3/8/8/8/R3K3 w - - 0 1',
+    solved: 'Around twenty moves is good technique.',
+    practiseAs: 'w',
+  },
   { id: 'pawn-ending', mode: 'game', fen: '8/4k3/8/4K3/8/4P3/8/8 w - - 0 1', practiseAs: 'w' },
 ];
 

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { buildPracticeLink, parsePracticeLink } from '../util/link';
 import { parseUciMove } from '../util/uci';
 import { LESSONS, lessonById, type Lesson } from './lessons';
+import { hasGoal } from './progress';
 
 const VALUE: Record<PieceSymbol, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 
@@ -108,9 +109,19 @@ describe('puzzles', () => {
     expect(introTexts().get(p.id)).toMatch(new RegExp(`^${side} to move`));
   });
 
-  it('are counted on the page before the script runs', () => {
-    const html = readFileSync('how-to-play.html', 'utf8');
-    expect(html).toContain(`<p class="lesson-progress">0 of ${PUZZLES.length} solved</p>`);
+  it('are counted per section on the page before the script runs', () => {
+    const sections = readFileSync('how-to-play.html', 'utf8').split('<section').slice(1);
+    const counted = sections.flatMap((html) => {
+      const line = /<p class="lesson-progress">0 of (\d+) solved<\/p>/.exec(html);
+      const ids = [...html.matchAll(/data-lesson="([^"]+)"/g)].map((m) => m[1]).filter((id) => hasGoal(lessonById(id)));
+      expect(line ? Number(line[1]) : 0, html.slice(0, 80)).toBe(ids.length);
+      return ids;
+    });
+    expect(counted.sort()).toEqual(
+      LESSONS.filter(hasGoal)
+        .map((l) => l.id)
+        .sort(),
+    );
   });
 
   it.each(Object.entries(MATES))('%s mates in %i with a single first move, and the solution ends in mate', (id, n) => {

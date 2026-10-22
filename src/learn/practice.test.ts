@@ -199,6 +199,43 @@ describe('Practice', () => {
     expect(practice('start').side).toBe('w');
   });
 
+  it('has the defender answer in a mating endgame, and counts the moves to mate', () => {
+    const p = practice('queen-mate');
+    tapMove(p, 'd1', 'd3');
+    expect(p.waiting).toBe(true);
+    expect(p.message).toBe('White played Qd3. Black to move.');
+    p.reply();
+    expect(p.waiting).toBe(false);
+    expect(p.game.turn()).toBe('w');
+    expect(p.message).toMatch(/^Black answered K[a-h][1-8]\. Your move\.$/);
+
+    const near: Lesson = { id: 'near-mate', mode: 'mate', fen: 'k7/8/1K6/8/8/8/8/2Q5 w - - 0 1', solved: 'Well done.' };
+    const mate = new Practice(near);
+    tapMove(mate, 'c1', 'c8');
+    expect(mate.done).toBe(true);
+    expect(mate.solved).toBe(true);
+    expect(mate.message).toBe('Checkmate in 1 move. Well done.');
+  });
+
+  it('ends a mating endgame in a stalemate or when the defender takes the last piece', () => {
+    const stalemate = new Practice({ id: 'stalemate-trap', mode: 'mate', fen: 'k7/8/1K6/8/8/8/8/2Q5 w - - 0 1' });
+    tapMove(stalemate, 'c1', 'c7');
+    expect(stalemate.done).toBe(true);
+    expect(stalemate.solved).toBe(false);
+    expect(stalemate.message).toMatch(/^Qc7\. Stalemate:/);
+
+    const hanging = practice('rook-mate');
+    tapMove(hanging, 'a1', 'a4');
+    hanging.reply();
+    tapMove(hanging, 'a4', 'e4');
+    hanging.reply();
+    expect(hanging.game.get('e4')?.type).toBe('k');
+    expect(hanging.done).toBe(true);
+    expect(hanging.message).toBe(
+      'Black answered Kxe4. Only the kings are left, so the game is drawn. Start again to have another go.',
+    );
+  });
+
   it('points a hint at the piece to move, and clears it on the next move', () => {
     const p = practice('smothered');
     p.showHint();
