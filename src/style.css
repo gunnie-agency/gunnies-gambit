@@ -312,8 +312,8 @@ header.top {
   padding: 6px 12px;
   background: var(--surface);
 }
-/* Room for "Loading engine…", the longest message short of a failure, so the mode switch beside the chip does not
-   move when the engine is ready. */
+/* Room for "Loading engine…", the longest message short of a failure ("Engine idle", "Engine ready" and "Thinking…"
+   are shorter), so the mode switch beside the chip does not move when the engine's state changes. */
 .chip #engineName {
   min-width: calc(15ch + 15 * 0.05em);
 }
@@ -736,6 +736,8 @@ button.btn.primary:hover:not(:disabled) {
   color: var(--muted);
   font-size: 1.8rem;
   letter-spacing: -0.01em;
+  /* The move's line box (2.4rem at 1.05), so swapping a waiting text and a move does not change the height. */
+  line-height: 1.4;
 }
 .verdict-meta {
   font-size: 0.88rem;
@@ -1445,6 +1447,9 @@ footer .made-by {
   .best-san {
     font-size: 2rem;
   }
+  .best-san.wait {
+    line-height: 1.1667; /* 2rem at 1.05 */
+  }
   .board-tools {
     padding-left: 0;
   }
@@ -1686,11 +1691,35 @@ button.import-game:hover {
   margin: 0;
   min-height: 3em;
 }
+/* The answer form goes once a move is judged, which can be a moment after the move when the engine has to search the
+   position: while the Next button shows, the form keeps its room, so the panel does not shrink on its own. */
+.review-practice:has([data-practice='next']:not([hidden])) form[hidden] {
+  display: flex !important;
+  visibility: hidden;
+}
 .review-practice-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
-.review-practice-actions button.btn.primary {
+/* "Back to the review" sits at the right edge in every state, so it does not move when Skip gives way to Next. */
+.review-practice-actions [data-practice='done'] {
   margin-left: auto;
+}
+/* "Find a better move" wraps in a two-line-wide column, and goes to one line in the waiting style while the answer
+   is checked: below the widest layout the task keeps two lines. */
+@media (max-width: 1080px) {
+  .review.practising #reviewMove {
+    min-height: calc(2 * 2.4rem * 1.05);
+  }
+}
+@media (max-width: 480px) {
+  .review.practising #reviewMove {
+    min-height: calc(2 * 2rem * 1.05);
+  }
+  /* The longest feedback ("Good: Qe7 keeps your chances. In the game you played Nf6; the engine's best move is g6,
+     shown by the arrow.") takes three lines on a phone, and can arrive after a search. */
+  .review-practice .verdict-meta {
+    min-height: 4.5em;
+  }
 }
