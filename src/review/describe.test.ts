@@ -31,8 +31,24 @@ describe('materialLoss', () => {
       piece: 'q',
       square: 'g4',
       free: true,
+      promotes: false,
       points: 9,
     });
+  });
+
+  it('counts a promotion, with or without a capture', () => {
+    // Ra5 lets the b-pawn queen: a new queen for the pawn.
+    expect(materialLoss('4k3/8/8/1R6/8/8/1p6/4K3 w - - 0 1', 'b5a5', 'b2b1q')).toEqual({
+      reply: 'b1=Q+',
+      piece: null,
+      square: 'b1',
+      free: true,
+      promotes: true,
+      points: 8,
+    });
+    // Kd2 lets it take the rook as it queens: the rook and the new queen.
+    const loss = materialLoss('4k3/8/8/8/8/8/1p6/R1N1K3 w - - 0 1', 'e1d2', 'b2a1q');
+    expect(loss).toMatchObject({ reply: 'bxa1=Q', piece: 'r', promotes: true, points: 13 });
   });
 
   it('counts the recapture, so a fair exchange costs nothing', () => {
@@ -78,6 +94,13 @@ describe('moveFacts', () => {
     expect(moveFacts(QUEEN_HANGS, r, mate(-6, null), cp(0, null)).decided).toBe(true);
     expect(moveFacts(QUEEN_HANGS, r, cp(499, null), cp(0, null)).decided).toBe(false);
   });
+
+  it('notes no loss for a sacrifice that leads to a forced mate', () => {
+    const fen = '6k1/5pp1/8/8/8/3Q4/8/4K2R w - - 0 1';
+    const r = reviewMove(0, 'w', 'd3g6', mate(5, 'd3h7'), mate(-4, 'f7g6'));
+    expect(materialLoss(fen, 'd3g6', 'f7g6')?.points).toBe(9);
+    expect(moveFacts(fen, r, mate(5, 'd3h7'), mate(-4, 'f7g6')).loss).toBeNull();
+  });
 });
 
 describe('describeMove', () => {
@@ -91,6 +114,17 @@ describe('describeMove', () => {
     expect(text(QUEEN_HANGS, 'h5g4', cp(300, 'h5f7'), cp(600, 'f6g4'), 'Qg4', 'Qxf7#')).toBe(
       'You played Qg4, a blunder. This leaves the queen on g4 to be taken for free (Nxg4). ' +
         'Better was Qxf7#, shown by the arrow.',
+    );
+  });
+
+  it('names a promotion the move allows', () => {
+    expect(text('4k3/8/8/1R6/8/8/1p6/4K3 w - - 0 1', 'b5a5', cp(500, 'b5b2'), cp(900, 'b2b1q'), 'Ra5', 'Rxb2')).toBe(
+      'You played Ra5, a blunder. This lets a pawn promote (b1=Q+), which costs 8 points. ' +
+        'Better was Rxb2, shown by the arrow.',
+    );
+    const fen = '4k3/8/8/8/8/8/1p6/R1N1K3 w - - 0 1';
+    expect(text(fen, 'e1d2', cp(600, 'c1d3'), cp(900, 'b2a1q'), 'Kd2', 'Nd3')).toContain(
+      'This lets a pawn take the rook on a1 and promote (bxa1=Q), which costs 13 points.',
     );
   });
 

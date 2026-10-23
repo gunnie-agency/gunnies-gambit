@@ -28,11 +28,13 @@ const NOTED_LOSS = 3;
 export interface MaterialLoss {
   /** The opponent's best reply, in SAN. */
   reply: string;
-  /** The piece the reply takes, and where. */
-  piece: PieceSymbol;
+  /** The piece the reply takes, or null when it only promotes, and the square the reply goes to. */
+  piece: PieceSymbol | null;
   square: Square;
   /** Whether the mover cannot take back on that square. */
   free: boolean;
+  /** Whether the reply promotes a pawn. */
+  promotes: boolean;
   /** Points the mover is down after the move, the reply and the best recapture, compared to before the move. */
   points: number;
 }
@@ -45,7 +47,10 @@ export interface MoveFacts {
   mateReply: string | null;
   /** The game was already decided before the move: a big material edge or a forced mate. */
   decided: boolean;
-  /** A loss of at least {@link NOTED_LOSS} points of material, for a move that was not the engine's choice. */
+  /**
+   * A loss of at least {@link NOTED_LOSS} points of material, for a move that was not the engine's choice and does
+   * not lead to a forced mate for the mover.
+   */
   loss: MaterialLoss | null;
 }
 
@@ -58,31 +63,34 @@ export function moveFacts(fenBefore: string, review: MoveReview, before: Positio
   const mateInOne = after.score.kind === 'mate' && after.score.value === 1 && after.best !== null;
   const mateReply = mateInOne && after.best ? replySan(fenBefore, review.played, after.best) : null;
   const decided = before.score.kind === 'mate' || Math.abs(before.score.value) >= DECIDED_CP;
+  // After the move the opponent is to move, so a negative mate is the mover's: material given up for it is no loss.
+  const mating = after.score.kind === 'mate' && after.score.value < 0;
   const loss =
-    checkmate || mateReply || review.played === review.best || !after.best
+    checkmate || mateReply || mating || review.played === review.best || !after.best
       ? null
       : materialLoss(fenBefore, review.played, after.best);
   return { checkmate, mateReply, decided, loss: loss && loss.points >= NOTED_LOSS ? loss : null };
 }
 
 /**
- * The material the mover is down after playing `played` and the opponent answering `reply`, when the reply is a
- * capture. If the mover can take back on the capture square, the capturing piece counts as won back, so a fair
- * exchange is no loss. Null when the reply captures nothing or either move is illegal.
+ * The material the mover is down after playing `played` and the opponent answering `reply`, when the reply captures
+ * or promotes. If the mover can take back on the reply's square, the piece there counts as won back, so a fair
+ * exchange is no loss. Null when the reply does neither or either move is illegal.
  */
 export function materialLoss(fen: string, played: string, reply: string): MaterialLoss | null {
   const game = new Chess(fen);
   const mover = game.turn();
   const start = balance(game, mover);
   const answer = play(game, played) ? play(game, reply) : null;
-  if (!answer?.captured) return null;
+  if (!answer?.captured && !answer?.promotion) return null;
   const recapture = game.moves({ verbose: true }).find((m) => m.to === answer.to && m.captured);
   const regained = recapture?.captured ? VALUE[recapture.captured] : 0;
   return {
     reply: answer.san,
-    piece: answer.captured,
+    piece: answer.captured ?? null,
     square: answer.to,
     free: !recapture,
+    promotes: Boolean(answer.promotion),
     points: start - balance(game, mover) - regained,
   };
 }
@@ -142,6 +150,10 @@ export function describeMove(r: MoveReview, facts: MoveFacts, words: MoveWords):
 }
 
 function lossText(loss: MaterialLoss): string {
+  if (loss.promotes || !loss.piece) {
+    const taken = loss.piece ? `take the ${PIECE_NAME[loss.piece]} on ${loss.square} and ` : '';
+    return `This lets a pawn ${taken}promote (${loss.reply}), which costs ${loss.points} points.`;
+  }
   const piece = PIECE_NAME[loss.piece];
   if (loss.free) return `This leaves the ${piece} on ${loss.square} to be taken for free (${loss.reply}).`;
   return `This loses material: after ${loss.reply} and taking back, it costs ${loss.points} points.`;

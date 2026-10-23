@@ -34,7 +34,8 @@ Don't hardcode either elsewhere. How to contribute (setup, checks, adding lesson
    Moves are judged by lost winning chances on the Lichess curve (0.1 / 0.2 / 0.3) plus Lichess's mate rules, and the
    engine's own choice is never marked. Results are cached by position in localStorage (last reviewed game only).
    The texts (`src/review/describe.ts`) add facts without changing the judgement: a mating move is "Checkmate.", a
-   move that allows mate in one says so, material hung or lost (3 points or more) is named, and an unmarked move in a
+   move that allows mate in one says so, material hung or lost (3 points or more, a promotion
+   allowed included) is named unless the move forces mate, and an unmarked move in a
    decided game says the game was already decided. "Next mistake" stops on mistakes and blunders only.
    **Practise my mistakes** (`src/review/retry.ts`) then replays the positions before the user's own mistakes and
    blunders; an answer is good when it is the engine's choice or a move the review would not mark. Positions not yet
