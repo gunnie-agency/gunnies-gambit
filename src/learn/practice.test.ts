@@ -76,10 +76,27 @@ describe('Practice', () => {
     expect(p.game.get('d1')?.type).toBe('r');
   });
 
-  it('tells a check that is not mate apart from mate', () => {
+  it('takes back a task move that misses, and keeps the right one', () => {
     const p = practice('checkmate');
     tapMove(p, 'd1', 'd2');
-    expect(p.message).toMatch(/does not attack the king/);
+    expect(p.message).toBe(
+      'Not quite: Rd2 does not attack the king. Look at the row the black king stands on. Try again.',
+    );
+    expect(p.game.get('d1')?.type).toBe('r');
+    expect(p.game.turn()).toBe('w');
+    expect(p.last).toBeUndefined();
+    expect(p.done).toBe(false);
+    tapMove(p, 'd1', 'd8');
+    expect(p.done).toBe(true);
+    expect(p.last).toEqual({ from: 'd1', to: 'd8' });
+    expect(p.message).toMatch(/^Checkmate\./);
+  });
+
+  it('keeps every way out of check, to find the next one after a reset', () => {
+    const p = practice('check');
+    tapMove(p, 'e1', 'd1');
+    expect(p.done).toBe(true);
+    expect(p.message).toMatch(/Start again to find another way\.$/);
   });
 
   it('names the three ways out of check', () => {
@@ -102,7 +119,8 @@ describe('Practice', () => {
     expect(mate.message).toMatch(/^Checkmate with Qc8#/);
     const stalemate = practice('stalemate');
     tapMove(stalemate, 'c1', 'c7');
-    expect(stalemate.message).toMatch(/^Stalemate\./);
+    expect(stalemate.message).toMatch(/^Not quite: Qc7 is stalemate\./);
+    expect(stalemate.game.get('c1')?.type).toBe('q');
   });
 
   it('explains both castling moves and a king that moved one square', () => {
@@ -114,7 +132,9 @@ describe('Practice', () => {
     expect(queenside.message).toMatch(/castled queenside/);
     const step = practice('castling');
     tapMove(step, 'e1', 'f2');
-    expect(step.message).toMatch(/no longer castle/);
+    expect(step.message).toMatch(/^Not quite: a king that has moved may no longer castle\./);
+    expect(step.game.get('e1')?.type).toBe('k');
+    expect(step.done).toBe(false);
   });
 
   it('shows the double step before en passant, and recognises the capture', () => {
@@ -123,6 +143,15 @@ describe('Practice', () => {
     tapMove(p, 'e5', 'd6');
     expect(p.message).toMatch(/^En passant/);
     expect(p.game.get('d5')).toBeUndefined();
+  });
+
+  it('keeps the chance for en passant after a wrong move, with the double step still shown', () => {
+    const p = practice('en-passant');
+    tapMove(p, 'e5', 'e6');
+    expect(p.message).toBe('Not quite: e6 moves past the black pawn without taking it. Try again.');
+    expect(p.last).toEqual({ from: 'd7', to: 'd5' });
+    tapMove(p, 'e5', 'd6');
+    expect(p.message).toMatch(/^En passant/);
   });
 
   it('asks for the promotion piece, then names it', () => {
@@ -136,11 +165,11 @@ describe('Practice', () => {
   it('ignores a promotion that is no longer legal when the piece is picked', () => {
     const p = practice('promotion');
     tapMove(p, 'e7', 'e8');
-    tapMove(p, 'a1', 'b1');
+    p.play('e7', 'e8', 'n');
     const fen = p.game.fen();
     expect(() => p.play('e7', 'e8', 'q')).not.toThrow();
     expect(p.game.fen()).toBe(fen);
-    expect(p.message).toMatch(/^The king/);
+    expect(p.message).toMatch(/became a knight/);
   });
 
   it('takes back a wrong puzzle move and lets the reader try again', () => {

@@ -4,7 +4,8 @@ import type { Chess, Color, Move, PieceSymbol } from 'chess.js';
  * How a practice board behaves after a move.
  *
  * - `free`: White is to move again after every move, so the reader can keep moving a piece around.
- * - `task`: the board waits for one White move, says what it did, and stays put until it is reset.
+ * - `task`: the board waits for one White move and says what it did. A move that misses the task is taken back at
+ *   once; a right one stays until the board is reset.
  * - `game`: both sides take turns, as in a real game.
  * - `mate`: the reader plays White against a lone king, which a simple scripted defender moves (see `defend`), until
  *   it is mated or the game is drawn.
@@ -21,8 +22,8 @@ export interface Lesson {
   fen: string;
   /** Moves played from `fen` before the reader starts, so the board shows how the position came about. */
   setup?: string[];
-  /** What to say about the reader's move. Without it the board names the move. */
-  respond?(move: Move, after: Chess): string;
+  /** What a task says about the reader's move; a wrong move is taken back. */
+  respond?(move: Move, after: Chess): Feedback;
   /** A puzzle's moves in UCI, the reader's and the other side's in turn. Any checkmate also solves it. */
   solution?: readonly string[];
   /** What to say once a puzzle is solved or the lone king is mated. */
@@ -40,7 +41,22 @@ export const PIECE_NAME: Record<PieceSymbol, string> = {
   p: 'pawn',
 };
 
-const TRY_AGAIN = 'Start again to try a different move.';
+/** What a task board says about the reader's move, and whether the move is taken back for another try. */
+export interface Feedback {
+  text: string;
+  retry: boolean;
+}
+
+function right(text: string): Feedback {
+  return { text, retry: false };
+}
+
+/** A move that misses the task. `text` continues "Not quite: ", so it starts in lower case or with a move. */
+function wrong(text: string): Feedback {
+  return { text: `Not quite: ${text} Try again.`, retry: true };
+}
+
+const ANOTHER_WAY = 'Start again to find another way.';
 
 export const LESSONS: readonly Lesson[] = [
   { id: 'start', mode: 'game', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' },
@@ -55,9 +71,11 @@ export const LESSONS: readonly Lesson[] = [
     mode: 'task',
     fen: 'k3r3/8/8/1B6/8/8/R7/4K3 w - - 0 1',
     respond: (move) => {
-      if (move.isCapture()) return `You captured the rook that gave check. ${TRY_AGAIN}`;
-      if (move.piece === 'k') return `You moved the king off the rook's line. ${TRY_AGAIN}`;
-      return `You blocked the check: the ${PIECE_NAME[move.piece]} stands between the rook and the king. ${TRY_AGAIN}`;
+      if (move.isCapture()) return right(`You captured the rook that gave check. ${ANOTHER_WAY}`);
+      if (move.piece === 'k') return right(`You moved the king off the rook's line. ${ANOTHER_WAY}`);
+      return right(
+        `You blocked the check: the ${PIECE_NAME[move.piece]} stands between the rook and the king. ${ANOTHER_WAY}`,
+      );
     },
   },
   {
@@ -66,9 +84,9 @@ export const LESSONS: readonly Lesson[] = [
     fen: '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1',
     respond: (move, after) => {
       if (after.isCheckmate())
-        return `Checkmate. ${move.san} attacks the king, and its own pawns leave it no square to escape to.`;
-      if (after.inCheck()) return `Check, but Black can still get out of it. ${TRY_AGAIN}`;
-      return `That does not attack the king. Look at the row the black king stands on. ${TRY_AGAIN}`;
+        return right(`Checkmate. ${move.san} attacks the king, and its own pawns leave it no square to escape to.`);
+      if (after.inCheck()) return wrong(`${move.san} is check, but Black can still get out of it.`);
+      return wrong(`${move.san} does not attack the king. Look at the row the black king stands on.`);
     },
   },
   {
@@ -76,11 +94,11 @@ export const LESSONS: readonly Lesson[] = [
     mode: 'task',
     fen: 'k7/8/1K6/8/8/8/8/2Q5 w - - 0 1',
     respond: (move, after) => {
-      if (after.isCheckmate()) return `Checkmate with ${move.san}. You found the win and avoided the stalemate.`;
+      if (after.isCheckmate()) return right(`Checkmate with ${move.san}. You found the win and avoided the stalemate.`);
       if (after.isStalemate())
-        return `Stalemate. Black is not in check but has no legal move, so the game is a draw. ${TRY_AGAIN}`;
-      if (after.inCheck()) return `Check, but the black king can still move. ${TRY_AGAIN}`;
-      return `Black still has a legal move, so the game goes on. ${TRY_AGAIN}`;
+        return wrong(`${move.san} is stalemate. Black is not in check but has no legal move, so the game is a draw.`);
+      if (after.inCheck()) return wrong(`${move.san} is check, but the black king can still move.`);
+      return wrong(`after ${move.san} Black still has a legal move, so the game goes on.`);
     },
   },
   {
@@ -89,12 +107,16 @@ export const LESSONS: readonly Lesson[] = [
     fen: '4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1',
     respond: (move) => {
       if (move.isKingsideCastle())
-        return 'You castled kingside: the king moved two squares towards the h1 rook, and the rook jumped over it to f1.';
+        return right(
+          'You castled kingside: the king moved two squares towards the h1 rook, and the rook jumped over it to f1.',
+        );
       if (move.isQueensideCastle())
-        return 'You castled queenside: the king moved two squares towards the a1 rook, and the rook jumped over it to d1.';
+        return right(
+          'You castled queenside: the king moved two squares towards the a1 rook, and the rook jumped over it to d1.',
+        );
       if (move.piece === 'k')
-        return `The king moved one square, so it may no longer castle in this game. Tap the king and move it two squares instead. ${TRY_AGAIN}`;
-      return `That rook has moved, so the king may no longer castle on its side. ${TRY_AGAIN}`;
+        return wrong('a king that has moved may no longer castle. Tap the king and move it two squares instead.');
+      return wrong('a rook that has moved may no longer castle. Tap the king and move it two squares instead.');
     },
   },
   {
@@ -103,9 +125,10 @@ export const LESSONS: readonly Lesson[] = [
     fen: 'k7/3p4/8/4P3/8/8/8/K7 b - - 0 1',
     setup: ['d5'],
     respond: (move) => {
-      if (move.isEnPassant()) return 'En passant: your pawn took the black pawn as if it had moved only one square.';
-      if (move.piece === 'p') return `You moved past the black pawn without taking it. ${TRY_AGAIN}`;
-      return `The chance is gone: en passant is only allowed straight away. ${TRY_AGAIN}`;
+      if (move.isEnPassant())
+        return right('En passant: your pawn took the black pawn as if it had moved only one square.');
+      if (move.piece === 'p') return wrong(`${move.san} moves past the black pawn without taking it.`);
+      return wrong('en passant is only allowed straight away, so a king move lets the chance go.');
     },
   },
   {
@@ -113,10 +136,13 @@ export const LESSONS: readonly Lesson[] = [
     mode: 'task',
     fen: 'k7/4P3/8/8/8/8/8/K7 w - - 0 1',
     respond: (move) => {
-      if (move.promotion === 'q') return 'Your pawn became a queen, the strongest piece. That is the usual choice.';
+      if (move.promotion === 'q')
+        return right('Your pawn became a queen, the strongest piece. That is the usual choice.');
       if (move.promotion)
-        return `Your pawn became a ${PIECE_NAME[move.promotion]}. Usually a queen is best, but now and then another piece is the better choice.`;
-      return `The king moved, and the pawn is still waiting. ${TRY_AGAIN}`;
+        return right(
+          `Your pawn became a ${PIECE_NAME[move.promotion]}. Usually a queen is best, but now and then another piece is the better choice.`,
+        );
+      return wrong('a king move leaves the pawn where it is. Move the pawn to the last row.');
     },
   },
   {

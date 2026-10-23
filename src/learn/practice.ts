@@ -109,15 +109,29 @@ export class Practice {
       this.afterMateMove(move);
       return;
     }
-    this.last = { from, to };
-    this.message = this.lesson.respond?.(move, this.game) ?? null;
-    const { mode } = this.lesson;
-    if (mode === 'task') this.done = true;
-    if (mode === 'free') {
-      this.message ??= `The ${PIECE_NAME[move.piece]} moved to ${to}.`;
-      this.game = new Chess(whiteToMove(this.game.fen()), { skipValidation: true });
+    if (this.lesson.mode === 'task') {
+      this.answer(move);
+      return;
     }
-    if (mode === 'game') this.message ??= this.gameMessage(move.san);
+    this.last = { from, to };
+    if (this.lesson.mode === 'free') {
+      this.message = `The ${PIECE_NAME[move.piece]} moved to ${to}.`;
+      this.game = new Chess(whiteToMove(this.game.fen()), { skipValidation: true });
+    } else {
+      this.message = this.gameMessage(move.san);
+    }
+  }
+
+  /** A task says what the move did. A wrong move is taken back at once; a right one ends the task until reset. */
+  private answer(move: Move): void {
+    const feedback = this.lesson.respond?.(move, this.game);
+    this.message = feedback?.text ?? move.san;
+    if (feedback?.retry) {
+      this.game.undo();
+      return;
+    }
+    this.last = { from: move.from, to: move.to };
+    this.done = true;
   }
 
   /** Points at the piece the puzzle's next move is made with. */
