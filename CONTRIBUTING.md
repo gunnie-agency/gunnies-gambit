@@ -34,6 +34,10 @@ Chrome you already have instead, set `PW_CHROMIUM_PATH`, for example
 `PW_CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' npm run e2e`. The tests block every
 request that leaves your machine, so they never depend on Lichess, Chess.com or the analytics.
 
+If a change alters what the app looks like, retake the README screenshots with `npm run screenshots` after
+`npm run build`. It writes the images in `docs/screenshots/` from the build you just made, with the same
+`PW_CHROMIUM_PATH` setting; check them before you commit.
+
 ## Where things live
 
 - **Colours** are CSS tokens at the top of `src/style.css`, one block for dark (the default) and one for light. Rules

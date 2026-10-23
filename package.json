@@ -36,6 +36,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "npm run build && playwright test",
+    "screenshots": "playwright test --config playwright.screenshots.config.ts",
     "deploy": "wrangler deploy"
   },
   "dependencies": {

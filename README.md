@@ -9,7 +9,34 @@ it works offline.
 
 **Try it: [chess.gunnie.nl](https://chess.gunnie.nl)**
 
-[![Gunnie's Gambit: a chess board with the engine's best move](public/og.png)](https://chess.gunnie.nl)
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/analyse.webp" alt="Analyse on a desktop: a Najdorf Sicilian after 6. Be3 with the opening name, the best move e5, three engine lines and arrows">
+      <br><sub><b>Analyse</b> any position, with the opening name and the top three lines.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/review.webp" alt="A game review on a desktop: the blunder Nxf7 marked with two question marks, an arrow to the better move Bxf7+, the eval graph and the accuracy per side">
+      <br><sub><b>Review</b> a game: every move checked, with an eval graph and the better move.</sub>
+    </td>
+  </tr>
+</table>
+<table>
+  <tr>
+    <td width="33%">
+      <img src="docs/screenshots/play.webp" alt="Play on a phone: a game in progress with a hint, the move d4 shown as an arrow">
+      <br><sub><b>Play</b> at your level and ask for a hint.</sub>
+    </td>
+    <td width="33%">
+      <img src="docs/screenshots/practise.webp" alt="Practise my mistakes on a phone: the position before a blunder, asking for a better move">
+      <br><sub><b>Practise</b> the positions where you went wrong.</sub>
+    </td>
+    <td width="33%">
+      <img src="docs/screenshots/how-to-play.webp" alt="How to play on a phone: the knight fork puzzle with the knight ringed as a hint">
+      <br><sub><b>How to play</b>: rules, puzzles and endgames.</sub>
+    </td>
+  </tr>
+</table>
 
 ## Features
 
@@ -106,6 +133,7 @@ npm run lint         # ESLint with typescript-eslint strict and SonarJS; npm run
 npm run build        # type check + production build in dist/
 npm run e2e          # build, then Playwright tests on desktop and phone (layout shift on load included),
                      # plus the real _headers via wrangler dev
+npm run screenshots  # the screenshots above, from the existing build, into docs/screenshots/
 ```
 
 `npm run e2e` needs Playwright's Chromium (`npx playwright install chromium`), or set `PW_CHROMIUM_PATH` to a local

@@ -135,7 +135,8 @@ src/
                 formatting, HTML escaping, reach (why a tapped square can't be reached)
   site/         JSON-LD, FAQ, robots.txt, sitemap, manifest, llms.txt, IndexNow key; partials.ts for the logo symbol
                 and footer shared by both pages; built from .env by a Vite plugin
-e2e/            Playwright tests against the production build; fixtures.ts cuts off the outside world
+e2e/            Playwright tests against the production build; fixtures.ts cuts off the outside world;
+                screenshots.ts takes the README screenshots (docs/screenshots/)
 public/         _headers, icons, social card, 404 page
 ```
 
@@ -166,6 +167,11 @@ service worker policy and precache list) lives in modules without DOM access and
   mobile emulation does not report a web font's shift.
 - Every e2e test runs with outside requests blocked and fails on console errors (`e2e/fixtures.ts`); tests that need
   Lichess or Chess.com answers route them to fixtures.
+- `npm run screenshots` (`e2e/screenshots.ts`, own config `playwright.screenshots.config.ts`, not part of `npm run e2e`)
+  retakes the README screenshots in `docs/screenshots/` from the existing `dist/` (build first) on its own preview
+  port, 4183. It seeds each game as the saved game in localStorage, waits on the page's text, and has the browser
+  encode WebP (quality 0.9), so it needs no image tool. Rerun it when the layout changes visibly, and look at the
+  images before committing.
 
 ## Deployment
 
@@ -189,10 +195,9 @@ sitemap's `lastmod` and the structured data's `dateModified` come from the date 
 
 ## Next milestones
 
-1. README screenshots of Play, Analyse, review and How to play, once the layout work settles.
-2. More lessons: further puzzle themes, more endgames (the opposition in more depth, rook endings), and a few
+1. More lessons: further puzzle themes, more endgames (the opposition in more depth, rook endings), and a few
    opening principles.
-3. A short guided first game for complete beginners, linking the rules page to a first game at the Beginner level.
+2. A short guided first game for complete beginners, linking the rules page to a first game at the Beginner level.
 
 ## Constraints
 
