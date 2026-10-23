@@ -294,3 +294,15 @@ test.describe('lines in Analyse', () => {
     await expect(page.locator('#moves .m')).toHaveCount(0);
   });
 });
+
+test('Undo stops the computer thinking about a move that was taken back', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('#engineName')).toHaveText('Engine ready');
+  await page.locator('#levelSelect').selectOption('max');
+  await square(page, 'e2').click();
+  await square(page, 'e4').click();
+  await expect(page.locator('#engineName')).toHaveText('Thinking…');
+  await page.locator('#undoBtn').click();
+  // The strongest level thinks for 2 seconds; a cancelled search ends at once.
+  await expect(page.locator('#engineName')).toHaveText('Engine ready', { timeout: 1000 });
+});

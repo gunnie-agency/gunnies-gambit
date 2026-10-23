@@ -317,7 +317,9 @@ export class App {
         this.startEngine('opponent');
         this.opponent.request({ fen: live, go: level.go, options: level.options, requestedAt: Date.now() });
       }
-    } else if (this.opponentFen !== null) {
+    } else {
+      // Also when opponentFen was already cleared (undo, a loaded game): a search may still run for the old position.
+      // Cancelling an engine that never started does nothing, so this keeps the lazy start.
       this.opponentFen = null;
       clearTimeout(this.replyTimer);
       this.opponent.cancel();
