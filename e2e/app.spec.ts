@@ -268,3 +268,19 @@ test.describe('the promotion picker', () => {
     await expect(page.locator('#moves .m')).toHaveText(['Kb2']);
   });
 });
+
+test.describe('lines in Analyse', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('./');
+    await analyse(page);
+  });
+
+  test('playing the move that followed again keeps the rest of the line', async ({ page }) => {
+    await typeMoves(page, ['e4', 'e5', 'Nf3', 'Nc6']);
+    await page.locator('#moves').getByRole('button', { name: '1. e4' }).click();
+    await typeMoves(page, ['e5']);
+    await expect(page.locator('#moves .m')).toHaveText(['e4', 'e5', 'Nf3', 'Nc6']);
+    await expect(page.locator('#moves [aria-current="true"]')).toHaveAccessibleName(/^1… e5/);
+    await expect(page.locator('#moveHint')).not.toContainText('New line');
+  });
+});

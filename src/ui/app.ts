@@ -434,6 +434,12 @@ export class App {
       return false;
     }
     const at = this.view;
+    const next = this.played[at];
+    if (next?.from === move.from && next.to === move.to && next.promotion === move.promotion) {
+      // The move the game went on with: step forward instead of throwing the rest of the line away.
+      this.showView(at + 1);
+      return true;
+    }
     try {
       new Chess(this.fen).move(move);
     } catch {
