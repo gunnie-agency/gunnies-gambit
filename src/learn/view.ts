@@ -119,13 +119,13 @@ function markHint(board: HTMLElement, sq: Square): void {
   button?.setAttribute('aria-label', `${button.getAttribute('aria-label') ?? sq}, hint`);
 }
 
-/** Fills in each section's "n of m solved" line, which the page renders with nothing solved yet. */
+/** Fills in each section's "n of m solved" line (or its own `data-label`), which the page renders with none solved. */
 function showProgress(solved: ReadonlySet<string>): void {
   for (const line of document.querySelectorAll<HTMLElement>('.lesson-progress')) {
     const ids = [...(line.closest('section')?.querySelectorAll<HTMLElement>('[data-lesson]') ?? [])]
       .map((el) => el.dataset.lesson ?? '')
       .filter((id) => hasGoal(lessonById(id)));
-    line.textContent = progressText(ids, solved);
+    line.textContent = progressText(ids, solved, line.dataset.label);
   }
 }
 

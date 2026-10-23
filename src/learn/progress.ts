@@ -16,9 +16,12 @@ export function parseSolved(raw: unknown): Set<string> {
   return new Set(ids.filter((id): id is string => typeof id === 'string' && GOALS.has(id)));
 }
 
-/** How many of a section's lessons are solved, as the page shows it. */
-export function progressText(ids: readonly string[], solved: ReadonlySet<string>): string {
-  return `${ids.filter((id) => solved.has(id)).length} of ${ids.length} solved`;
+/**
+ * How many of a section's lessons are solved, as the page shows it. `label` follows the count, so a section can say
+ * what it counts, such as "0 of 2 mates done" where a board without a goal stands next to the counted ones.
+ */
+export function progressText(ids: readonly string[], solved: ReadonlySet<string>, label = 'solved'): string {
+  return `${ids.filter((id) => solved.has(id)).length} of ${ids.length} ${label}`;
 }
 
 /** Reads which lessons this browser has solved. Storage is a convenience, so anything odd counts as none. */

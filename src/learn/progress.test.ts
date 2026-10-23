@@ -25,6 +25,7 @@ describe('progress', () => {
     const solved = new Set(['pin', 'skewer', 'ladder']);
     expect(progressText(['pin', 'skewer', 'knight-fork'], solved)).toBe('2 of 3 solved');
     expect(progressText([], solved)).toBe('0 of 0 solved');
+    expect(progressText(['ladder', 'pin'], solved, 'mates done')).toBe('2 of 2 mates done');
   });
 });
 

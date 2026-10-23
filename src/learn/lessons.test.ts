@@ -112,9 +112,10 @@ describe('puzzles', () => {
   it('are counted per section on the page before the script runs', () => {
     const sections = readFileSync('how-to-play.html', 'utf8').split('<section').slice(1);
     const counted = sections.flatMap((html) => {
-      const line = /<p class="lesson-progress">0 of (\d+) solved<\/p>/.exec(html);
+      const line = /<p class="lesson-progress"(?: data-label="([^"]+)")?>0 of (\d+) ([^<]+)<\/p>/.exec(html);
+      expect(line?.[3], html.slice(0, 80)).toBe(line ? (line[1] ?? 'solved') : undefined);
       const ids = [...html.matchAll(/data-lesson="([^"]+)"/g)].map((m) => m[1]).filter((id) => hasGoal(lessonById(id)));
-      expect(line ? Number(line[1]) : 0, html.slice(0, 80)).toBe(ids.length);
+      expect(line ? Number(line[2]) : 0, html.slice(0, 80)).toBe(ids.length);
       return ids;
     });
     expect(counted.sort()).toEqual(
