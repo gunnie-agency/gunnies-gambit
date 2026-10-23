@@ -37,6 +37,16 @@ describe('boardHtml', () => {
     expect([squares(black)[0], squares(black)[63]]).toEqual(['h1', 'a8']);
     expect(white.match(/coord rank/g)).toHaveLength(8);
     expect(white.match(/coord file/g)).toHaveLength(8);
+    expect(white).toContain(
+      'data-sq="a1" aria-label="a1, white rook" tabindex="-1"><span class="coord rank" data-coord="1"',
+    );
+    expect(black).toMatch(/data-sq="h8"[^>]*><span class="coord rank" data-coord="8" aria-hidden="true"><\/span>/);
+  });
+
+  it('gives the square buttons no text of their own, so what they show is what their label says', () => {
+    const html = boardHtml({ game: new Chess(), orient: 'w', selected: null });
+    // Every tag is followed by another tag: the coordinates come from the stylesheet.
+    expect(html).not.toMatch(/>[^<]/);
   });
 
   it('marks the last move, the selected piece and its legal destinations', () => {

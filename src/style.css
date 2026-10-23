@@ -1739,3 +1739,17 @@ button.import-game:hover {
 .notation-list dd {
   margin: 0;
 }
+
+/* Board coordinates (src/board/board.ts): drawn from data-coord instead of written into the square buttons, so a
+   button shows no text that its aria-label ("a8, black rook") would have to contain. The empty alternative text
+   keeps the drawn coordinate out of the accessibility tree where browsers support it. */
+.sq .coord::before {
+  content: attr(data-coord);
+  content: attr(data-coord) / '';
+}
+/* The link in the move entry hint sits in running text too, so it is underlined like the others. */
+.hint a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}

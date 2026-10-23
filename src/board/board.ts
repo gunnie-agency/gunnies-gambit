@@ -103,12 +103,15 @@ export function renderBoard(el: HTMLElement, view: BoardView): void {
   if (focused) el.querySelector<HTMLElement>(`[data-sq="${focused}"]`)?.focus();
 }
 
-/** One square's button, with the rank on the left edge and the file on the bottom edge. */
+/**
+ * One square's button, with the rank on the left edge and the file on the bottom edge. The stylesheet draws the
+ * coordinates from `data-coord`, so the button has no text of its own that its aria-label would have to repeat.
+ */
 function squareHtml(sq: Square, leftEdge: boolean, bottomEdge: boolean, ctx: SquareContext): string {
   const piece = ctx.game.get(sq);
   let html = `<button type="button" class="${squareClasses(sq, ctx)}" data-sq="${sq}" aria-label="${squareLabel(sq, ctx)}" tabindex="${sq === ctx.tabStop ? 0 : -1}">`;
-  if (leftEdge) html += `<span class="coord rank" aria-hidden="true">${sq[1]}</span>`;
-  if (bottomEdge) html += `<span class="coord file" aria-hidden="true">${sq[0]}</span>`;
+  if (leftEdge) html += `<span class="coord rank" data-coord="${sq[1]}" aria-hidden="true"></span>`;
+  if (bottomEdge) html += `<span class="coord file" data-coord="${sq[0]}" aria-hidden="true"></span>`;
   if (piece) html += pieceImg(piece.color, piece.type);
   return html + '</button>';
 }
