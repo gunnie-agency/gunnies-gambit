@@ -19,6 +19,8 @@ import {
   type Site,
 } from './src/site/files.ts';
 import { boardHtml } from './src/board/board.ts';
+import { DEFAULT_LEVEL_ID, LEVELS } from './src/engine/levels.ts';
+import { escapeHtml } from './src/util/html.ts';
 import { footerHtml, logoSymbol } from './src/site/partials.ts';
 import { cacheVersion, fillServiceWorker, precacheEntries } from './src/sw/precache.ts';
 
@@ -149,6 +151,14 @@ const FAQ_PLACEHOLDER = '<!-- %FAQ% -->';
 const LOGO_PLACEHOLDER = '<!-- %LOGO_SYMBOL% -->';
 const FOOTER_PLACEHOLDER = '<!-- %FOOTER% -->';
 const BOARD_PLACEHOLDER = '<!-- %BOARD% -->';
+const LEVELS_PLACEHOLDER = '<!-- %LEVEL_OPTIONS% -->';
+
+/** The opponent select's options, so it has its final width before the script runs. */
+function levelOptions(): string {
+  return LEVELS.map(
+    (l) => `<option value="${l.id}"${l.id === DEFAULT_LEVEL_ID ? ' selected' : ''}>${escapeHtml(l.label)}</option>`,
+  ).join('');
+}
 
 /** The HTML pages, by file name. */
 const PAGES = { 'index.html': 'index', 'how-to-play.html': 'howToPlay' } as const;
@@ -161,8 +171,8 @@ function fill(html: string, placeholder: string, markup: string, page: string): 
 
 /**
  * Fills in %APP_SHORT_NAME% (the header's accent word, so the header has its final size at first paint), the shared
- * logo symbol and footer, and the FAQ and the start position on the home page (so the pieces show before the script
- * runs); adds each page's structured data to its head; and generates
+ * logo symbol and footer, and the FAQ, the start position and the opponent levels on the home page (so the pieces
+ * show and the settings have their size before the script runs); adds each page's structured data to its head; and generates
  * robots.txt, sitemap.xml, the web app manifest, llms.txt and the IndexNow key file from `.env` (see
  * src/site/files.ts). The files are emitted into the build and served by the dev server.
  */
@@ -189,6 +199,7 @@ function siteFiles(site: Site, indexNowKey: string | undefined): Plugin {
       if (isHome) {
         out = fill(out, FAQ_PLACEHOLDER, faqHtml(site), page);
         out = fill(out, BOARD_PLACEHOLDER, boardHtml({ game: new Chess(), orient: 'w', selected: null }), page);
+        out = fill(out, LEVELS_PLACEHOLDER, levelOptions(), page);
       }
       const data = isHome ? structuredData(site) : howToPlayStructuredData(site);
       return {

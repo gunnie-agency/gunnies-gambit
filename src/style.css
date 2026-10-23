@@ -312,6 +312,11 @@ header.top {
   padding: 6px 12px;
   background: var(--surface);
 }
+/* Room for "Loading engine…", the longest message short of a failure, so the mode switch beside the chip does not
+   move when the engine is ready. */
+.chip #engineName {
+  min-width: calc(15ch + 15 * 0.05em);
+}
 .chip .dot {
   width: 6px;
   height: 6px;

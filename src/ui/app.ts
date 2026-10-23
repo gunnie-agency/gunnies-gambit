@@ -2,7 +2,7 @@ import { Chess, DEFAULT_POSITION, type Color, type Move, type Square } from 'che
 import { askPromotion, closePromotion, enableArrowKeys, renderArrows, renderBoard, type Arrow } from '../board/board';
 import { Engine, STOCKFISH_URL, type EngineStatus } from '../engine/engine';
 import type { EngineInfo } from '../engine/info';
-import { LEVELS, levelById } from '../engine/levels';
+import { levelById } from '../engine/levels';
 import type { SearchJob } from '../engine/queue';
 import { loadedOpening, showOpening } from '../openings/view';
 import { Review } from '../review/view';
@@ -181,9 +181,6 @@ export class App {
       () => this.render(),
     );
 
-    this.el.levelSelect.innerHTML = LEVELS.map((l) => `<option value="${l.id}">${escapeHtml(l.label)}</option>`).join(
-      '',
-    );
     this.bindEvents();
     enableArrowKeys(this.el.board);
   }
