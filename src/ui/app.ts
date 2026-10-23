@@ -370,11 +370,9 @@ export class App {
   private positionChanged(): void {
     this.review.close();
     clearTimeout(this.replyTimer);
-    this.selected = null;
+    this.cancelPromotion();
     this.restartAnalysis();
     this.hintFen = null;
-    this.promotionFrom = null;
-    closePromotion(this.el.promo);
     this.played = this.game.history({ verbose: true });
     // An earlier position stays shown while the opponent replies; anything else that changes the game resets it.
     this.view = clampView(this.view, this.played.length);
@@ -396,7 +394,7 @@ export class App {
     if (next === this.view) return;
     this.view = next;
     this.viewGame = next === null ? null : this.gameAfter(next);
-    this.selected = null;
+    this.cancelPromotion();
     this.hintFen = null;
     this.moveMessage = null;
     this.restartAnalysis();
@@ -470,9 +468,13 @@ export class App {
       return;
     }
     this.promotionFrom = from;
+    // The picker closes on anything that changes what the board takes, but a pick must never land somewhere else.
+    const fen = game.fen();
+    const reviewing = this.review.active;
     askPromotion(this.el.promo, game.turn(), (piece) => {
       this.promotionFrom = null;
-      if (piece) play({ from, to, promotion: piece });
+      const unchanged = this.review.active === reviewing && this.moveTarget?.fen() === fen;
+      if (piece && unchanged) play({ from, to, promotion: piece });
       else {
         this.selected = null;
         this.renderBoardOnly();
@@ -481,21 +483,31 @@ export class App {
     });
   }
 
+  /** Closes the promotion picker without a move and forgets the selected square. */
+  private cancelPromotion(): void {
+    closePromotion(this.el.promo);
+    this.promotionFrom = null;
+    this.selected = null;
+  }
+
   private focusSquare(sq: Square): void {
     this.el.board.querySelector<HTMLElement>(`[data-sq="${sq}"]`)?.focus();
   }
 
   /**
-   * The position a tap on the board plays in, or null when the board takes no move now. In review that is only while
-   * the user practises their mistakes.
+   * The position the board takes a move in, or null when it takes none now. In review that is only while the user
+   * practises their mistakes.
    */
-  private inputGame(): Chess | null {
+  private get moveTarget(): Chess | null {
     if (this.review.active) return this.review.acceptsMoves ? this.review.board : null;
-    if (this.viewOnly) {
-      this.blockViewOnly();
-      return null;
-    }
-    return this.shownOver || !this.canInput ? null : this.shown;
+    if (this.viewOnly || this.shownOver || !this.canInput) return null;
+    return this.shown;
+  }
+
+  /** The position a tap on the board plays in; on an earlier position in play mode it says why there is none. */
+  private inputGame(): Chess | null {
+    if (!this.review.active && this.viewOnly) this.blockViewOnly();
+    return this.moveTarget;
   }
 
   private onSquare(sq: Square): void {
@@ -587,7 +599,7 @@ export class App {
       you: side,
       them: mode === 'play' ? 'The computer' : 'Your opponent',
     });
-    this.selected = null;
+    this.cancelPromotion();
     if (this.view !== null) {
       // The review closes on the live position: forget the lines of the earlier one.
       this.view = null;
@@ -601,6 +613,7 @@ export class App {
 
   private exitReview(): void {
     this.review.close();
+    this.cancelPromotion();
     this.syncEngines();
     this.render();
     this.el.reviewBtn.focus();
@@ -612,6 +625,7 @@ export class App {
 
   private updateSettings(patch: Partial<Settings>): void {
     this.settings = { ...this.settings, ...patch };
+    this.cancelPromotion();
     this.save();
     this.syncEngines();
     this.render();
@@ -721,7 +735,6 @@ export class App {
       const mode = v as Mode;
       if (mode === this.settings.mode) return;
       this.review.close();
-      this.selected = null;
       this.hintFen = null;
       this.restartAnalysis();
       this.updateSettings({ mode });
@@ -730,7 +743,6 @@ export class App {
     seg(el.sideSeg, (v) => {
       const side = v as Color;
       if (side === this.settings.side) return;
-      this.selected = null;
       this.updateSettings({ side, orient: side });
     });
     seg(el.thinkSeg, (v) => {
@@ -800,9 +812,7 @@ export class App {
       if (e.key !== 'Escape') return;
       // A destination-only tap opens the picker without a selected square, so focus goes back to the pawn.
       const pawn = el.promo.hidden ? null : this.promotionFrom;
-      closePromotion(el.promo);
-      this.promotionFrom = null;
-      this.selected = null;
+      this.cancelPromotion();
       this.renderBoardOnly();
       if (pawn) this.focusSquare(pawn);
     });

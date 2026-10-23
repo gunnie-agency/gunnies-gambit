@@ -207,3 +207,64 @@ test('works offline once the service worker is installed', async ({ page, contex
   await expect(page.locator('[data-lesson="start"] [data-sq="e1"]')).toBeVisible();
   await context.setOffline(false);
 });
+
+const analyse = (page: Page) => page.locator('#modeSeg').getByRole('button', { name: 'Analyse' }).click();
+
+async function typeMoves(page: Page, moves: string[]): Promise<void> {
+  for (const move of moves) {
+    await page.locator('#moveInput').fill(move);
+    await page.locator('#moveInput').press('Enter');
+  }
+}
+
+async function openTools(page: Page): Promise<void> {
+  const tools = page.locator('details.tools');
+  if (!(await tools.evaluate((d: HTMLDetailsElement) => d.open))) await tools.locator('summary').click();
+}
+
+async function loadFen(page: Page, fen: string): Promise<void> {
+  await openTools(page);
+  await page.locator('#fenInput').fill(fen);
+  await page.locator('#loadFen').click();
+}
+
+test.describe('the promotion picker', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('./');
+    await analyse(page);
+  });
+
+  test('closes when the mode changes, so no move is played for the computer', async ({ page }) => {
+    await page.locator('#modeSeg').getByRole('button', { name: 'Play' }).click();
+    await page.locator('#levelSelect').selectOption('max'); // thinks for 2 seconds before it moves
+    await analyse(page);
+    await loadFen(page, 'k7/8/8/8/8/8/4p3/K7 b - - 0 1');
+    await square(page, 'e2').click();
+    await square(page, 'e1').click();
+    await expect(page.locator('#promo')).toBeVisible();
+    await page.locator('#modeSeg').getByRole('button', { name: 'Play' }).click();
+    await expect(page.locator('#promo')).toBeHidden({ timeout: 1000 });
+  });
+
+  test('closes when the side changes', async ({ page }) => {
+    await loadFen(page, 'k7/8/8/8/8/8/4p3/K7 b - - 0 1');
+    await square(page, 'e2').click();
+    await square(page, 'e1').click();
+    await expect(page.locator('#promo')).toBeVisible();
+    await page.locator('#sideSeg').getByRole('button', { name: 'Black' }).click();
+    await expect(page.locator('#promo')).toBeHidden();
+    await expect(page.locator('#moves .m')).toHaveCount(0);
+  });
+
+  test('closes when a review starts', async ({ page }) => {
+    await loadFen(page, 'k7/8/8/8/8/8/4p3/K7 w - - 0 1');
+    await typeMoves(page, ['Kb2']);
+    await square(page, 'e2').click();
+    await square(page, 'e1').click();
+    await expect(page.locator('#promo')).toBeVisible();
+    await page.locator('#reviewBtn').click();
+    await expect(page.locator('#promo')).toBeHidden();
+    await page.locator('#reviewExit').click();
+    await expect(page.locator('#moves .m')).toHaveText(['Kb2']);
+  });
+});
