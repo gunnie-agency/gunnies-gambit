@@ -55,6 +55,20 @@ export function evalBarPercent(s: Score | null): number {
 
 export type Tone = 'pos' | 'neg' | 'even';
 
+/**
+ * Plain-language verdict that names the colours, for analysis, where the board is not a game of the user's: no "you"
+ * and no "your opponent". The tone stays neutral for the same reason.
+ */
+export function colourVerdict(whiteScore: Score): { text: string; tone: Tone } {
+  const ahead = whiteScore.value > 0 ? 'White' : 'Black';
+  const a = Math.abs(whiteScore.value);
+  if (whiteScore.kind === 'mate') return { text: a === 0 ? 'checkmate' : `${ahead} has mate in ${a}`, tone: 'even' };
+  if (a < 35) return { text: 'the position is about equal', tone: 'even' };
+  if (a < 110) return { text: `${ahead} is slightly better`, tone: 'even' };
+  if (a < 300) return { text: `${ahead} is clearly better`, tone: 'even' };
+  return { text: `${ahead} is winning`, tone: 'even' };
+}
+
 /** Plain-language verdict from the player's side, given a White-POV score. */
 export function verdict(whiteScore: Score, player: Color): { text: string; tone: Tone } {
   const s = toPlayerPov(whiteScore, player);

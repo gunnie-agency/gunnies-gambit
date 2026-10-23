@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evalBarPercent, formatScore, toWhitePov, verdict, winningChances } from './score';
+import { colourVerdict, evalBarPercent, formatScore, toWhitePov, verdict, winningChances } from './score';
 
 describe('toWhitePov', () => {
   it('keeps scores when White is to move and flips them when Black is', () => {
@@ -66,5 +66,16 @@ describe('verdict', () => {
     expect(verdict({ kind: 'cp', value: 10 }, 'b').tone).toBe('even');
     expect(verdict({ kind: 'mate', value: -3 }, 'b')).toEqual({ text: 'you have mate in 3', tone: 'pos' });
     expect(verdict({ kind: 'cp', value: -500 }, 'w').text).toBe('your opponent is winning');
+  });
+});
+
+describe('colourVerdict', () => {
+  it('names the colour that is better, never "you"', () => {
+    expect(colourVerdict({ kind: 'cp', value: 200 }).text).toBe('White is clearly better');
+    expect(colourVerdict({ kind: 'cp', value: -60 }).text).toBe('Black is slightly better');
+    expect(colourVerdict({ kind: 'cp', value: -500 }).text).toBe('Black is winning');
+    expect(colourVerdict({ kind: 'cp', value: 20 }).text).toBe('the position is about equal');
+    expect(colourVerdict({ kind: 'mate', value: -3 }).text).toBe('Black has mate in 3');
+    expect(colourVerdict({ kind: 'mate', value: 2 }).tone).toBe('even');
   });
 });

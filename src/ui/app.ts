@@ -24,7 +24,7 @@ import { buildPgn, keptTags, pgnFileName, readPgn } from '../util/pgn';
 import { cannotReach } from '../util/reach';
 import { moveSound } from '../util/sounds';
 import { numberMoves, pvToSan } from '../util/san';
-import { evalBarPercent, formatScore, toWhitePov, verdict, type Score } from '../util/score';
+import { colourVerdict, evalBarPercent, formatScore, toWhitePov, verdict, type Score } from '../util/score';
 import { parseUciMove, toUci, type UciMove } from '../util/uci';
 import { Sounds } from './sound';
 
@@ -1211,7 +1211,8 @@ export class App {
       return;
     }
     const white = toWhitePov(l1.score, this.shown.turn());
-    const v = verdict(white, this.settings.side);
+    // Analyse is neutral position analysis, so it names colours; a game against the computer speaks to the player.
+    const v = this.settings.mode === 'analysis' ? colourVerdict(white) : verdict(white, this.settings.side);
     const score = `<b>${formatScore(white)}</b>`;
     const parts = [score, `<span class="${v.tone}">${v.text}</span>`];
     // Search depth means something in Analyse; in a game it is jargon.
