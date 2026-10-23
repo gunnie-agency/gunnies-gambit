@@ -673,7 +673,7 @@ export class App {
       startFen: this.startFen,
       moves: this.played.map(toUci),
       you: side,
-      them: mode === 'play' ? 'The computer' : 'Your opponent',
+      vsComputer: mode === 'play',
     });
     this.cancelPromotion();
     if (this.view !== null) {

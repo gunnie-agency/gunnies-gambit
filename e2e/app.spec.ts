@@ -98,6 +98,9 @@ test.describe('the move list', () => {
     const current = moves.locator('[aria-current="true"]');
     await expect(current).toHaveAccessibleName(/^1… e5/);
     await expect(current).toBeFocused();
+    // Analyse names the colours: the review has no "you" and no "your opponent".
+    await expect(page.locator('#reviewTitle')).toHaveText('Move 1, Black');
+    await expect(page.locator('#reviewSummary th')).toHaveText(['White', 'Black']);
   });
 
   test('downloads the game as PGN', async ({ page }) => {
@@ -454,7 +457,7 @@ test.describe('a tap that moves nothing', () => {
     await expect(status).toContainText("The king can't move into check.");
     await square(page, 'a2').click();
     await square(page, 'a3').click();
-    await expect(status).toContainText('Your king is in check: move it, block the check or capture the attacker.');
+    await expect(status).toContainText('The king is in check: move it, block the check or capture the attacker.');
     expect(await boardTop()).toBe(top);
   });
 });

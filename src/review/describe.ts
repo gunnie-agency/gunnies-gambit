@@ -112,7 +112,7 @@ function replySan(fen: string, played: string, reply: string): string | null {
 
 /** What the review text needs besides the review and its facts. */
 export interface MoveWords {
-  /** Who made the move: "You", "The computer" or "Your opponent". */
+  /** Who made the move: "You" or "The computer" in Play, "White" or "Black" in Analyse. */
   who: string;
   /** The move played, in SAN. */
   san: string;

@@ -23,7 +23,7 @@ describe('cannotReach', () => {
     const check = new Chess('4k3/8/8/8/8/8/P7/r3K3 w - - 0 1');
     expect(cannotReach(check, 'e1', 'd1')).toBe("The king can't move into check.");
     expect(cannotReach(check, 'a2', 'a3')).toBe(
-      'Your king is in check: move it, block the check or capture the attacker.',
+      'The king is in check: move it, block the check or capture the attacker.',
     );
     expect(cannotReach(check, 'e1', 'e2')).toBeNull();
   });

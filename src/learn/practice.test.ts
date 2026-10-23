@@ -51,7 +51,7 @@ describe('Practice', () => {
     tapMove(p, 'e1', 'e2');
     expect(p.message).toBe("The king can't move into check.");
     tapMove(p, 'a2', 'a3');
-    expect(p.message).toBe('Your king is in check: move it, block the check or capture the attacker.');
+    expect(p.message).toBe('The king is in check: move it, block the check or capture the attacker.');
     expect(p.done).toBe(false);
   });
 

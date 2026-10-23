@@ -22,6 +22,6 @@ export function cannotReach(game: Chess, from: Square, to: Square): string | nul
   const next = Math.abs(from.charCodeAt(0) - to.charCodeAt(0)) <= 1 && Math.abs(Number(from[1]) - Number(to[1])) <= 1;
   // A king's step to a free or enemy square next to it is only illegal when the square is attacked.
   if (piece.type === 'k' && next) return "The king can't move into check.";
-  if (game.inCheck()) return 'Your king is in check: move it, block the check or capture the attacker.';
+  if (game.inCheck()) return 'The king is in check: move it, block the check or capture the attacker.';
   return `A ${PIECE_NAME[piece.type]} can't go there.`;
 }

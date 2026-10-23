@@ -44,10 +44,10 @@ export interface ReviewGame {
   startFen: string;
   /** The moves in UCI notation. */
   moves: string[];
-  /** The side the user played, for "you" in the texts. */
+  /** The side the user played: listed first, and the side whose mistakes are practised. */
   you: Color;
-  /** Who the other side is: "The computer" in play mode, "Your opponent" otherwise. */
-  them: string;
+  /** A game against the computer, where the texts say "You" and "The computer"; otherwise they name the colours. */
+  vsComputer: boolean;
 }
 
 export interface ReviewElements {
@@ -444,8 +444,8 @@ export class Review {
   }
 
   private who(color: Color): string {
-    if (!this.game) return COLOR_NAME[color];
-    return color === this.game.you ? 'You' : this.game.them;
+    if (!this.game?.vsComputer) return COLOR_NAME[color];
+    return color === this.game.you ? 'You' : 'The computer';
   }
 
   // ---------- rendering ----------
@@ -489,7 +489,7 @@ export class Review {
     }
     const r = this.reviews[index];
     const judgement = r?.judgement;
-    const you = before.turn === this.game?.you ? ' (you)' : '';
+    const you = this.game?.vsComputer && before.turn === this.game.you ? ' (you)' : '';
     title.textContent = `Move ${before.fen.split(' ')[5] ?? ''}, ${COLOR_NAME[before.turn]}${you}`;
     move.textContent = judgement ? san + JUDGEMENT_SYMBOL[judgement] : san;
     move.className = judgement ? `best-san ${judgement}` : 'best-san';
@@ -620,9 +620,10 @@ export class Review {
 
   private summaryRow(color: Color, row: SideSummary): string {
     const accuracy = row.accuracy === null ? '–' : `${Math.round(row.accuracy)}%`;
-    const side = `<span class="side">(${COLOR_NAME[color]})</span>`;
+    // Without a computer the row is named by its colour alone.
+    const side = this.game?.vsComputer ? ` <span class="side">(${COLOR_NAME[color]})</span>` : '';
     const counts = JUDGEMENTS.map((j) => `<td>${row[j]}</td>`).join('');
-    return `<tr><th scope="row">${escapeHtml(this.who(color))} ${side}</th><td>${accuracy}</td>${counts}</tr>`;
+    return `<tr><th scope="row">${escapeHtml(this.who(color))}${side}</th><td>${accuracy}</td>${counts}</tr>`;
   }
 
   private renderMoves(): void {
