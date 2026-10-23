@@ -1,4 +1,4 @@
-import type { Chess, Color, Move, PieceSymbol } from 'chess.js';
+import { DEFAULT_POSITION, type Chess, type Color, type Move, type PieceSymbol } from 'chess.js';
 
 /**
  * How a practice board behaves after a move.
@@ -245,6 +245,9 @@ export const LESSONS: readonly Lesson[] = [
   },
   { id: 'pawn-ending', mode: 'game', fen: '8/4k3/8/4K3/8/4P3/8/8 w - - 0 1', practiseAs: 'w' },
 ];
+
+/** The first game "Where to start" suggests: the Beginner level, playing White from the start position. */
+export const FIRST_GAME = { fen: DEFAULT_POSITION, side: 'w', level: 'beginner' } as const;
 
 export function lessonById(id: string | undefined): Lesson | undefined {
   return LESSONS.find((lesson) => lesson.id === id);

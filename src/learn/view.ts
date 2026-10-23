@@ -2,7 +2,7 @@ import type { Square } from 'chess.js';
 import { askPromotion, closePromotion, enableArrowKeys, renderBoard } from '../board/board';
 import { LEVELS } from '../engine/levels';
 import { buildPracticeLink } from '../util/link';
-import { lessonById } from './lessons';
+import { FIRST_GAME, lessonById } from './lessons';
 import { Practice } from './practice';
 import { hasGoal, loadSolved, progressText, saveSolved } from './progress';
 
@@ -140,5 +140,7 @@ export function mountLessons(): void {
     },
   };
   document.querySelectorAll<HTMLElement>('[data-lesson]').forEach((root) => mountLesson(root, progress));
+  const firstGame = document.querySelector<HTMLAnchorElement>('.first-game');
+  if (firstGame) firstGame.href = buildPracticeLink(FIRST_GAME.fen, FIRST_GAME.side, FIRST_GAME.level);
   showProgress(solved);
 }

@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { Chess, type Color, type PieceSymbol } from 'chess.js';
 import { describe, expect, it } from 'vitest';
+import { LEVELS } from '../engine/levels';
 import { buildPracticeLink, parsePracticeLink } from '../util/link';
 import { parseUciMove } from '../util/uci';
-import { LESSONS, lessonById, type Lesson } from './lessons';
+import { FIRST_GAME, LESSONS, lessonById, type Lesson } from './lessons';
 import { hasGoal } from './progress';
 
 const VALUE: Record<PieceSymbol, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
@@ -171,5 +172,14 @@ describe('endgames', () => {
 
   it('cover the queen, the rook and the pawn ending', () => {
     expect(endgames.map((l) => l.id)).toEqual(['queen-mate', 'rook-mate', 'pawn-ending']);
+  });
+});
+
+describe('first game', () => {
+  it('opens the level the page names, as White from the start position', () => {
+    const link = buildPracticeLink(FIRST_GAME.fen, FIRST_GAME.side, FIRST_GAME.level);
+    expect(parsePracticeLink(link.slice(link.indexOf('#')))).toEqual({ ...FIRST_GAME });
+    const label = LEVELS.find((level) => level.id === FIRST_GAME.level)?.label;
+    expect(readFileSync('how-to-play.html', 'utf8')).toContain(`Play the ${label} level as White`);
   });
 });
