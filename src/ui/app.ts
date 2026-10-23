@@ -774,9 +774,7 @@ export class App {
       this.sounds.play('move'); // a sample, so the user hears what they switched on
     });
     // Audio may only start from a user gesture: every press is one, the first move included.
-    const unlock = () => this.sounds.unlock();
-    document.addEventListener('pointerdown', unlock, true);
-    document.addEventListener('keydown', unlock, true);
+    this.sounds.listen(document);
 
     el.loadFen.addEventListener('click', () => {
       const fen = el.fenInput.value.trim();
