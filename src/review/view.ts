@@ -18,6 +18,7 @@ import {
   type PositionEval,
   type SideSummary,
 } from './classify';
+import { describeMove, JUDGEMENT_NAME, moveFacts, spellScore } from './describe';
 import { graphMarkup, positionAt } from './graph';
 import { isGoodAnswer, positionAfter, retryItems, RetryRun } from './retry';
 import { cacheKey, gamePositions, ReviewRunner, reviewWorkerCount, type GamePosition, type ReviewJob } from './runner';
@@ -29,11 +30,6 @@ import { cacheKey, gamePositions, ReviewRunner, reviewWorkerCount, type GamePosi
 const REVIEW_GO = 'nodes 400000';
 
 const COLOR_NAME: Record<Color, string> = { w: 'White', b: 'Black' };
-const JUDGEMENT_NAME: Record<Judgement, string> = {
-  inaccuracy: 'an inaccuracy',
-  mistake: 'a mistake',
-  blunder: 'a blunder',
-};
 const JUDGEMENT_PLURAL: Record<Judgement, string> = {
   inaccuracy: 'inaccuracies',
   mistake: 'mistakes',
@@ -502,19 +498,19 @@ export class Review {
     title.textContent = `Move ${before.fen.split(' ')[5] ?? ''}, ${COLOR_NAME[before.turn]}${you}`;
     move.textContent = judgement ? san + JUDGEMENT_SYMBOL[judgement] : san;
     move.className = judgement ? `best-san ${judgement}` : 'best-san';
-    if (r) return this.moveText(r, san, before.fen) + this.outcomeText();
+    if (r) return this.moveText(r, san, before.fen);
     return this.engineFailed ? 'The engine could not start.' : 'Analysing this move…';
   }
 
-  /** What the review says about a move: its judgement, or that it was good, and the engine's choice. */
+  /** What the review says about a move (see {@link describeMove}), then how the game stands after it. */
   private moveText(r: MoveReview, san: string, fenBefore: string): string {
+    const before = this.runner?.evals[r.index];
+    const after = this.runner?.evals[r.index + 1];
+    if (!before || !after) return '';
+    const facts = moveFacts(fenBefore, r, before, after);
     const best = r.best ? this.sanOf(fenBefore, r.best) : null;
-    if (r.judgement) {
-      const text = `${this.who(r.color)} played ${san}, ${JUDGEMENT_NAME[r.judgement]}.`;
-      return best ? `${text} Better was ${best}, shown by the arrow.` : text;
-    }
-    if (r.played === r.best) return 'The engine’s first choice.';
-    return best ? `A good move. The engine preferred ${best}.` : 'A good move.';
+    const text = describeMove(r, facts, { who: this.who(r.color), san, best });
+    return facts.checkmate ? text : text + this.outcomeText();
   }
 
   /** How the game stands after the shown move, with a leading space, or nothing while it is not evaluated. */
@@ -523,7 +519,7 @@ export class Review {
     const position = this.positions[this.cursor];
     if (!after || !position) return '';
     if (position.final) return after.score.kind === 'mate' ? ' Checkmate.' : ' The game is drawn.';
-    return ` Evaluation after it: ${formatScore(toWhitePov(after.score, position.turn))}.`;
+    return ` Evaluation after it: ${spellScore(toWhitePov(after.score, position.turn))}.`;
   }
 
   /** The move list entry for move `index`; clicking it shows the position after the move. */
