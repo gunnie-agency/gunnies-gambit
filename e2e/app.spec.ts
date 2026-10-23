@@ -14,6 +14,13 @@ test.describe('play and analyse', () => {
     await expect(page.locator('#engineName')).toHaveText('Engine ready');
   });
 
+  test('a typed move may be in lower case', async ({ page }) => {
+    await page.locator('#modeSeg').getByRole('button', { name: 'Analyse' }).click();
+    await page.locator('#moveInput').fill('nf3');
+    await page.locator('#moveInput').press('Enter');
+    await expect(page.locator('#moves .m')).toHaveText(['Nf3']);
+  });
+
   test('the computer answers a move', async ({ page }) => {
     await square(page, 'e2').click();
     await square(page, 'e4').click();
@@ -150,6 +157,19 @@ test('How to play: a puzzle gives a hint and turns down a wrong move', async ({ 
   await lesson.locator('[data-sq="d5"]').click();
   await lesson.locator('[data-sq="b6"]').click();
   await expect(message).toHaveText(/^Not quite: Nb6 is not the move here/);
+});
+
+test('How to play: the notation board names a tapped square, and the first game starts at Beginner', async ({
+  page,
+}) => {
+  await page.goto('./how-to-play');
+  const lesson = page.locator('[data-lesson="squares"]');
+  const message = lesson.locator('.lesson-msg');
+  await lesson.locator('[data-sq="e4"]').click();
+  await expect(message).toHaveText('e4: file e, rank 4. The square is empty.');
+  await lesson.locator('[data-sq="g1"]').click();
+  await expect(message).toHaveText('g1: file g, rank 1, with a white knight. Its letter is N.');
+  await expect(page.locator('.first-game')).toHaveAttribute('href', /&side=w&level=beginner$/);
 });
 
 test("How to play: a Black-to-move puzzle is solved from Black's side and stays solved", async ({ page }) => {
