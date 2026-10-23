@@ -1104,7 +1104,7 @@ export class App {
     el.bestSan.className = 'best-san';
     el.playBest.disabled = false;
     if (showEval) this.renderEvalMeta();
-    else el.bestMeta.textContent = `Engine suggestion, ${this.depthText()}`;
+    else el.bestMeta.textContent = 'The engine’s suggestion';
     el.lines.innerHTML = this.linesVisible ? this.linesHtml(showEval) : '';
   }
 
@@ -1144,7 +1144,10 @@ export class App {
     const white = toWhitePov(l1.score, this.shown.turn());
     const v = verdict(white, this.settings.side);
     const score = `<b>${formatScore(white)}</b>`;
-    this.el.bestMeta.innerHTML = `${score} · <span class="${v.tone}">${v.text}</span> · ${this.depthText()}`;
+    const parts = [score, `<span class="${v.tone}">${v.text}</span>`];
+    // Search depth means something in Analyse; in a game it is jargon.
+    if (this.settings.mode === 'analysis') parts.push(this.depthText());
+    this.el.bestMeta.innerHTML = parts.join(' · ');
     this.setBar(white);
   }
 

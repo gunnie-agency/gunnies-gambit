@@ -30,6 +30,12 @@ test.describe('play and analyse', () => {
     await expect(page.locator('#status')).toContainText('Your move');
   });
 
+  test('a hint in Play shows the move without the search depth', async ({ page }) => {
+    await page.locator('#hintBtn').click();
+    await expect(page.locator('#bestSan')).not.toHaveClass(/\bwait\b/, { timeout: 20_000 });
+    await expect(page.locator('#bestMeta')).toHaveText('The engine’s suggestion');
+  });
+
   test('Analyse shows a best move, worded as analysis of the position', async ({ page }) => {
     await page.locator('#modeSeg').getByRole('button', { name: 'Analyse' }).click();
     const best = page.locator('#bestSan');
@@ -43,6 +49,7 @@ test.describe('play and analyse', () => {
     await expect(page.locator('#status')).toContainText('Black to move');
     await expect(page.locator('#bestLabel')).toHaveText('Best move for Black');
     await expect(page.locator('#playBest')).toHaveText('Play it');
+    await expect(page.locator('#bestMeta')).toContainText('depth');
   });
 });
 
