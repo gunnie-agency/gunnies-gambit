@@ -38,12 +38,28 @@ export function isCacheable(response: ResponseLike): boolean {
   return response.ok && response.type === 'basic' && !response.redirected;
 }
 
-/** Pages are stored without their query string, so `?fen=...` links do not each add a copy. */
-export function pageKey(url: string): string {
+/** The URL the 404 page is precached under, relative to the service worker (see src/sw/precache.ts). */
+export const NOT_FOUND_PAGE = '404';
+
+/**
+ * The cache key of a page, which is the URL it is precached under. The query string goes, so `?fen=...` links do not
+ * each add a copy, and the other spellings of a page lead to the same copy: `index.html` is the home page (the
+ * worker's scope), and `how-to-play.html` and `how-to-play/` are `how-to-play`.
+ */
+export function pageKey(url: string, scope: string): string {
   const key = new URL(url);
   key.search = '';
   key.hash = '';
+  key.pathname = key.pathname.replace(/\/index\.html$/, '/').replace(/\.html$/, '');
+  if (key.pathname.endsWith('/') && key.href !== scope) key.pathname = key.pathname.slice(0, -1);
   return key.href;
+}
+
+/** The page's own address for a request to it: its cache key with the request's query string, so `?fen=` links keep it. */
+export function canonicalUrl(url: string, key: string): string {
+  const canonical = new URL(key);
+  canonical.search = new URL(url).search;
+  return canonical.href;
 }
 
 /** Our caches from earlier builds, to delete once this build's worker takes over. */

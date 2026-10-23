@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { NOT_FOUND_PAGE } from './policy';
 import { cacheVersion, fillServiceWorker, precacheEntries } from './precache';
 
 const BUILD = [
@@ -31,6 +32,7 @@ const BUILD = [
 describe('precacheEntries', () => {
   it('keeps what the app needs offline, in a stable order', () => {
     expect(precacheEntries(BUILD).map((entry) => entry.file)).toEqual([
+      '404.html',
       'apple-touch-icon.png',
       'assets/chrome-XyZ789.css',
       'assets/index-AbC123.js',
@@ -56,9 +58,14 @@ describe('precacheEntries', () => {
     expect(urls['assets/index-AbC123.js']).toBe('assets/index-AbC123.js');
   });
 
-  it('leaves out the 404 page, crawler files, the social card, WOFF fallbacks and source maps', () => {
+  it('stores the 404 page where the service worker looks for it offline', () => {
+    const urls = Object.fromEntries(precacheEntries(BUILD).map(({ file, url }) => [file, url]));
+    expect(urls['404.html']).toBe(NOT_FOUND_PAGE);
+  });
+
+  it('leaves out crawler files, the social card, WOFF fallbacks and source maps', () => {
     const files = new Set(precacheEntries(BUILD).map((entry) => entry.file));
-    for (const file of ['404.html', 'robots.txt', 'og.png', '_headers', 'assets/index-AbC123.js.map'])
+    for (const file of ['robots.txt', 'og.png', '_headers', 'assets/index-AbC123.js.map'])
       expect(files.has(file)).toBe(false);
     expect([...files].some((file) => file.endsWith('.woff'))).toBe(false);
   });

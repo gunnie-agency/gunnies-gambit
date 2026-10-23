@@ -28,7 +28,7 @@ function pageUrl(file: string): string {
 }
 
 function isPrecached(file: string): boolean {
-  if (file.endsWith('.html')) return !file.includes('/') && file !== '404.html';
+  if (file.endsWith('.html')) return !file.includes('/');
   // Every browser with service workers reads WOFF2, so the WOFF fallbacks would only take up space.
   if (file.startsWith('assets/')) return !file.endsWith('.woff') && !file.endsWith('.map');
   if (file.startsWith('stockfish/') || file.startsWith('pieces/')) return true;
@@ -36,8 +36,9 @@ function isPrecached(file: string): boolean {
 }
 
 /**
- * Everything the app needs to start and run offline: both pages, the hashed bundle (scripts, styles, fonts), the
- * engine, the pieces, the icons and the manifest. Not the 404 page, the social card or the files meant for crawlers.
+ * Everything the app needs to start and run offline: both pages, the 404 page (the offline answer to an unknown
+ * address), the hashed bundle (scripts, styles, fonts), the engine, the pieces, the icons and the manifest. Not the
+ * social card or the files meant for crawlers.
  */
 export function precacheEntries(files: readonly string[]): PrecacheEntry[] {
   return files

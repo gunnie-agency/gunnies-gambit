@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isCacheable, pageKey, staleCaches, strategyFor } from './policy';
+import { canonicalUrl, isCacheable, pageKey, staleCaches, strategyFor } from './policy';
 
 const ORIGIN = 'https://chess.gunnie.nl';
 const get = (url: string, mode = 'no-cors') => ({ method: 'GET', url, mode });
@@ -35,9 +35,38 @@ describe('isCacheable', () => {
 });
 
 describe('pageKey', () => {
+  const scope = `${ORIGIN}/`;
+
   it('drops the query string and the fragment', () => {
-    expect(pageKey(`${ORIGIN}/?fen=8/8/8/8/8/8/8/8%20w%20-%20-#x`)).toBe(`${ORIGIN}/`);
-    expect(pageKey(`${ORIGIN}/how-to-play`)).toBe(`${ORIGIN}/how-to-play`);
+    expect(pageKey(`${ORIGIN}/?fen=8/8/8/8/8/8/8/8%20w%20-%20-#x`, scope)).toBe(`${ORIGIN}/`);
+    expect(pageKey(`${ORIGIN}/how-to-play?x=1`, scope)).toBe(`${ORIGIN}/how-to-play`);
+  });
+
+  it('leads every spelling of a page to the URL it is precached under', () => {
+    for (const path of ['/', '/index.html', '/index.html?fen=x'])
+      expect(pageKey(`${ORIGIN}${path}`, scope)).toBe(`${ORIGIN}/`);
+    for (const path of ['/how-to-play', '/how-to-play.html', '/how-to-play/', '/how-to-play/index.html'])
+      expect(pageKey(`${ORIGIN}${path}`, scope)).toBe(`${ORIGIN}/how-to-play`);
+  });
+
+  it('keeps the home page of a worker served from a sub-path', () => {
+    const sub = `${ORIGIN}/chess/`;
+    expect(pageKey(`${ORIGIN}/chess/`, sub)).toBe(sub);
+    expect(pageKey(`${ORIGIN}/chess/index.html`, sub)).toBe(sub);
+    expect(pageKey(`${ORIGIN}/chess/how-to-play/`, sub)).toBe(`${ORIGIN}/chess/how-to-play`);
+  });
+
+  it('leaves other files and unknown addresses alone', () => {
+    expect(pageKey(`${ORIGIN}/stockfish/COPYING.txt`, scope)).toBe(`${ORIGIN}/stockfish/COPYING.txt`);
+    expect(pageKey(`${ORIGIN}/no/such/page/`, scope)).toBe(`${ORIGIN}/no/such/page`);
+  });
+});
+
+describe('canonicalUrl', () => {
+  it('is the page key with the query string of the request', () => {
+    expect(canonicalUrl(`${ORIGIN}/how-to-play/`, `${ORIGIN}/how-to-play`)).toBe(`${ORIGIN}/how-to-play`);
+    expect(canonicalUrl(`${ORIGIN}/index.html?fen=x`, `${ORIGIN}/`)).toBe(`${ORIGIN}/?fen=x`);
+    expect(canonicalUrl(`${ORIGIN}/?fen=x`, `${ORIGIN}/`)).toBe(`${ORIGIN}/?fen=x`);
   });
 });
 
