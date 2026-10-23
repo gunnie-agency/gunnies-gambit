@@ -29,6 +29,44 @@
   descent-override: 24.28%;
   line-gap-override: 0%;
 }
+/*
+ * The same for the one Instrument Serif italic, the header's accent word: Georgia, the plain fallback, sets it about a
+ * quarter wider, enough to wrap the How to play header onto a second row until the web font arrives. Instrument
+ * Serif's ascent (990) and descent (310) per 1000; Liberation Serif shares Times New Roman's widths, and Android has
+ * Noto Serif.
+ */
+@font-face {
+  font-family: 'Instrument Serif Fallback';
+  font-style: italic;
+  src:
+    local('Times New Roman Italic'), local('TimesNewRomanPS-ItalicMT'), local('Liberation Serif Italic'),
+    local('LiberationSerif-Italic');
+  size-adjust: 88.05%;
+  ascent-override: 112.44%;
+  descent-override: 35.21%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Instrument Serif Fallback Noto';
+  font-style: italic;
+  src: local('Noto Serif Italic'), local('NotoSerif-Italic');
+  size-adjust: 73.9%;
+  ascent-override: 133.96%;
+  descent-override: 41.95%;
+  line-gap-override: 0%;
+}
+/*
+ * And for JetBrains Mono, whose eyebrows, chips and scores take their line height from the font: Menlo, Courier New
+ * and Liberation Mono are within 0.3% of its character width (600 per 1000), so only its taller ascent (1020) and
+ * descent (300) need setting.
+ */
+@font-face {
+  font-family: 'JetBrains Mono Fallback';
+  src: local('Menlo'), local('Menlo-Regular'), local('Courier New'), local('CourierNewPSMT'), local('Liberation Mono');
+  ascent-override: 102%;
+  descent-override: 30%;
+  line-gap-override: 0%;
+}
 
 :root {
   /* Surfaces */
@@ -96,8 +134,9 @@
   --font-sans:
     'Instrument Sans Variable', 'Instrument Sans Fallback', 'Instrument Sans Fallback Roboto', system-ui, -apple-system,
     'Segoe UI', sans-serif;
-  --font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --font-serif:
+    'Instrument Serif', 'Instrument Serif Fallback', 'Instrument Serif Fallback Noto', Georgia, 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', 'JetBrains Mono Fallback', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 
   color-scheme: dark;
 }
