@@ -1,15 +1,15 @@
-import { Chess, SQUARES } from 'chess.js';
+import { Chess, SQUARES, type Move } from 'chess.js';
 import { describe, expect, it } from 'vitest';
 import { defend, edgeDistance } from './defender';
 
-function allowsMate(game: Chess, san: string): boolean {
-  game.move(san);
-  const mate = game.moves().some((reply) => {
-    game.move(reply);
-    const m = game.isCheckmate();
-    game.undo();
-    return m;
-  });
+/**
+ * Whether `move` lets White mate at once. chess.js marks a mating move's SAN with `#`, from the same check as
+ * isCheckmate(); reading it instead of playing every reply keeps the test at a few hundred milliseconds rather than
+ * seconds, which had made it time out on a busy machine.
+ */
+function allowsMate(game: Chess, move: Move): boolean {
+  game.move(move);
+  const mate = game.moves().some((reply) => reply.endsWith('#'));
   game.undo();
   return mate;
 }
@@ -61,7 +61,7 @@ describe('defend', () => {
         expect(choice?.san).toBe(capture.san);
         continue;
       }
-      const safe = moves.filter((m) => !allowsMate(game, m.san));
+      const safe = moves.filter((m) => !allowsMate(game, m));
       const pool = safe.length ? safe : moves;
       expect(
         pool.map((m) => m.san),
