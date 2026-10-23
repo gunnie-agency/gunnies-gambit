@@ -101,7 +101,8 @@ function noInlinedFonts(): Plugin {
  * marks a stored Analyse mode, so the settings and hint text that differ per mode are right on first paint; a
  * practice link (`#…mode=play…`, src/util/link.ts) opens in Play with a new game whatever was stored. Otherwise it
  * puts the saved game's number of move-list rows in --saved-rows, so the move list has their room before the app
- * fills it. When storage is blocked or unreadable the defaults apply: dark theme, no evaluation, an empty move list.
+ * fills it: its leading string moves, as src/state.ts reads them, plus the "1. …" lead-in of a game that starts with
+ * Black to move. When storage is blocked or unreadable the defaults apply: dark theme, no evaluation, an empty move list.
  * Inline in each page's head rather than a file, so it costs no request; the CSP allows exactly this text by its hash.
  */
 const THEME_INIT =
@@ -111,7 +112,10 @@ const THEME_INIT =
   'const practice=/[#&]mode=play(&|$)/.test(location.hash);' +
   "if(saved?.mode==='analysis'&&!practice)root.dataset.mode='analysis';" +
   "if(root.dataset.mode||saved?.showEval===true)root.dataset.evalbar='on';" +
-  "if(Array.isArray(saved?.moves)&&!practice)root.style.setProperty('--saved-rows',String(Math.ceil(saved.moves.length/2)))" +
+  'if(Array.isArray(saved?.moves)&&!practice){' +
+  "let plies=saved.moves.findIndex((m)=>typeof m!=='string');if(plies<0)plies=saved.moves.length;" +
+  "if(plies&&typeof saved.startFen==='string'&&saved.startFen.includes(' b '))plies++;" +
+  "root.style.setProperty('--saved-rows',String(Math.ceil(plies/2)))}" +
   '}catch{}';
 const THEME_INIT_HASH_PLACEHOLDER = '%THEME_INIT_SHA256%';
 

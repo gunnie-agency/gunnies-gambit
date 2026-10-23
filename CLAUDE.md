@@ -154,7 +154,8 @@ service worker policy and precache list) lives in modules without DOM access and
   `data-mode` on `<html>` before paint from localStorage (a practice link in the hash keeps it in Play), and the saved
   game's number of move-list rows in `--saved-rows`, which the page's initial move list (`.initial`) keeps room for.
   In Analyse the three engine lines have fixed one-line rows from the first paint. `e2e/layout-shift.spec.ts` holds
-  CLS under 0.01 on both pages at 375px and 1280px, cold and for a returning Analyse user.
+  CLS under 0.01 on both pages at 375px and 1280px, cold, for a returning Analyse user and
+  for a saved game that starts with Black to move.
 
 ## Testing and CI
 

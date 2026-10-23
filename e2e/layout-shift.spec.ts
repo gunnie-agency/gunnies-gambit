@@ -26,6 +26,12 @@ const SAVED_ANALYSIS = {
     .split(' '),
 };
 
+/** A returning Play user whose game starts with Black to move: the move list opens with "1. …", a row of its own. */
+const SAVED_BLACK_FIRST = {
+  startFen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+  moves: ['e7e5', 'g1f3', 'b8c6', 'f1c4'],
+};
+
 /** Starts summing layout shifts that no user input caused, from before the page's first paint. */
 async function observeLayoutShift(page: Page): Promise<void> {
   await page.addInitScript(() => {
@@ -77,6 +83,17 @@ for (const [name, viewport] of Object.entries(SIZES)) {
       await page.goto('./');
       await expect(page.locator('#moves .m')).toHaveCount(SAVED_ANALYSIS.moves.length);
       await expect(page.locator('#lines li')).toHaveCount(3, { timeout: 20_000 });
+      expect(await layoutShift(page)).toBeLessThan(MAX_CLS);
+    });
+
+    test('the app, returning user with a game that starts with Black to move', async ({ page }) => {
+      await page.addInitScript((saved) => {
+        localStorage.setItem('gunnies-gambit.v2', JSON.stringify(saved));
+      }, SAVED_BLACK_FIRST);
+      await page.goto('./');
+      // "1. … e5", "2. Nf3 Nc6", "3. Bc4"
+      expect(await page.evaluate(() => document.documentElement.style.getPropertyValue('--saved-rows'))).toBe('3');
+      await expect(page.locator('#moves .m')).toHaveCount(SAVED_BLACK_FIRST.moves.length + 1);
       expect(await layoutShift(page)).toBeLessThan(MAX_CLS);
     });
 
