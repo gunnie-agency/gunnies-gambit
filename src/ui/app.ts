@@ -1222,7 +1222,9 @@ export class App {
     const thinking = statuses.includes('thinking');
     let cls = 'chip';
     let text: string;
-    if (statuses.includes('failed')) {
+    if (!statuses.length) {
+      text = 'Engine idle'; // nothing has needed an engine yet, as on a finished game in Analyse
+    } else if (statuses.includes('failed')) {
       cls += ' failed';
       text = 'Engine failed to load';
     } else if (statuses.includes('loading')) {

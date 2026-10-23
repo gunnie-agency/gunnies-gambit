@@ -306,3 +306,13 @@ test('Undo stops the computer thinking about a move that was taken back', async 
   // The strongest level thinks for 2 seconds; a cancelled search ends at once.
   await expect(page.locator('#engineName')).toHaveText('Engine ready', { timeout: 1000 });
 });
+
+test('the engine chip says idle when no engine is needed', async ({ page }) => {
+  await page.goto('./');
+  await analyse(page);
+  await loadFen(page, '7k/6Q1/6K1/8/8/8/8/8 b - - 0 1');
+  await page.reload();
+  await expect(page.locator('#status')).toContainText('Checkmate');
+  await expect(page.locator('#engineName')).toHaveText('Engine idle');
+  await expect(page.locator('#engineChip')).not.toHaveClass(/\bready\b/);
+});
