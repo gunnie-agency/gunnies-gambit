@@ -1,6 +1,6 @@
-import { Chess, type Color } from 'chess.js';
+import { Chess, DEFAULT_POSITION, type Color } from 'chess.js';
 import { gameEnd } from './moves';
-import { parseUciMove } from './uci';
+import { parseUciMove, toUci } from './uci';
 
 export interface PgnGame {
   startFen: string;
@@ -64,4 +64,38 @@ function playerNames(players: PgnGame['players']): { white: string; black: strin
   if (players.mode === 'analysis') return { white: '?', black: '?' };
   const computer = `Computer (${players.level})`;
   return players.side === 'w' ? { white: 'You', black: computer } : { white: computer, black: 'You' };
+}
+
+/** A game read from PGN: where it starts, its moves in UCI notation, and its tags with escapes resolved. */
+export interface ReadGame {
+  startFen: string;
+  moves: string[];
+  headers: Record<string, string>;
+}
+
+/** A tag pair, `[Name "value"]`, whose value may hold `\"` and `\\` escapes. */
+const TAG_PAIR = /\[(\w+)\s+"((?:[^"\\]|\\.)*)"\s*\]/g;
+
+/**
+ * Reads a PGN the way the board loads it: leniently, moves in UCI, and from the FEN tag if there is one. Null when it
+ * is not a readable game. chess.js 1.4 rejects a tag value with an escaped quote, which the PGN standard allows, so
+ * the tags are read here and handed to chess.js with their escapes blanked out.
+ */
+export function readPgn(text: string): ReadGame | null {
+  const headers: Record<string, string> = {};
+  const plain = text.replace(TAG_PAIR, (_, name: string, value: string) => {
+    headers[name] = value.replaceAll(/\\(.)/g, '$1');
+    return `[${name} "${value.replaceAll(/\\./g, '_')}"]`;
+  });
+  const game = new Chess();
+  try {
+    game.loadPgn(plain, { strict: false });
+  } catch {
+    return null;
+  }
+  return {
+    startFen: headers.FEN ?? DEFAULT_POSITION,
+    moves: game.history({ verbose: true }).map(toUci),
+    headers,
+  };
 }

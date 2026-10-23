@@ -1,6 +1,6 @@
 import { Chess, DEFAULT_POSITION } from 'chess.js';
 import { describe, expect, it } from 'vitest';
-import { buildPgn, pgnDate, pgnFileName, pgnResult } from './pgn';
+import { buildPgn, pgnDate, pgnFileName, pgnResult, readPgn } from './pgn';
 
 const DATE = new Date(2026, 9, 2, 9, 5);
 const SITE = 'https://chess.example';
@@ -94,5 +94,30 @@ describe('pgnDate and pgnFileName', () => {
   it('use the local date, padded', () => {
     expect(pgnDate(DATE)).toBe('2026.10.02');
     expect(pgnFileName(DATE)).toBe('chess-2026-10-02-0905.pgn');
+  });
+});
+
+describe('readPgn', () => {
+  it('reads the start position, the moves and the tags', () => {
+    expect(readPgn('[White "Alice"][Black "Bob"][Result "0-1"] 1. e4 e5 2. Nf3 0-1')).toEqual({
+      startFen: DEFAULT_POSITION,
+      moves: ['e2e4', 'e7e5', 'g1f3'],
+      headers: { White: 'Alice', Black: 'Bob', Result: '0-1' },
+    });
+  });
+
+  it('accepts escaped quotes and backslashes in a tag, as the PGN standard allows', () => {
+    const read = readPgn('[White "Alice \\"A\\""]\n[Black "C:\\\\games"]\n[Result "1-0"]\n\n1. e4 1-0');
+    expect(read?.headers).toEqual({ White: 'Alice "A"', Black: 'C:\\games', Result: '1-0' });
+    expect(read?.moves).toEqual(['e2e4']);
+  });
+
+  it('starts from the FEN tag and keeps promotions', () => {
+    const fen = '8/4P1k1/8/8/8/8/8/4K3 w - - 0 1';
+    expect(readPgn(`[SetUp "1"]\n[FEN "${fen}"]\n\n1. e8=Q *`)).toMatchObject({ startFen: fen, moves: ['e7e8q'] });
+  });
+
+  it('refuses text that is not a game', () => {
+    expect(readPgn('1. e4 e4')).toBeNull();
   });
 });

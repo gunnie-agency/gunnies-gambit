@@ -11,7 +11,7 @@ import { clampView, moveName, shownMoves, STEP_KEYS, stepView, type Step, type V
 import { escapeHtml } from '../util/html';
 import { parsePracticeLink } from '../util/link';
 import { fenProblem, gameEnd, parseTypedMove, uniqueMoveTo, type GameEnd } from '../util/moves';
-import { buildPgn, pgnFileName } from '../util/pgn';
+import { buildPgn, pgnFileName, readPgn } from '../util/pgn';
 import { moveSound } from '../util/sounds';
 import { numberMoves, pvToSan } from '../util/san';
 import { evalBarPercent, formatScore, toWhitePov, verdict, type Score } from '../util/score';
@@ -193,13 +193,9 @@ export class App {
 
   /** Opens a finished game in Analyse with the user's side set, optionally starting its review. False if unreadable. */
   loadGame(pgn: string, options: { side: Color; review: boolean }): boolean {
-    const parsed = new Chess();
-    try {
-      parsed.loadPgn(pgn, { strict: false });
-    } catch {
-      return false;
-    }
-    const restored = replay(parsed.getHeaders().FEN ?? DEFAULT_POSITION, parsed.history({ verbose: true }).map(toUci));
+    const read = readPgn(pgn);
+    if (!read) return false;
+    const restored = replay(read.startFen, read.moves);
     this.game = restored.game;
     this.startFen = restored.startFen;
     this.opponentFen = null;
@@ -791,14 +787,9 @@ export class App {
     el.loadPgn.addEventListener('click', () => {
       const text = el.pgnInput.value.trim();
       if (!text) return this.toolsHint('Paste a PGN first.', true);
-      const parsed = new Chess();
-      try {
-        parsed.loadPgn(text, { strict: false });
-      } catch {
-        return this.toolsHint('That PGN could not be read. Check that every move is legal.', true);
-      }
-      const start = parsed.getHeaders().FEN ?? DEFAULT_POSITION;
-      const restored = replay(start, parsed.history({ verbose: true }).map(toUci));
+      const read = readPgn(text);
+      if (!read) return this.toolsHint('That PGN could not be read. Check that every move is legal.', true);
+      const restored = replay(read.startFen, read.moves);
       this.game = restored.game;
       this.startFen = restored.startFen;
       this.opponentFen = null;

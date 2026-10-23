@@ -228,6 +228,12 @@ async function loadFen(page: Page, fen: string): Promise<void> {
   await page.locator('#loadFen').click();
 }
 
+async function loadPgn(page: Page, pgn: string): Promise<void> {
+  await openTools(page);
+  await page.locator('#pgnInput').fill(pgn);
+  await page.locator('#loadPgn').click();
+}
+
 test.describe('the promotion picker', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('./');
@@ -315,4 +321,10 @@ test('the engine chip says idle when no engine is needed', async ({ page }) => {
   await expect(page.locator('#status')).toContainText('Checkmate');
   await expect(page.locator('#engineName')).toHaveText('Engine idle');
   await expect(page.locator('#engineChip')).not.toHaveClass(/\bready\b/);
+});
+
+test('an imported PGN may have escaped quotes in a tag', async ({ page }) => {
+  await page.goto('./');
+  await loadPgn(page, '[White "Alice \\"A\\""]\n[Result "1-0"]\n\n1. e4 1-0');
+  await expect(page.locator('#toolsHint')).toHaveText('Imported 1 moves.');
 });
