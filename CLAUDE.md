@@ -30,6 +30,9 @@ Don't hardcode either elsewhere. How to contribute (setup, checks, adding lesson
    `Clear Hash`, so a result does not depend on the order or the pool size; cache keys carry the prefix `clear|`.
    Moves are judged by lost winning chances on the Lichess curve (0.1 / 0.2 / 0.3) plus Lichess's mate rules, and the
    engine's own choice is never marked. Results are cached by position in localStorage (last reviewed game only).
+   The texts (`src/review/describe.ts`) add facts without changing the judgement: a mating move is "Checkmate.", a
+   move that allows mate in one says so, material hung or lost (3 points or more) is named, and an unmarked move in a
+   decided game says the game was already decided. "Next mistake" stops on mistakes and blunders only.
    **Practise my mistakes** (`src/review/retry.ts`) then replays the positions before the user's own mistakes and
    blunders; an answer is good when it is the engine's choice or a move the review would not mark. Positions not yet
    known are searched on the review workers.
@@ -41,8 +44,8 @@ analysis engine is still compiling.
 **Practice links** `#fen=…&mode=play&side=…&level=…` (`src/util/link.ts`), used by the endgames on How to play, open
 in Play with "Loaded the practice position." and the hash cleared. Links to positions that cannot arise (`fenProblem`
 in `src/util/moves.ts`) are refused, and a saved game whose start position `fenProblem` refuses replays from the
-standard start (`src/state.ts`). Typed input accepts lower case (`e8q`, `o-o`); a promotion without a piece is a
-queen (`e7e8`, `e8`).
+standard start (`src/state.ts`). Typed input accepts lower case (`nf3`, `e8q`, `o-o`; a leading `b` is a b-file
+pawn when that move is legal, otherwise a bishop); a promotion without a piece is a queen (`e7e8`, `e8`).
 
 **Your games** (`src/import/`): lists the user's finished Lichess or Chess.com games by username and opens one in
 Analyse for review. Only the username goes to the chosen site, straight from the browser, with `credentials: 'omit'`
@@ -55,13 +58,16 @@ pinned to commit `a6189a30dc273ccb21fc2536a9a2fefd5592a67a`. Regenerate by hand 
 
 **How to play** is a second page (`how-to-play.html`, served as `/how-to-play`, own entry `src/learn/main.ts`, no
 engine): the rules for beginners with a practice board per rule, first tactics, basic endgames, and how to use the
-app. Each board is a lesson in `src/learn/lessons.ts`: `free` (move one piece around, White always to move), `task`
-(one move, then feedback until reset), `game` (both sides), `puzzle` (the side to move plays `solution` and the board
+app. Each board is a lesson in `src/learn/lessons.ts`: `squares` (nothing moves; a tapped square is named with its
+piece and letter), `free` (move one piece around, White always to move), `task` (one move: a wrong one is taken back
+with "Not quite: … Try again.", a right one gets feedback until reset), `game` (both sides), `puzzle` (the side to move plays `solution` and the board
 answers, turned so that side is at the bottom; any checkmate also solves it) or `mate` (mate a lone king moved by the
 scripted defender in `src/learn/defender.ts`). There are 12 tactics puzzles grouped by theme and three endgames
 (K+Q and K+R mates against the defender, K+P for the opposition) with practice links to play them out at full
 strength. Solved puzzles and mates are stored in localStorage `gunnies-gambit.lessons.v1` (`src/learn/progress.ts`)
-and counted per section. The intro text next to each board lives in the HTML so it is indexable and the layout is
+and counted per section (the endgames count their two mates). A square a selected piece can't reach gets a message
+saying why, and nothing moves. A "Reading and writing moves" section (`#notation`) explains square names and SAN, and
+"Play your first game" is a practice link from the start position at the Beginner level (`FIRST_GAME`). The intro text next to each board lives in the HTML so it is indexable and the layout is
 final before the script runs.
 
 ## Fair play (hard constraint)
@@ -106,7 +112,7 @@ src/
   state.ts      settings, game and review-cache persistence (localStorage)
   board/        board rendering (also pre-rendered at build time by boardHtml), arrows, promotion picker
   engine/       UCI worker wrapper, info parsing, search queue, strength levels
-  review/       classify.ts (judgements, accuracy), runner.ts (search order, worker pool, cache), graph.ts (eval graph
+  review/       classify.ts (judgements, accuracy), describe.ts (review texts), runner.ts (search order, worker pool, cache), graph.ts (eval graph
                 SVG), retry.ts (practising mistakes), view.ts (review panel, owns the move list while open)
   learn/        How to play page: lessons.ts (positions, puzzles, feedback), practice.ts (board state), defender.ts
                 (lone-king defender), progress.ts (solved lessons), view.ts (DOM)
@@ -182,7 +188,7 @@ sitemap's `lastmod` and the structured data's `dateModified` come from the date 
 - **License: GPL-3.0-or-later** (Stockfish is GPLv3 and we ship it). Keep the Stockfish licence link and attribution,
   the piece set's licence and the CC0 credit for the opening names.
 - Works on a phone (big touch targets, portrait layout) and in a narrow desktop window.
-- Accessibility: every square is a focusable button with an aria-label; visible focus states; respect
+- Accessibility: every square is a focusable button with an aria-label and no other text (the coordinates are drawn by CSS from `data-coord`); visible focus states; respect
   `prefers-reduced-motion`.
 - **Look and feel of gunnie.nl**: near-black `#0b0d11`, accent `#00a1ff`, white hairline borders, Instrument Sans with
   one Instrument Serif italic accent, JetBrains Mono eyebrows. Dark is the default; a header button switches to the
