@@ -414,6 +414,14 @@ test('Resign ends the game as a loss, with one button to review it', async ({ pa
   await page.reload();
   await expect(status).toContainText('Resigned.');
   expect(await downloadedPgn(page)).toContain('[Result "0-1"]');
+  // Taking the other side keeps who resigned: White did, so the user, now Black, wins.
+  await page.locator('#sideSeg button[data-v="b"]').click();
+  await expect(status).toContainText('White resigned. You win.');
+  const swapped = await downloadedPgn(page);
+  expect(swapped).toContain('[Result "0-1"]');
+  expect(swapped).toContain('[Black "You"]');
+  await page.locator('#sideSeg button[data-v="w"]').click();
+  await expect(status).toContainText('Resigned. The computer wins.');
   await page.locator('#reviewStart').click();
   await expect(page.locator('#review')).toBeVisible();
   await expect(page.locator('#reviewProgressText')).toHaveText('Every move analysed.', { timeout: 30_000 });

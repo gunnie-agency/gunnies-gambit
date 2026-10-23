@@ -1100,20 +1100,26 @@ export class App {
   /** The result, and what to do next. Each part fits one line on a phone, so the board does not move at the end. */
   private endHtml(end: GameEnd | 'resigned'): string {
     const { mode, side } = this.settings;
+    const loser = this.loser(end);
+    const lost = mode === 'play' && loser === side;
     let result: string;
-    let lost = false;
-    if (end === 'resigned') {
-      result = 'Resigned. The computer wins.';
-      lost = true;
-    } else if (end === 'checkmate') {
-      const winner: Color = this.game.turn() === 'w' ? 'b' : 'w';
-      lost = mode === 'play' && winner !== side;
-      if (mode === 'analysis') result = `Checkmate. ${COLOR_NAME[winner]} wins.`;
-      else result = lost ? 'Checkmate. The computer wins.' : 'Checkmate. You win.';
-    } else result = DRAW_TEXT[end];
+    if (!loser) result = DRAW_TEXT[end as Exclude<GameEnd, 'checkmate'>];
+    else if (end === 'resigned')
+      result = lost ? 'Resigned. The computer wins.' : `${COLOR_NAME[loser]} resigned. You win.`;
+    else if (mode === 'analysis') result = `Checkmate. ${COLOR_NAME[loser === 'w' ? 'b' : 'w']} wins.`;
+    else result = lost ? 'Checkmate. The computer wins.' : 'Checkmate. You win.';
     let next = 'Undo a move to look again, or start a new game.';
     if (this.canReview) next = lost ? 'Review game shows where it went wrong.' : 'Review game to see how it went.';
     return `${result}<small>${next}</small>`;
+  }
+
+  /**
+   * The side that lost the live game, or null for a draw. A resignation keeps its colour when the user takes the other
+   * side afterwards, as a checkmate does.
+   */
+  private loser(end: GameEnd | 'resigned'): Color | null {
+    if (end === 'resigned') return this.resigned;
+    return end === 'checkmate' ? this.game.turn() : null;
   }
 
   private renderAnalysis(): void {
