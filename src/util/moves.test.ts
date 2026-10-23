@@ -48,6 +48,27 @@ describe('parseTypedMove', () => {
     expect(parseTypedMove(black, 'd1')).toEqual({ from: 'd2', to: 'd1', promotion: 'q' });
   });
 
+  it('reads piece letters in lower case', () => {
+    expect(parseTypedMove(START, 'nf3')).toEqual({ from: 'g1', to: 'f3' });
+    expect(parseTypedMove(START, 'ng1f3')).toEqual({ from: 'g1', to: 'f3' });
+    const pieces = '4k3/8/8/8/8/8/8/R2QK1N1 w - - 0 1';
+    expect(parseTypedMove(pieces, 'qd5')).toEqual({ from: 'd1', to: 'd5' });
+    expect(parseTypedMove(pieces, 'ra7')).toEqual({ from: 'a1', to: 'a7' });
+    expect(parseTypedMove(pieces, 'ke2')).toEqual({ from: 'e1', to: 'e2' });
+    expect(parseTypedMove(pieces, 'nxe2')).toBeNull();
+  });
+
+  it('reads a leading b as a pawn first and as a bishop only when no pawn move fits', () => {
+    expect(parseTypedMove(START, 'b3')).toEqual({ from: 'b2', to: 'b3' });
+    const bishopOnly = '4k3/8/8/8/8/2p5/8/4BK2 w - - 0 1';
+    expect(parseTypedMove(bishopOnly, 'bxc3')).toEqual({ from: 'e1', to: 'c3' });
+    expect(parseTypedMove(bishopOnly, 'bc3')).toEqual({ from: 'e1', to: 'c3' });
+    // Both b2xc3 and Be1xc3 are legal: lower case is how SAN writes the pawn, so the pawn takes.
+    const both = '4k3/8/8/8/8/2p5/1P6/4BK2 w - - 0 1';
+    expect(parseTypedMove(both, 'bxc3')).toEqual({ from: 'b2', to: 'c3' });
+    expect(parseTypedMove(both, 'Bxc3')).toEqual({ from: 'e1', to: 'c3' });
+  });
+
   it('rejects a promotion piece on a move that does not promote', () => {
     expect(parseTypedMove(START, 'e2e4q')).toBeNull();
     expect(parseTypedMove(START, 'e2e5')).toBeNull();

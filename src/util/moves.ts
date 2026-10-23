@@ -5,10 +5,14 @@ const UCI_LIKE = /^([a-h][1-8])-?([a-h][1-8])=?([qrbn])?[+#]?$/i;
 const CASTLING = /^[0o]-[0o](-[0o])?([+#]?)$/i;
 const PROMOTION_PIECE = /([a-h][18])=?([qrbn])([+#]?)$/i;
 const PROMOTION_SQUARE = /([a-h][18])([+#]?)$/;
+/** A piece letter typed in lower case at the start of a move, such as the `n` of `nf3`. */
+const LOWER_PIECE = /^[kqrbn]/;
 
 /**
  * Reads a move typed by the user: SAN (`Nf3`, `exd5`, `e8=Q`, `e8q`), sloppy SAN (`Ng1f3`), castling with letters
- * or zeros in either case (`O-O`, `o-o`, `0-0-0`) or UCI (`e7e8q`). A promotion without a piece is a queen.
+ * or zeros in either case (`O-O`, `o-o`, `0-0-0`) or UCI (`e7e8q`). A promotion without a piece is a queen, and a
+ * piece letter may be lower case (`nf3`). A leading `b` is read as a pawn on the b-file first, as SAN writes pawn
+ * moves, and as a bishop only when no such pawn move is legal (`bxc3`).
  * Returns the move without playing it, or null when it is not legal in `fen`.
  */
 export function parseTypedMove(fen: string, text: string): UciMove | null {
@@ -23,6 +27,15 @@ export function parseTypedMove(fen: string, text: string): UciMove | null {
   const castling = CASTLING.exec(raw);
   if (castling) return sanMove(game, `${castling[1] ? 'O-O-O' : 'O-O'}${castling[2] ?? ''}`);
 
+  return sanWithPromotion(game, raw) ?? (LOWER_PIECE.test(raw) ? sanWithPromotion(game, capitalise(raw)) : null);
+}
+
+function capitalise(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** A SAN move, with a lower-case or missing promotion piece read as SAN expects it. */
+function sanWithPromotion(game: Chess, raw: string): UciMove | null {
   const san = raw.replace(PROMOTION_PIECE, (_, sq: string, piece: string, mark: string) => {
     return `${sq}=${piece.toUpperCase()}${mark}`;
   });
