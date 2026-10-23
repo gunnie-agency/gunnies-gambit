@@ -283,4 +283,14 @@ test.describe('lines in Analyse', () => {
     await expect(page.locator('#moves [aria-current="true"]')).toHaveAccessibleName(/^1… e5/);
     await expect(page.locator('#moveHint')).not.toContainText('New line');
   });
+
+  test('Undo no longer brings back a replaced line after switching to Play', async ({ page }) => {
+    await typeMoves(page, ['e4', 'e5', 'Nf3']);
+    await page.locator('#moves').getByRole('button', { name: '1. e4' }).click();
+    await typeMoves(page, ['c5']);
+    await expect(page.locator('#moves .m')).toHaveText(['e4', 'c5']);
+    await page.locator('#modeSeg').getByRole('button', { name: 'Play' }).click();
+    await page.locator('#undoBtn').click();
+    await expect(page.locator('#moves .m')).toHaveCount(0);
+  });
 });

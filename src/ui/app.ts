@@ -742,6 +742,8 @@ export class App {
       if (mode === this.settings.mode) return;
       this.review.close();
       this.hintFen = null;
+      // Undo after a new line only brings the old one back in the mode and side it was replaced in.
+      this.dropped = null;
       this.restartAnalysis();
       this.updateSettings({ mode });
       this.warmOpponent();
@@ -749,6 +751,7 @@ export class App {
     seg(el.sideSeg, (v) => {
       const side = v as Color;
       if (side === this.settings.side) return;
+      this.dropped = null;
       this.updateSettings({ side, orient: side });
     });
     seg(el.thinkSeg, (v) => {
