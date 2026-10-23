@@ -707,7 +707,7 @@ button.btn.primary:hover:not(:disabled) {
   gap: 14px;
 }
 /* One row whatever the text: a waiting text that would push the button onto a second row on a phone ("Engine
-   loading…" next to "They played this") is cut off for the moment instead, so the panel keeps its height. */
+   loading…" next to the button) is cut off for the moment instead, so the panel keeps its height. */
 .verdict-row .best-san {
   min-width: 0;
   white-space: nowrap;
@@ -716,11 +716,6 @@ button.btn.primary:hover:not(:disabled) {
 }
 .verdict-row .btn {
   flex: none;
-}
-/* In Analyse the button reads "They played this" when the other side is to move, which the script only knows once it
-   has replayed the game: Analyse keeps that label's width, so the button does not grow to the left. */
-:root[data-mode='analysis'] #playBest {
-  min-width: 11em;
 }
 .best-san {
   font-family: var(--font-mono);

@@ -956,12 +956,12 @@ export class App {
     const end = gameEnd(this.game);
     if (end) return this.endHtml(end);
     const { side, mode } = this.settings;
-    const yourMove = this.game.inCheck() ? 'Your move, and you are in check' : 'Your move';
     if (mode === 'analysis') {
-      return this.game.turn() === side
-        ? `${yourMove}<small>You play ${COLOR_NAME[side]}. Play the suggestion, or enter the move you choose.</small>`
-        : 'Your opponent is to move<small>Enter their move on the board or type it below.</small>';
+      // Neutral position analysis: the board has no "you" and "opponent", only the side to move.
+      const toMove = `${COLOR_NAME[this.game.turn()]} to move${this.game.inCheck() ? ', in check' : ''}`;
+      return `${toMove}<small>Analysis board. Try moves for either side.</small>`;
     }
+    const yourMove = this.game.inCheck() ? 'Your move, and you are in check' : 'Your move';
     const level = escapeHtml(levelById(this.settings.level).label);
     if (this.opponent.status === 'failed')
       return 'The engine could not start.<small>Reload the page to try again.</small>';
@@ -984,9 +984,8 @@ export class App {
   private endHtml(end: GameEnd): string {
     if (end !== 'checkmate') return DRAW_TEXT[end];
     const winner: Color = this.game.turn() === 'w' ? 'b' : 'w';
-    let result = 'You win.';
-    if (winner !== this.settings.side)
-      result = this.settings.mode === 'play' ? 'The computer wins.' : 'Your opponent wins.';
+    let result = `${COLOR_NAME[winner]} wins.`;
+    if (this.settings.mode === 'play') result = winner === this.settings.side ? 'You win.' : 'The computer wins.';
     return `Checkmate. ${result}<small>Undo a move to look again, or start a new game.</small>`;
   }
 
@@ -1006,7 +1005,6 @@ export class App {
     el.reviewStart.hidden = true;
     el.playBest.hidden = false;
     el.playBest.disabled = true;
-    el.playBest.textContent = mode === 'analysis' && !yours ? 'They played this' : 'Play it';
     el.evalbar.classList.toggle('off', !showEval);
     el.lines.classList.toggle('no-score', !showEval);
 
@@ -1040,10 +1038,10 @@ export class App {
 
     const l1 = this.lines[0];
     if (!l1) {
-      this.waitAdvice(this.bestLabelText(yours), this.engineWaitText());
+      this.waitAdvice(this.bestLabelText(), this.engineWaitText());
       return;
     }
-    el.bestLabel.textContent = this.bestLabelText(yours);
+    el.bestLabel.textContent = this.bestLabelText();
     el.bestSan.textContent = pvToSan(this.fen, l1.pv, 1)[0] ?? l1.pv[0] ?? '';
     el.bestSan.className = 'best-san';
     el.playBest.disabled = false;
@@ -1062,9 +1060,9 @@ export class App {
     el.lines.innerHTML = '';
   }
 
-  private bestLabelText(yours: boolean): string {
+  private bestLabelText(): string {
     if (this.settings.mode === 'play') return this.settings.showBest ? 'Best move' : 'Hint';
-    return yours ? 'Best move for you' : 'Opponent’s strongest reply';
+    return `Best move for ${COLOR_NAME[this.shown.turn()]}`;
   }
 
   private engineWaitText(): string {

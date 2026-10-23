@@ -74,7 +74,8 @@ final before the script runs.
 
 For practice, bots and review only. Do **not** build anything aimed at using it in games against humans: no reading
 moves from Chess.com/Lichess pages or screens, no browser extension, no stealth or quick "live game" modes, no
-importing games in progress. The README and the app footer state that engine help in any online game against a human
+importing games in progress. Analyse is worded as neutral position analysis ("White to move", "Best move for
+Black"), never as a relay of a live game: no "your opponent", no "enter their move", no "play the suggestion". The README and the app footer state that engine help in any online game against a human
 (rated or casual) or in over-the-board tournament games is against the rules and gets accounts banned on Chess.com and
 Lichess.
 

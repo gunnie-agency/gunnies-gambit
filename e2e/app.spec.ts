@@ -30,12 +30,19 @@ test.describe('play and analyse', () => {
     await expect(page.locator('#status')).toContainText('Your move');
   });
 
-  test('Analyse shows a best move', async ({ page }) => {
+  test('Analyse shows a best move, worded as analysis of the position', async ({ page }) => {
     await page.locator('#modeSeg').getByRole('button', { name: 'Analyse' }).click();
     const best = page.locator('#bestSan');
     await expect(best).not.toHaveClass(/\bwait\b/, { timeout: 20_000 });
     await expect(best).toHaveText(/^[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8]|^O-O/);
     await expect(page.locator('#lines li')).not.toHaveCount(0);
+    await expect(page.locator('#status')).toContainText('White to move');
+    await expect(page.locator('#bestLabel')).toHaveText('Best move for White');
+    await page.locator('#moveInput').fill('e4');
+    await page.locator('#moveInput').press('Enter');
+    await expect(page.locator('#status')).toContainText('Black to move');
+    await expect(page.locator('#bestLabel')).toHaveText('Best move for Black');
+    await expect(page.locator('#playBest')).toHaveText('Play it');
   });
 });
 
