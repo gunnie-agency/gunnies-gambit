@@ -133,14 +133,20 @@ service worker policy and precache list) lives in modules without DOM access and
 - Each board has one tab stop (roving tabindex); arrow keys move between squares. Focus rings use the
   `--focus-ring` / `--focus-ring-inner` tokens so they show on every square colour.
 - CLS must stay 0: anything above the board is rendered at build time or has reserved space. The start position is
-  pre-rendered into `index.html` (`boardHtml`, `<!-- %BOARD% -->`). The inline `themeInit` script in
-  `vite.config.ts` sets `data-theme`, `data-evalbar` and `data-mode` on `<html>` before paint from localStorage.
+  pre-rendered into `index.html` (`boardHtml`, `<!-- %BOARD% -->`), and so are the opponent levels (`LEVELS`,
+  `<!-- %LEVEL_OPTIONS% -->`). The inline `themeInit` script in `vite.config.ts` sets `data-theme`, `data-evalbar` and
+  `data-mode` on `<html>` before paint from localStorage (a practice link in the hash keeps it in Play), and the saved
+  game's number of move-list rows in `--saved-rows`, which the page's initial move list (`.initial`) keeps room for.
+  In Analyse the three engine lines have fixed one-line rows from the first paint. `e2e/layout-shift.spec.ts` holds
+  CLS under 0.01 on both pages at 375px and 1280px, cold and for a returning Analyse user.
 
 ## Testing and CI
 
 - `npm test` (Vitest), `npm run lint`, `npm run format:check`, `npm run build`, and `npm run e2e` (builds, then runs
   Playwright). Projects: `desktop` and `phone` against `vite preview`, and `cloudflare` against `wrangler dev`, which
   applies the real `_headers` (CSP, caching). Without Playwright's Chromium, set `PW_CHROMIUM_PATH` to a local Chrome.
+  `layout-shift.spec.ts` measures CLS on load at 375px and 1280px in the desktop project only: the phone project's
+  mobile emulation does not report a web font's shift.
 - Every e2e test runs with outside requests blocked and fails on console errors (`e2e/fixtures.ts`); tests that need
   Lichess or Chess.com answers route them to fixtures.
 
@@ -159,7 +165,9 @@ immutable, `/sw.js` `no-cache`, and the CSP needs `'wasm-unsafe-eval'` for the e
 before first paint is inline in each page's head (`themeInit` in `vite.config.ts`); the build puts its hash into the
 CSP in place of `%THEME_INIT_SHA256%`, so edit the script there and never hand-write the hash. Fonts are imported
 once, in `src/fonts.ts`, Latin subsets only, so no font is small enough for Vite to inline; the build fails if a
-`data:` font reaches the CSS, and `font-src` is `'self'` only. Cloudflare allows one `*` per `_headers` rule. The
+`data:` font reaches the CSS, and `font-src` is `'self'` only. Each web font has a local fallback face scaled to its
+metrics at the top of `src/style.css` (Instrument Sans, the Instrument Serif italic and JetBrains Mono), so the swap
+does not move the page. Cloudflare allows one `*` per `_headers` rule. The
 sitemap's `lastmod` and the structured data's `dateModified` come from the date of the last commit.
 
 ## Next milestones

@@ -27,11 +27,12 @@ npm run build          # type check and production build
 npm run e2e            # builds, then runs the Playwright tests
 ```
 
-`npm run e2e` runs the app on a desktop and a phone viewport against `vite preview`, and checks the security and
-caching headers against `wrangler dev`, which serves the build with the real `public/_headers`. It needs Playwright's
-Chromium (`npx playwright install chromium`); to use the Chrome you already have instead, set `PW_CHROMIUM_PATH`, for
-example `PW_CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' npm run e2e`. The tests block
-every request that leaves your machine, so they never depend on Lichess, Chess.com or the analytics.
+`npm run e2e` runs the app on a desktop and a phone viewport against `vite preview`, checks that neither page moves
+while it loads (layout shift), and checks the security and caching headers against `wrangler dev`, which serves the
+build with the real `public/_headers`. It needs Playwright's Chromium (`npx playwright install chromium`); to use the
+Chrome you already have instead, set `PW_CHROMIUM_PATH`, for example
+`PW_CHROMIUM_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' npm run e2e`. The tests block every
+request that leaves your machine, so they never depend on Lichess, Chess.com or the analytics.
 
 ## Where things live
 

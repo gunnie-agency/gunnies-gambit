@@ -104,7 +104,8 @@ npm run dev          # http://localhost:5173
 npm test             # unit tests (Vitest)
 npm run lint         # ESLint with typescript-eslint strict and SonarJS; npm run format for Prettier
 npm run build        # type check + production build in dist/
-npm run e2e          # build, then Playwright tests on desktop and phone, plus the real _headers via wrangler dev
+npm run e2e          # build, then Playwright tests on desktop and phone (layout shift on load included),
+                     # plus the real _headers via wrangler dev
 ```
 
 `npm run e2e` needs Playwright's Chromium (`npx playwright install chromium`), or set `PW_CHROMIUM_PATH` to a local
