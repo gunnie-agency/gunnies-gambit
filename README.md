@@ -36,6 +36,7 @@ it works offline.
   (`Nf3`, `exd5`, `O-O`, also `o-o` and `e8q`) or UCI (`e7e8q`); a promotion without a piece, such as `e8` or
   `e7e8`, is a queen.
 - FEN and PGN import and export; download the game as a PGN file, or share it where the browser supports sharing.
+  An exported game names its opening and keeps the players, date and result of a game you imported.
   The current game is remembered in your browser.
 - Optional move sounds, off by default.
 - Works on phones and desktop, dark and light theme, keyboard accessible: each board is one tab stop and the arrow
