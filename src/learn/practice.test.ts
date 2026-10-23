@@ -33,6 +33,28 @@ describe('Practice', () => {
     expect(p.selected).toBeNull();
   });
 
+  it('says why a tapped square cannot be reached, and moves nothing', () => {
+    const p = practice('start');
+    tapMove(p, 'e2', 'e5');
+    expect(p.message).toBe("A pawn can't go there.");
+    expect(p.selected).toBeNull();
+    expect(p.game.get('e2')?.type).toBe('p');
+    expect(p.last).toBeUndefined();
+    tapMove(p, 'g1', 'g3');
+    expect(p.message).toBe("A knight can't go there.");
+    tapMove(p, 'g1', 'e2');
+    expect(p.selected).toBe('e2');
+  });
+
+  it('tells a king step into check, and a move that ignores a check, apart', () => {
+    const p = practice('check');
+    tapMove(p, 'e1', 'e2');
+    expect(p.message).toBe("The king can't move into check.");
+    tapMove(p, 'a2', 'a3');
+    expect(p.message).toBe('Your king is in check: move it, block the check or capture the attacker.');
+    expect(p.done).toBe(false);
+  });
+
   it('moves the selected piece, or switches to another own piece', () => {
     const p = practice('start');
     p.tap('e2');

@@ -51,7 +51,7 @@ function mountLesson(root: HTMLElement, progress: Progress): void {
     renderBoard(board, { game, orient: side, selected, last });
     if (practice.hint) markHint(board, practice.hint);
     message.textContent = practice.message ?? intro;
-    // Every move leaves a message, so there is something to undo exactly when there is one.
+    // Every move leaves a message, and so does a move that is refused or taken back: Start again clears it.
     reset.disabled = practice.message === null;
     if (hasGoal(lesson)) reset.textContent = practice.done ? 'Again' : resetLabel;
     if (hint) hint.disabled = practice.done || practice.waiting;
