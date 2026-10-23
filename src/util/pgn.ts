@@ -146,3 +146,21 @@ export function readPgn(text: string): ReadGame | null {
     headers,
   };
 }
+
+/** A SAN move, standing on its own or after a move number: a piece move, a pawn move or capture, or castling. */
+const SAN_MOVE = /(?:^|[\s.])(?:[KQRBN][a-h]?[1-8]?x?[a-h][1-8]|[a-h](?:x[a-h])?[1-8]|O-O)/;
+
+/**
+ * Whether a PGN has at least one move, without parsing it: brace and rest-of-line comments and the tags are dropped
+ * and the rest searched for a move. Cheap enough for every game of a month's archive; a game abandoned before the first move has none.
+ */
+export function hasMoves(pgn: string): boolean {
+  const uncommented = pgn
+    .split('{')
+    .map((part, i) => (i === 0 ? part : part.slice(part.indexOf('}') + 1 || part.length)))
+    .join(' ')
+    .split('\n')
+    .map((line) => line.split(';')[0])
+    .join('\n');
+  return SAN_MOVE.test(uncommented.replaceAll(TAG_PAIR, ' '));
+}

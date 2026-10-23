@@ -61,6 +61,11 @@ describe('parseChesscomGames', () => {
     expect(parseChesscomGames(withGame({ pgn }), 'hikaru')).toEqual([]);
   });
 
+  it('drops games abandoned before a move, which have nothing to review', () => {
+    const tags = String(monthJson.games[0]?.pgn).split('\n\n')[0];
+    expect(parseChesscomGames(withGame({ pgn: `${tags}\n\n1/2-1/2\n` }), 'hikaru')).toEqual([]);
+  });
+
   it('drops variants and games of other players', () => {
     expect(parseChesscomGames(withGame({ rules: 'chess960' }), 'hikaru')).toEqual([]);
     expect(parseChesscomGames(monthJson, 'someone-else')).toEqual([]);

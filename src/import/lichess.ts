@@ -1,3 +1,4 @@
+import { hasMoves } from '../util/pgn';
 import { finishedResult, formatClock, formatDays, MAX_GAMES, outcomeFor, sideOf, type GameSummary } from './games';
 
 /** Variants the board can replay: standard chess, possibly from a set-up position (the PGN then carries a FEN). */
@@ -50,6 +51,7 @@ function summary(game: LichessGame, username: string): GameSummary | null {
   if (game.status === 'created' || game.status === 'started') return null;
   const result = finishedResult(game.pgn);
   if (!result) return null;
+  if (!hasMoves(game.pgn)) return null; // abandoned before the first move: nothing to review
   const white = playerName(game.players?.white);
   const black = playerName(game.players?.black);
   const side = sideOf(username, white, black);

@@ -1,3 +1,4 @@
+import { hasMoves } from '../util/pgn';
 import { finishedResult, formatClock, formatDays, outcomeFor, sideOf, type GameSummary } from './games';
 
 const API = 'https://api.chess.com/pub/player/';
@@ -48,6 +49,7 @@ function summary(game: ChesscomGame, username: string): GameSummary | null {
   if (typeof game.pgn !== 'string' || game.rules !== 'chess') return null;
   const result = finishedResult(game.pgn);
   if (!result) return null;
+  if (!hasMoves(game.pgn)) return null; // abandoned before the first move: nothing to review
   const white = typeof game.white?.username === 'string' ? game.white.username : '';
   const black = typeof game.black?.username === 'string' ? game.black.username : '';
   const side = sideOf(username, white, black);

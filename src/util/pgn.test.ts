@@ -1,6 +1,6 @@
 import { Chess, DEFAULT_POSITION } from 'chess.js';
 import { describe, expect, it } from 'vitest';
-import { buildPgn, keptTags, pgnDate, pgnFileName, pgnResult, readPgn } from './pgn';
+import { buildPgn, hasMoves, keptTags, pgnDate, pgnFileName, pgnResult, readPgn } from './pgn';
 
 const DATE = new Date(2026, 9, 2, 9, 5);
 const SITE = 'https://chess.example';
@@ -199,5 +199,20 @@ describe('keptTags', () => {
     expect(keptTags(headers)).toEqual({ Event: 'Rated blitz game', White: 'Alice', TimeControl: '180+2' });
     expect(keptTags({ Result: '1-0' })).toEqual({ Result: '1-0' });
     expect(keptTags({ Result: 'White won' })).toEqual({});
+  });
+});
+
+describe('hasMoves', () => {
+  it('finds a move after the tags, also behind a comment or with castling only', () => {
+    expect(hasMoves('[Result "1-0"]\n\n1. e4 1-0')).toBe(true);
+    expect(hasMoves('[Event "x"]\n\n{ [%clk 0:03:00] } 1. Nf3 { [%clk 0:02:59] } 1-0')).toBe(true);
+    expect(hasMoves('1. O-O *')).toBe(true);
+    expect(hasMoves('1... exd8=Q+ 0-1')).toBe(true);
+  });
+
+  it('sees no move in a game abandoned before the first one', () => {
+    expect(hasMoves('[White "a1"]\n[Black "Nf3"]\n[Result "0-1"]\n\n0-1')).toBe(false);
+    expect(hasMoves('[Result "1/2-1/2"]\n\n{ Game abandoned at e4 } 1/2-1/2')).toBe(false);
+    expect(hasMoves('')).toBe(false);
   });
 });

@@ -49,6 +49,11 @@ describe('parseLichessGames', () => {
     expect(parseLichessGames([ongoing, noResult].join('\n'), 'drnykterstein')).toEqual([]);
   });
 
+  it('drops games abandoned before a move, which have nothing to review', () => {
+    const tags = String(JSON.parse(first).pgn).split('\n\n')[0];
+    expect(parseLichessGames(changed({ pgn: `${tags}\n\n1-0\n` }), 'drnykterstein')).toEqual([]);
+  });
+
   it('drops variants the board cannot play and games of other players', () => {
     expect(parseLichessGames(changed({ variant: 'chess960' }), 'drnykterstein')).toEqual([]);
     expect(parseLichessGames(first, 'someone-else')).toEqual([]);
