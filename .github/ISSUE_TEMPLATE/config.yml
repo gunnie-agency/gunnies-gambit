@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Try the app
+    url: https://chess.gunnie.nl
+    about: Gunnie's Gambit runs in your browser; the questions on its home page may already answer yours.
+  - name: How to contribute
+    url: https://github.com/gunnie-agency/gunnies-gambit/blob/master/CONTRIBUTING.md
+    about: Setup, checks, adding lessons, and which features fit the project.

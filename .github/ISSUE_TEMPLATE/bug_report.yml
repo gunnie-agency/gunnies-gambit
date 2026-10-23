@@ -1,0 +1,54 @@
+name: Bug report
+description: Something in the app does not work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest way to make it happen again. A FEN or PGN helps a lot for anything about a position.
+      placeholder: |
+        1. Choose Analyse
+        2. Paste this PGN: ...
+        3. Choose Review game
+    validations:
+      required: true
+  - type: dropdown
+    id: page
+    attributes:
+      label: Where
+      options:
+        - Play
+        - Analyse
+        - Review or Practise my mistakes
+        - Your games
+        - How to play
+        - Somewhere else
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Safari 26, Chrome 141, Firefox 144
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and operating system
+      placeholder: iPhone 15 with iOS 26, Windows 11 laptop, Pixel 8 with Android 16
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, errors from the browser console, or whether it happens offline too.

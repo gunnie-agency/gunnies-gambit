@@ -1,0 +1,38 @@
+name: Lesson or puzzle idea
+description: A puzzle, endgame or explanation for the How to play page.
+labels: [lesson]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - Tactics puzzle
+        - Endgame
+        - Rule or explanation
+    validations:
+      required: true
+  - type: input
+    id: fen
+    attributes:
+      label: Position (FEN)
+      description: The starting position, with the side to move. Leave empty for an explanation without a board.
+      placeholder: 4k3/5ppp/q7/3N4/8/8/5PPP/6K1 w - - 0 1
+  - type: input
+    id: solution
+    attributes:
+      label: Solution
+      description: For a puzzle, the moves in order, both sides.
+      placeholder: Nc7+ Kd8 Nxa6
+  - type: textarea
+    id: idea
+    attributes:
+      label: What it teaches
+      description: The theme (fork, pin, opposition, ...) and what a beginner should take away from it.
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: If the position comes from a game or a book, where from. Positions you made up yourself are welcome.

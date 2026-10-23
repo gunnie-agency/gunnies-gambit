@@ -1,0 +1,29 @@
+name: Feature request
+description: An idea to make practising, reviewing or learning better.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would it help you do
+      description: The situation you are in and what is missing or awkward today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: How it could work. Rough is fine.
+    validations:
+      required: true
+  - type: checkboxes
+    id: fair-play
+    attributes:
+      label: Fair play
+      description: >-
+        Gunnie's Gambit is for practice, bots and reviewing finished games. Requests that help use an engine during a
+        game against a human (reading moves from other sites, extensions, overlays, quick "live game" modes, analysing
+        games in progress) are declined; see CONTRIBUTING.md.
+      options:
+        - label: This feature is not meant for, and would not help with, games against humans that are still going on.
+          required: true
