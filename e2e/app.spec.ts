@@ -397,6 +397,33 @@ test.describe('an imported PGN', () => {
   });
 });
 
+test.describe('a tap that moves nothing', () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test('says why in the status line, without moving the board', async ({ page }) => {
+    await page.goto('./');
+    const status = page.locator('#status');
+    const boardTop = () => page.locator('#board').evaluate((b) => b.getBoundingClientRect().top + scrollY);
+    const top = await boardTop();
+    await square(page, 'g1').click();
+    await square(page, 'g4').click();
+    await expect(status).toContainText("A knight can't go there.");
+    expect(await boardTop()).toBe(top);
+    await square(page, 'g1').click();
+    await expect(status).not.toContainText("can't go there");
+
+    await analyse(page);
+    await loadFen(page, '4k3/8/8/8/8/8/P7/r3K3 w - - 0 1');
+    await square(page, 'e1').click();
+    await square(page, 'd1').click();
+    await expect(status).toContainText("The king can't move into check.");
+    await square(page, 'a2').click();
+    await square(page, 'a3').click();
+    await expect(status).toContainText('Your king is in check: move it, block the check or capture the attacker.');
+    expect(await boardTop()).toBe(top);
+  });
+});
+
 test.describe('practice links', () => {
   const QUEEN_MATE = `./#fen=${encodeURIComponent('8/8/8/4k3/8/8/8/3QK3 w - - 0 1')}&mode=play&side=w&level=max`;
 

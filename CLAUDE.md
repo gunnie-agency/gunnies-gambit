@@ -70,7 +70,8 @@ scripted defender in `src/learn/defender.ts`). There are 12 tactics puzzles grou
 (K+Q and K+R mates against the defender, K+P for the opposition) with practice links to play them out at full
 strength. Solved puzzles and mates are stored in localStorage `gunnies-gambit.lessons.v1` (`src/learn/progress.ts`)
 and counted per section (the endgames count their two mates). A square a selected piece can't reach gets a message
-saying why, and nothing moves. A "Reading and writing moves" section (`#notation`) explains square names and SAN, and
+saying why (`cannotReach` in `src/util/reach.ts`, shared with the app, which shows it in the status line above the
+board until the next tap or move), and nothing moves. A "Reading and writing moves" section (`#notation`) explains square names and SAN, and
 "Play your first game" is a practice link from the start position at the Beginner level (`FIRST_GAME`). The intro text next to each board lives in the HTML so it is indexable and the layout is
 final before the script runs.
 
@@ -127,7 +128,7 @@ src/
   sw/           service worker: sw.ts, precache.ts, policy.ts, register.ts
   ui/           app controller; chrome.ts for the theme switch; sound.ts for move sounds
   util/         SAN/UCI helpers, move input, cursor (move list position), pgn, sounds (tones), practice links, score
-                formatting, HTML escaping
+                formatting, HTML escaping, reach (why a tapped square can't be reached)
   site/         JSON-LD, FAQ, robots.txt, sitemap, manifest, llms.txt, IndexNow key; partials.ts for the logo symbol
                 and footer shared by both pages; built from .env by a Vite plugin
 e2e/            Playwright tests against the production build; fixtures.ts cuts off the outside world

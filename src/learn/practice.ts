@@ -1,4 +1,5 @@
-import { Chess, type Color, type Move, type PieceSymbol, type Square } from 'chess.js';
+import { Chess, type Color, type Move, type Square } from 'chess.js';
+import { cannotReach } from '../util/reach';
 import { parseUciMove, toUci, type PromotionPiece, type UciMove } from '../util/uci';
 import { defend } from './defender';
 import { PIECE_LETTER, PIECE_NAME, type Lesson } from './lessons';
@@ -92,9 +93,8 @@ export class Practice {
         this.play(from, square);
         return null;
       }
-      const moving = this.game.get(from);
-      if (moving && this.game.get(square)?.color !== this.game.turn())
-        this.message = this.cannotGo(moving.type, from, square);
+      const why = cannotReach(this.game, from, square);
+      if (why) this.message = why;
     }
     const piece = this.game.get(square);
     this.selected = from !== square && piece?.color === this.game.turn() ? square : null;
@@ -109,15 +109,6 @@ export class Practice {
     const owner = `${name}, with a ${COLOR_NAME[piece.color].toLowerCase()} ${PIECE_NAME[piece.type]}`;
     if (piece.type === 'p') return `${owner}. Pawns have no letter.`;
     return `${owner}. Its letter is ${PIECE_LETTER[piece.type]}.`;
-  }
-
-  /** Why the selected piece cannot go to a square it was tapped to. Nothing moves. */
-  private cannotGo(piece: PieceSymbol, from: Square, to: Square): string {
-    const next = Math.abs(from.charCodeAt(0) - to.charCodeAt(0)) <= 1 && Math.abs(Number(from[1]) - Number(to[1])) <= 1;
-    // A king's step to a free or enemy square next to it is only illegal when the square is attacked.
-    if (piece === 'k' && next) return "The king can't move into check.";
-    if (this.game.inCheck()) return 'Your king is in check: move it, block the check or capture the attacker.';
-    return `A ${PIECE_NAME[piece]} can't go there.`;
   }
 
   /** Plays a move. An illegal one, such as a promotion picked after the position changed, is ignored. */

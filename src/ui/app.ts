@@ -21,6 +21,7 @@ import { escapeHtml } from '../util/html';
 import { parsePracticeLink, type PracticeGoal } from '../util/link';
 import { fenProblem, gameEnd, parseTypedMove, uniqueMoveTo, type GameEnd } from '../util/moves';
 import { buildPgn, keptTags, pgnFileName, readPgn } from '../util/pgn';
+import { cannotReach } from '../util/reach';
 import { moveSound } from '../util/sounds';
 import { numberMoves, pvToSan } from '../util/san';
 import { evalBarPercent, formatScore, toWhitePov, verdict, type Score } from '../util/score';
@@ -122,6 +123,11 @@ export class App {
   /** The square of the pawn whose promotion piece is being asked, so focus can return there on Escape. */
   private promotionFrom: Square | null = null;
   private moveMessage: { text: string; err: boolean } | null = null;
+  /**
+   * Why the last tap moved nothing, shown in the status line above the board until the next tap or move. The review
+   * has its own status, so none shows while practising mistakes.
+   */
+  private tapMessage: string | null = null;
   /** The position shown outside review: the live one, or an earlier one picked in the move list. */
   private view: View = null;
   /** The game up to that earlier position, or null while the live position is shown. */
@@ -389,6 +395,7 @@ export class App {
   /** After any change to the game. A loaded game passes its tags; any other change forgets them. */
   private positionChanged(tags: Record<string, string> = {}): void {
     this.tags = tags;
+    this.tapMessage = null;
     this.review.close();
     clearTimeout(this.replyTimer);
     this.cancelPromotion();
@@ -418,6 +425,7 @@ export class App {
     this.cancelPromotion();
     this.hintFen = null;
     this.moveMessage = null;
+    this.tapMessage = null;
     this.restartAnalysis();
     this.syncEngines();
     this.render();
@@ -537,7 +545,15 @@ export class App {
     return this.moveTarget;
   }
 
+  /** A tap on a square; a message about the previous tap goes, and one about this tap shows in the status line. */
   private onSquare(sq: Square): void {
+    const before = this.tapMessage;
+    this.tapMessage = null;
+    this.tapSquare(sq);
+    if (this.tapMessage !== before) this.renderStatus();
+  }
+
+  private tapSquare(sq: Square): void {
     const game = this.inputGame();
     if (!game) return;
 
@@ -557,6 +573,7 @@ export class App {
         );
         return;
       }
+      this.tapMessage = cannotReach(game, this.selected, sq);
     }
 
     const piece = game.get(sq);
@@ -579,8 +596,7 @@ export class App {
     }
     this.selected = null;
     if (game.moves({ verbose: true }).some((m) => m.to === sq)) {
-      this.moveMessage = { text: `More than one piece can go to ${sq}. Tap the piece first.`, err: false };
-      this.renderMoveHint();
+      this.tapMessage = `More than one piece can go to ${sq}. Tap the piece first.`;
     }
     this.renderBoardOnly();
   }
@@ -620,6 +636,7 @@ export class App {
 
   private startReview(): void {
     if (!this.canReview) return;
+    this.tapMessage = null;
     const { side, mode } = this.settings;
     this.review.open({
       startFen: this.startFen,
@@ -997,10 +1014,11 @@ export class App {
     const end = gameEnd(this.game);
     if (end) return this.endHtml(end);
     const { side, mode } = this.settings;
+    const tapped = this.tapMessage === null ? null : escapeHtml(this.tapMessage);
     if (mode === 'analysis') {
       // Neutral position analysis: the board has no "you" and "opponent", only the side to move.
       const toMove = `${COLOR_NAME[this.game.turn()]} to move${this.game.inCheck() ? ', in check' : ''}`;
-      return `${toMove}<small>Analysis board. Try moves for either side.</small>`;
+      return `${toMove}<small>${tapped ?? 'Analysis board. Try moves for either side.'}</small>`;
     }
     const yourMove = this.game.inCheck() ? 'Your move, and you are in check' : 'Your move';
     const level = escapeHtml(levelById(this.settings.level).label);
@@ -1008,7 +1026,7 @@ export class App {
       return 'The engine could not start.<small>Reload the page to try again.</small>';
     const practice = this.own ? this.practiceText(level) : null;
     if (this.game.turn() === side) {
-      const about = practice ?? `You play ${COLOR_NAME[side]} against the computer (${level}).`;
+      const about = tapped ?? practice ?? `You play ${COLOR_NAME[side]} against the computer (${level}).`;
       return `${yourMove}<small>${about}</small>`;
     }
     return `The computer is thinking…<small>${practice ?? 'Level: ' + level}</small>`;
