@@ -22,7 +22,9 @@ Don't hardcode either elsewhere. How to contribute (setup, checks, adding lesson
 2. **Play vs engine.** A second engine worker plays the other side at a chosen strength (`UCI_LimitStrength` /
    `UCI_Elo`, plus beginner levels below the Elo floor via `Skill Level` and a shallow depth; the Elo levels carry a
    descriptor, "Elo 1400 · casual player" to "Elo 2400 · master", in `src/engine/levels.ts`). The evaluation and the
-   best move are separate toggles, both off by default; a hint can be requested per position.
+   best move are separate toggles, both off by default; a hint can be requested per position. Resign (after a
+   confirm) ends the game as a loss, saved with the game and taken back by Undo; at a game's end the status points to
+   the review, and only the result panel's "Review game" shows (the one in Moves keeps its space, hidden).
 3. **Review.** Not a third `Mode` but a state on top of the current game, started with "Review game" when a play-mode
    game ends or for any game in Analyse. It runs on a pool of 1 to 3 review workers (`reviewWorkerCount` in
    `src/review/runner.ts`: 2 from 4 cores, 3 only with 8+ cores and 8 GB `deviceMemory`), created on open and

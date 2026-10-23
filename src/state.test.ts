@@ -71,7 +71,8 @@ describe('saved game', () => {
   });
 
   it('keeps a practice game’s side and level beside the user’s own settings', () => {
-    saveGame(DEFAULT_POSITION, ['e2e4'], DEFAULT_SETTINGS, {}, { side: 'b', level: 'max', goal: 'mate' });
+    const practice = { side: 'b', level: 'max', goal: 'mate' } as const;
+    saveGame(DEFAULT_POSITION, ['e2e4'], DEFAULT_SETTINGS, {}, { practice });
     const saved = loadSaved();
     expect(saved?.practice).toEqual({ side: 'b', level: 'max', goal: 'mate' });
     expect(saved && settingsOf(saved)).toEqual(DEFAULT_SETTINGS);
@@ -81,6 +82,15 @@ describe('saved game', () => {
     expect(loadSaved()?.practice).toEqual({ side: 'w', level: 'max' });
     store[KEY] = JSON.stringify({ practice: 'max' });
     expect(loadSaved()).not.toHaveProperty('practice');
+  });
+
+  it('remembers which side resigned', () => {
+    saveGame(DEFAULT_POSITION, ['e2e4'], DEFAULT_SETTINGS, {}, { resigned: 'w' });
+    expect(loadSaved()?.resigned).toBe('w');
+    saveGame(DEFAULT_POSITION, ['e2e4'], DEFAULT_SETTINGS, {}, { resigned: null });
+    expect(loadSaved()).not.toHaveProperty('resigned');
+    store[KEY] = JSON.stringify({ resigned: true });
+    expect(loadSaved()).not.toHaveProperty('resigned');
   });
 
   it('keeps the moves only up to the first one that is not a string', () => {

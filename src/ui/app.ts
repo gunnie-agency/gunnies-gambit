@@ -93,6 +93,7 @@ export class App {
     undoBtn: $<HTMLButtonElement>('undoBtn'),
     flipBtn: $<HTMLButtonElement>('flipBtn'),
     newBtn: $<HTMLButtonElement>('newBtn'),
+    resignBtn: $<HTMLButtonElement>('resignBtn'),
     fenInput: $<HTMLInputElement>('fenInput'),
     pgnInput: $<HTMLTextAreaElement>('pgnInput'),
     loadFen: $<HTMLButtonElement>('loadFen'),
@@ -119,6 +120,8 @@ export class App {
   private own: PracticeGame | null = null;
   /** What the practice game is for, when its link said so. */
   private goal: PracticeGoal | null = null;
+  /** The side that resigned the live game in Play. Any change to the game takes it back. */
+  private resigned: Color | null = null;
   private selected: Square | null = null;
   /** The square of the pawn whose promotion piece is being asked, so focus can return there on Escape. */
   private promotionFrom: Square | null = null;
@@ -164,6 +167,7 @@ export class App {
     this.played = this.game.history({ verbose: true });
     this.startFen = restored.startFen;
     this.tags = saved?.tags ?? {};
+    this.resigned = saved?.resigned ?? null;
     this.settings = saved ? settingsOf(saved) : { ...DEFAULT_SETTINGS };
     if (saved?.practice) {
       this.own = { side: this.settings.side, level: this.settings.level };
@@ -213,7 +217,9 @@ export class App {
 
   start(): void {
     const linked = this.readPracticeLink();
-    this.positionChanged(linked ? {} : this.tags);
+    // The saved game comes back as it was, tags and resignation included; a practice link replaces it.
+    if (linked) this.positionChanged();
+    else this.positionChanged(this.tags, this.resigned);
     this.warmOpponent();
   }
 
@@ -246,14 +252,21 @@ export class App {
     return this.shown.fen();
   }
 
+  /** How the live game ended, or null while it goes on. A resignation counts in Play only. */
+  private get liveEnd(): GameEnd | 'resigned' | null {
+    const end = gameEnd(this.game);
+    if (end) return end;
+    return this.resigned && this.settings.mode === 'play' ? 'resigned' : null;
+  }
+
   /** Whether the live game has ended. */
   private get isOver(): boolean {
-    return gameEnd(this.game) !== null;
+    return this.liveEnd !== null;
   }
 
   /** Whether the shown position is final: an earlier position never is, unless the game was loaded that way. */
   private get shownOver(): boolean {
-    return gameEnd(this.shown) !== null;
+    return this.view === null ? this.isOver : gameEnd(this.shown) !== null;
   }
 
   /** Whether the user may enter a move for the side to move. In play mode only on the live position. */
@@ -392,10 +405,14 @@ export class App {
 
   // ---------- game actions ----------
 
-  /** After any change to the game. A loaded game passes its tags; any other change forgets them. */
-  private positionChanged(tags: Record<string, string> = {}): void {
+  /**
+   * After any change to the game. A loaded game passes its tags, and the saved game its resignation; any other change
+   * forgets them.
+   */
+  private positionChanged(tags: Record<string, string> = {}, resigned: Color | null = null): void {
     this.tags = tags;
     this.tapMessage = null;
+    this.resigned = resigned;
     this.review.close();
     clearTimeout(this.replyTimer);
     this.cancelPromotion();
@@ -634,6 +651,20 @@ export class App {
     this.positionChanged();
   }
 
+  /** Ends the game in Play as a loss, after asking, so it can be reviewed. Undo or New game takes it back. */
+  private resign(): void {
+    if (this.settings.mode !== 'play' || this.isOver || this.review.active || !this.played.length) return;
+    if (!confirm('Resign this game? It counts as a loss, and you can review it.')) return;
+    this.resigned = this.settings.side;
+    this.view = null;
+    this.viewGame = null;
+    this.cancelPromotion();
+    this.restartAnalysis();
+    this.save();
+    this.syncEngines();
+    this.render();
+  }
+
   private startReview(): void {
     if (!this.canReview) return;
     this.tapMessage = null;
@@ -661,14 +692,17 @@ export class App {
     this.cancelPromotion();
     this.syncEngines();
     this.render();
-    this.el.reviewBtn.focus();
+    (this.el.reviewStart.hidden ? this.el.reviewBtn : this.el.reviewStart).focus();
   }
 
   private save(): void {
     const { side, level } = this.settings;
     // The saved settings stay the user's own; a practice game's side and level are saved beside them.
     const practice = this.own && { side, level, ...(this.goal && { goal: this.goal }) };
-    saveGame(this.startFen, this.played.map(toUci), { ...this.settings, ...this.own }, this.tags, practice);
+    saveGame(this.startFen, this.played.map(toUci), { ...this.settings, ...this.own }, this.tags, {
+      practice,
+      resigned: this.resigned,
+    });
   }
 
   /** Brings back the user's own side and level when a practice link's game is replaced. */
@@ -757,6 +791,7 @@ export class App {
       this.updateSettings({ orient: this.settings.orient === 'w' ? 'b' : 'w' }),
     );
     el.newBtn.addEventListener('click', () => this.newGame());
+    el.resignBtn.addEventListener('click', () => this.resign());
 
     el.moveForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -897,7 +932,9 @@ export class App {
       players: mode === 'play' ? { mode, side, level: levelById(level).label } : { mode },
       site: import.meta.env.VITE_SITE_URL,
       date: new Date(),
-      tags: this.tags,
+      // A resigned game has no result on the board; the side that resigned lost.
+      tags:
+        this.resigned && mode === 'play' ? { ...this.tags, Result: this.resigned === 'w' ? '0-1' : '1-0' } : this.tags,
       opening: loadedOpening(
         this.startFen,
         this.played.map((m) => m.san),
@@ -966,6 +1003,9 @@ export class App {
     this.el.moveForm.hidden = reviewing;
     this.el.settingsBox.hidden = reviewing;
     this.el.reviewBtn.disabled = reviewing || !this.canReview;
+    // One review button at the end of a game: the one next to the result. Its space stays, so nothing below moves.
+    this.el.reviewBtn.style.visibility = reviewing || this.el.reviewStart.hidden ? '' : 'hidden';
+    this.el.resignBtn.disabled = reviewing || this.isOver || this.played.length === 0;
     this.el.liveBtn.hidden = reviewing || this.view === null;
   }
 
@@ -1011,7 +1051,7 @@ export class App {
   private statusHtml(): string {
     if (this.review.active) return this.review.status;
     if (this.view !== null) return this.viewHtml(this.view);
-    const end = gameEnd(this.game);
+    const end = this.liveEnd;
     if (end) return this.endHtml(end);
     const { side, mode } = this.settings;
     const tapped = this.tapMessage === null ? null : escapeHtml(this.tapMessage);
@@ -1057,12 +1097,23 @@ export class App {
     return `${where}<small>${next}</small>`;
   }
 
-  private endHtml(end: GameEnd): string {
-    if (end !== 'checkmate') return DRAW_TEXT[end];
-    const winner: Color = this.game.turn() === 'w' ? 'b' : 'w';
-    let result = `${COLOR_NAME[winner]} wins.`;
-    if (this.settings.mode === 'play') result = winner === this.settings.side ? 'You win.' : 'The computer wins.';
-    return `Checkmate. ${result}<small>Undo a move to look again, or start a new game.</small>`;
+  /** The result, and what to do next. Each part fits one line on a phone, so the board does not move at the end. */
+  private endHtml(end: GameEnd | 'resigned'): string {
+    const { mode, side } = this.settings;
+    let result: string;
+    let lost = false;
+    if (end === 'resigned') {
+      result = 'Resigned. The computer wins.';
+      lost = true;
+    } else if (end === 'checkmate') {
+      const winner: Color = this.game.turn() === 'w' ? 'b' : 'w';
+      lost = mode === 'play' && winner !== side;
+      if (mode === 'analysis') result = `Checkmate. ${COLOR_NAME[winner]} wins.`;
+      else result = lost ? 'Checkmate. The computer wins.' : 'Checkmate. You win.';
+    } else result = DRAW_TEXT[end];
+    let next = 'Undo a move to look again, or start a new game.';
+    if (this.canReview) next = lost ? 'Review game shows where it went wrong.' : 'Review game to see how it went.';
+    return `${result}<small>${next}</small>`;
   }
 
   private renderAnalysis(): void {

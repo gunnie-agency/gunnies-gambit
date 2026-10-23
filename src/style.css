@@ -1612,7 +1612,8 @@ button.import-game:hover {
 :root:not([data-mode='analysis']) #thinkSetting,
 :root:not([data-mode='analysis']) #moveHint .analysis-only,
 :root[data-mode='analysis'] #levelSetting,
-:root[data-mode='analysis'] #helpSetting {
+:root[data-mode='analysis'] #helpSetting,
+:root[data-mode='analysis'] #resignBtn {
   display: none;
 }
 /* Analyse always shows three engine lines: their rows (border and padding, three 0.82rem lines plus the score's padding

@@ -397,6 +397,33 @@ test.describe('an imported PGN', () => {
   });
 });
 
+test('Resign ends the game as a loss, with one button to review it', async ({ page }) => {
+  await page.goto('./');
+  const resign = page.locator('#resignBtn');
+  await expect(resign).toBeDisabled();
+  await square(page, 'e2').click();
+  await square(page, 'e4').click();
+  await expect(page.locator('#moves .m')).toHaveCount(2, { timeout: 20_000 });
+  page.once('dialog', (dialog) => void dialog.accept());
+  await resign.click();
+  const status = page.locator('#status');
+  await expect(status).toContainText('Resigned. The computer wins.');
+  await expect(status).toContainText('Review game shows where it went wrong.');
+  await expect(resign).toBeDisabled();
+  await expect(page.locator('#reviewBtn')).toBeHidden();
+  await page.reload();
+  await expect(status).toContainText('Resigned.');
+  expect(await downloadedPgn(page)).toContain('[Result "0-1"]');
+  await page.locator('#reviewStart').click();
+  await expect(page.locator('#review')).toBeVisible();
+  await expect(page.locator('#reviewProgressText')).toHaveText('Every move analysed.', { timeout: 30_000 });
+  await page.locator('#reviewExit').click();
+  await expect(page.locator('#reviewStart')).toBeFocused();
+  await page.locator('#undoBtn').click(); // takes back the resignation with the last two moves
+  await expect(status).toContainText('Your move');
+  await expect(page.locator('#moves .m')).toHaveCount(0);
+});
+
 test.describe('a tap that moves nothing', () => {
   test.use({ viewport: { width: 375, height: 812 } });
 

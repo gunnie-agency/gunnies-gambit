@@ -45,6 +45,14 @@ export interface SavedGame extends Settings {
   tags: Record<string, string>;
   /** Set while the game is one a practice link started. */
   practice?: PracticeGame;
+  /** The side that resigned the game in Play, if one did. */
+  resigned?: Color;
+}
+
+/** What a saved game may carry besides its moves, settings and tags. */
+export interface GameExtras {
+  practice?: PracticeGame | null;
+  resigned?: Color | null;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -86,6 +94,7 @@ export function loadSaved(): SavedGame | null {
     moves: leadingStrings(s.moves),
     tags: s.tags && typeof s.tags === 'object' ? keptTags(s.tags as Record<string, unknown>) : {},
     ...(practice && { practice }),
+    ...((s.resigned === 'w' || s.resigned === 'b') && { resigned: s.resigned }),
   };
 }
 
@@ -113,15 +122,15 @@ export function settingsOf(saved: SavedGame): Settings {
 }
 
 /**
- * Stores the game as its start position and UCI moves, with the settings, the tags of a loaded game and, for a game
- * a practice link started, the side and level of that link.
+ * Stores the game as its start position and UCI moves, with the settings, the tags of a loaded game and the extras:
+ * for a game a practice link started, the side and level of that link, and the side that resigned.
  */
 export function saveGame(
   startFen: string,
   moves: readonly string[],
   settings: Settings,
   tags: Readonly<Record<string, string>> = {},
-  practice: PracticeGame | null = null,
+  { practice, resigned }: GameExtras = {},
 ): void {
   const saved: SavedGame = {
     ...settings,
@@ -129,6 +138,7 @@ export function saveGame(
     moves: [...moves],
     tags: { ...tags },
     ...(practice && { practice }),
+    ...(resigned && { resigned }),
   };
   try {
     localStorage.setItem(KEY, JSON.stringify(saved));

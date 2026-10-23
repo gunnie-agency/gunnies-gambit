@@ -15,7 +15,7 @@ it works offline.
 
 - **Play** against the computer, from Beginner up to full strength, with the Elo levels described in plain words
   (`Elo 1400 · casual player` up to `Elo 2400 · master`). Hints on request; the evaluation and the best move (with
-  engine lines) can each be switched on separately.
+  engine lines) can each be switched on separately. Resign ends a game as a loss you can review.
 - **Analyse** any position: enter moves for both sides, see the best move, evaluation, top three lines and arrows.
   Step back through the move list (arrow keys, Home and End) and play a different move there to try another line;
   Undo takes it back.
