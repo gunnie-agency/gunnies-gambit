@@ -166,8 +166,10 @@ describe('endgames', () => {
     const game = new Chess(lesson.fen);
     expect(game.turn()).toBe(side);
     expect(game.isGameOver()).toBe(false);
-    const link = buildPracticeLink(lesson.fen, side, 'max');
-    expect(parsePracticeLink(link.slice(link.indexOf('#')))).toEqual({ fen: lesson.fen, side, level: 'max' });
+    expect(lesson.practiceGoal).toBeDefined();
+    const link = buildPracticeLink(lesson.fen, side, 'max', lesson.practiceGoal);
+    const goal = lesson.practiceGoal;
+    expect(parsePracticeLink(link.slice(link.indexOf('#')))).toEqual({ fen: lesson.fen, side, level: 'max', goal });
   });
 
   it('cover the queen, the rook and the pawn ending', () => {
@@ -177,7 +179,7 @@ describe('endgames', () => {
 
 describe('first game', () => {
   it('opens the level the page names, as White from the start position', () => {
-    const link = buildPracticeLink(FIRST_GAME.fen, FIRST_GAME.side, FIRST_GAME.level);
+    const link = buildPracticeLink(FIRST_GAME.fen, FIRST_GAME.side, FIRST_GAME.level, FIRST_GAME.goal);
     expect(parsePracticeLink(link.slice(link.indexOf('#')))).toEqual({ ...FIRST_GAME });
     const label = LEVELS.find((level) => level.id === FIRST_GAME.level)?.label;
     expect(readFileSync('how-to-play.html', 'utf8')).toContain(`Play the ${label} level as White`);

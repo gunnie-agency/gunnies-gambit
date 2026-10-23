@@ -71,12 +71,14 @@ describe('saved game', () => {
   });
 
   it('keeps a practice game’s side and level beside the user’s own settings', () => {
-    saveGame(DEFAULT_POSITION, ['e2e4'], DEFAULT_SETTINGS, {}, { side: 'b', level: 'max' });
+    saveGame(DEFAULT_POSITION, ['e2e4'], DEFAULT_SETTINGS, {}, { side: 'b', level: 'max', goal: 'mate' });
     const saved = loadSaved();
-    expect(saved?.practice).toEqual({ side: 'b', level: 'max' });
+    expect(saved?.practice).toEqual({ side: 'b', level: 'max', goal: 'mate' });
     expect(saved && settingsOf(saved)).toEqual(DEFAULT_SETTINGS);
     store[KEY] = JSON.stringify({ practice: { side: 'b', level: 'grandmaster' } });
     expect(loadSaved()).not.toHaveProperty('practice');
+    store[KEY] = JSON.stringify({ practice: { side: 'w', level: 'max', goal: 'win' } });
+    expect(loadSaved()?.practice).toEqual({ side: 'w', level: 'max' });
     store[KEY] = JSON.stringify({ practice: 'max' });
     expect(loadSaved()).not.toHaveProperty('practice');
   });

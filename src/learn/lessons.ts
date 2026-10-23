@@ -1,4 +1,5 @@
 import { DEFAULT_POSITION, type Chess, type Color, type Move, type PieceSymbol } from 'chess.js';
+import type { PracticeGoal } from '../util/link';
 
 /**
  * How a practice board behaves after a move.
@@ -31,6 +32,8 @@ export interface Lesson {
   solved?: string;
   /** The side the reader takes when they play this position out against the computer, from the board's link. */
   practiseAs?: Color;
+  /** What that game is for, which the app says in its status line. */
+  practiceGoal?: PracticeGoal;
 }
 
 export const PIECE_NAME: Record<PieceSymbol, string> = {
@@ -240,6 +243,7 @@ export const LESSONS: readonly Lesson[] = [
     fen: '8/8/8/4k3/8/8/8/3QK3 w - - 0 1',
     solved: 'Ten moves or fewer is good technique.',
     practiseAs: 'w',
+    practiceGoal: 'mate',
   },
   {
     id: 'rook-mate',
@@ -247,12 +251,19 @@ export const LESSONS: readonly Lesson[] = [
     fen: '8/8/8/4k3/8/8/8/R3K3 w - - 0 1',
     solved: 'Around twenty moves is good technique.',
     practiseAs: 'w',
+    practiceGoal: 'mate',
   },
-  { id: 'pawn-ending', mode: 'game', fen: '8/4k3/8/4K3/8/4P3/8/8 w - - 0 1', practiseAs: 'w' },
+  {
+    id: 'pawn-ending',
+    mode: 'game',
+    fen: '8/4k3/8/4K3/8/4P3/8/8 w - - 0 1',
+    practiseAs: 'w',
+    practiceGoal: 'promote',
+  },
 ];
 
 /** The first game "Where to start" suggests: the Beginner level, playing White from the start position. */
-export const FIRST_GAME = { fen: DEFAULT_POSITION, side: 'w', level: 'beginner' } as const;
+export const FIRST_GAME = { fen: DEFAULT_POSITION, side: 'w', level: 'beginner', goal: 'first' } as const;
 
 export function lessonById(id: string | undefined): Lesson | undefined {
   return LESSONS.find((lesson) => lesson.id === id);

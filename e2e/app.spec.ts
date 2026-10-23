@@ -176,7 +176,7 @@ test('How to play: the notation board names a tapped square, and the first game 
   await expect(message).toHaveText('e4: file e, rank 4. The square is empty.');
   await lesson.locator('[data-sq="g1"]').click();
   await expect(message).toHaveText('g1: file g, rank 1, with a white knight. Its letter is N.');
-  await expect(page.locator('.first-game')).toHaveAttribute('href', /&side=w&level=beginner$/);
+  await expect(page.locator('.first-game')).toHaveAttribute('href', /&side=w&level=beginner&goal=first$/);
 });
 
 test("How to play: a Black-to-move puzzle is solved from Black's side and stays solved", async ({ page }) => {
@@ -393,12 +393,26 @@ test.describe('an imported PGN', () => {
 test.describe('practice links', () => {
   const QUEEN_MATE = `./#fen=${encodeURIComponent('8/8/8/4k3/8/8/8/3QK3 w - - 0 1')}&mode=play&side=w&level=max`;
 
+  test('say what the game is for in the status line', async ({ page }) => {
+    await page.goto(`${QUEEN_MATE}&goal=mate`);
+    const status = page.locator('#status');
+    await expect(status).toHaveText(/^Your move\s*Practice: mate the lone king\.$/);
+    await page.reload();
+    await expect(status).toContainText('Practice: mate the lone king.');
+    await page.locator('#newBtn').click();
+    await expect(status).not.toContainText('Practice');
+
+    await page.goto('./how-to-play');
+    await page.locator('.first-game').click();
+    await expect(status).toContainText('Your first game, at the Beginner level.');
+  });
+
   test('set the side and level for that game only', async ({ page }) => {
     await page.goto('./');
     await page.locator('#sideSeg').getByRole('button', { name: 'Black' }).click();
     await page.locator('#levelSelect').selectOption('novice');
     await page.goto(QUEEN_MATE);
-    await expect(page.locator('#status')).toContainText('You play White against the computer (Full strength)');
+    await expect(page.locator('#status')).toContainText('Practice position, against the computer (Full strength)');
     await page.reload(); // mid-practice: still the link's game
     await expect(page.locator('#status')).toContainText('Full strength');
     await expect(page.locator('#levelSelect')).toHaveValue('max');

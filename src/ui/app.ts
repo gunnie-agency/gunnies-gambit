@@ -18,7 +18,7 @@ import {
 } from '../state';
 import { clampView, moveName, shownMoves, STEP_KEYS, stepView, type Step, type View } from '../util/cursor';
 import { escapeHtml } from '../util/html';
-import { parsePracticeLink } from '../util/link';
+import { parsePracticeLink, type PracticeGoal } from '../util/link';
 import { fenProblem, gameEnd, parseTypedMove, uniqueMoveTo, type GameEnd } from '../util/moves';
 import { buildPgn, keptTags, pgnFileName, readPgn } from '../util/pgn';
 import { moveSound } from '../util/sounds';
@@ -116,6 +116,8 @@ export class App {
   private settings: Settings;
   /** The user's own side and level while a practice link's game is on; New game brings them back. */
   private own: PracticeGame | null = null;
+  /** What the practice game is for, when its link said so. */
+  private goal: PracticeGoal | null = null;
   private selected: Square | null = null;
   /** The square of the pawn whose promotion piece is being asked, so focus can return there on Escape. */
   private promotionFrom: Square | null = null;
@@ -159,7 +161,9 @@ export class App {
     this.settings = saved ? settingsOf(saved) : { ...DEFAULT_SETTINGS };
     if (saved?.practice) {
       this.own = { side: this.settings.side, level: this.settings.level };
-      this.settings = { ...this.settings, ...saved.practice };
+      const { side, level, goal } = saved.practice;
+      this.settings = { ...this.settings, side, level };
+      this.goal = goal ?? null;
     }
     this.sounds.enabled = this.settings.sound;
 
@@ -646,7 +650,7 @@ export class App {
   private save(): void {
     const { side, level } = this.settings;
     // The saved settings stay the user's own; a practice game's side and level are saved beside them.
-    const practice = this.own && { side, level };
+    const practice = this.own && { side, level, ...(this.goal && { goal: this.goal }) };
     saveGame(this.startFen, this.played.map(toUci), { ...this.settings, ...this.own }, this.tags, practice);
   }
 
@@ -656,6 +660,7 @@ export class App {
     if (this.own.side !== this.settings.side) this.settings.orient = this.own.side;
     this.settings = { ...this.settings, ...this.own };
     this.own = null;
+    this.goal = null;
   }
 
   private updateSettings(patch: Partial<Settings>): void {
@@ -669,8 +674,9 @@ export class App {
   }
 
   /**
-   * Opens a practice link (`#fen=…&mode=play&side=…&level=…`, see util/link.ts) in place of the current game, says so
-   * in the move hint, and removes the hash so a reload does not load it again. Anything else in the hash is ignored.
+   * Opens a practice link (`#fen=…&mode=play&side=…&level=…&goal=…`, see util/link.ts) in place of the current game,
+   * which the status line then says, and removes the hash so a reload does not load it again. Anything else in the
+   * hash is ignored.
    * Returns whether a position was loaded; the caller then runs positionChanged.
    */
   private readPracticeLink(): boolean {
@@ -680,10 +686,11 @@ export class App {
     this.game.load(link.fen);
     this.startFen = link.fen;
     this.own ??= { side: this.settings.side, level: this.settings.level };
+    this.goal = link.goal ?? null;
     this.settings = { ...this.settings, mode: 'play', side: link.side, orient: link.side, level: link.level };
     this.opponentFen = null;
     this.view = null;
-    this.moveMessage = { text: 'Loaded the practice position.', err: false };
+    this.moveMessage = null;
     return true;
   }
 
@@ -999,9 +1006,26 @@ export class App {
     const level = escapeHtml(levelById(this.settings.level).label);
     if (this.opponent.status === 'failed')
       return 'The engine could not start.<small>Reload the page to try again.</small>';
-    if (this.game.turn() === side)
-      return `${yourMove}<small>You play ${COLOR_NAME[side]} against the computer (${level}).</small>`;
-    return `The computer is thinking…<small>Level: ${level}</small>`;
+    const practice = this.own ? this.practiceText(level) : null;
+    if (this.game.turn() === side) {
+      const about = practice ?? `You play ${COLOR_NAME[side]} against the computer (${level}).`;
+      return `${yourMove}<small>${about}</small>`;
+    }
+    return `The computer is thinking…<small>${practice ?? 'Level: ' + level}</small>`;
+  }
+
+  /** What a practice link's game is for, in the status line's small line; `level` is already escaped. */
+  private practiceText(level: string): string {
+    switch (this.goal) {
+      case 'mate':
+        return 'Practice: mate the lone king.';
+      case 'promote':
+        return 'Practice: get your pawn through and promote it.';
+      case 'first':
+        return `Your first game, at the ${level} level.`;
+      default:
+        return `Practice position, against the computer (${level}).`;
+    }
   }
 
   /** The status while an earlier position is shown. Short enough for the two lines the status reserves on a phone. */

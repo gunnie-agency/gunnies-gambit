@@ -1,6 +1,7 @@
 import { Chess, DEFAULT_POSITION, type Color } from 'chess.js';
 import { DEFAULT_LEVEL_ID, LEVELS } from './engine/levels';
 import type { PositionEval } from './review/classify';
+import { isPracticeGoal, type PracticeGoal } from './util/link';
 import { fenProblem } from './util/moves';
 import { keptTags } from './util/pgn';
 import { parseUciMove } from './util/uci';
@@ -34,6 +35,7 @@ export interface Settings {
 export interface PracticeGame {
   side: Color;
   level: string;
+  goal?: PracticeGoal;
 }
 
 export interface SavedGame extends Settings {
@@ -93,9 +95,9 @@ function isLevel(v: unknown): v is string {
 
 function practiceOf(v: unknown): PracticeGame | null {
   if (!v || typeof v !== 'object') return null;
-  const { side, level } = v as Partial<Record<keyof PracticeGame, unknown>>;
+  const { side, level, goal } = v as Partial<Record<keyof PracticeGame, unknown>>;
   if ((side !== 'w' && side !== 'b') || !isLevel(level)) return null;
-  return { side, level };
+  return { side, level, ...(isPracticeGoal(goal) && { goal }) };
 }
 
 /** The strings at the start of `v`. Dropping a bad entry from the middle instead would replay a different game. */

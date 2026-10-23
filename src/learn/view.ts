@@ -36,7 +36,7 @@ function mountLesson(root: HTMLElement, progress: Progress): void {
   if (lesson.practiseAs) {
     const link = root.querySelector<HTMLAnchorElement>('.lesson-practise');
     if (!link) throw new Error(`Endgame ${lesson.id} has no practice link`);
-    link.href = buildPracticeLink(lesson.fen, lesson.practiseAs, PRACTICE_LEVEL);
+    link.href = buildPracticeLink(lesson.fen, lesson.practiseAs, PRACTICE_LEVEL, lesson.practiceGoal);
   }
 
   const intro = message.textContent ?? '';
@@ -141,6 +141,6 @@ export function mountLessons(): void {
   };
   document.querySelectorAll<HTMLElement>('[data-lesson]').forEach((root) => mountLesson(root, progress));
   const firstGame = document.querySelector<HTMLAnchorElement>('.first-game');
-  if (firstGame) firstGame.href = buildPracticeLink(FIRST_GAME.fen, FIRST_GAME.side, FIRST_GAME.level);
+  if (firstGame) firstGame.href = buildPracticeLink(FIRST_GAME.fen, FIRST_GAME.side, FIRST_GAME.level, FIRST_GAME.goal);
   showProgress(solved);
 }

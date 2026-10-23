@@ -12,6 +12,12 @@ describe('buildPracticeLink', () => {
   });
 });
 
+describe('buildPracticeLink with a goal', () => {
+  it('adds the goal at the end', () => {
+    expect(buildPracticeLink(FEN, 'w', 'max', 'mate')).toMatch(/&level=max&goal=mate$/);
+  });
+});
+
 describe('parsePracticeLink', () => {
   const hashOf = (link: string) => link.slice(link.indexOf('#'));
 
@@ -21,6 +27,15 @@ describe('parsePracticeLink', () => {
       side: 'b',
       level: 'elo1400',
     });
+  });
+
+  it('reads a known goal and ignores an unknown one', () => {
+    expect(parsePracticeLink(hashOf(buildPracticeLink(FEN, 'w', 'max', 'promote')))?.goal).toBe('promote');
+    for (const goal of ['mate', 'first'] as const) {
+      expect(parsePracticeLink(`#fen=${ENCODED}&mode=play&side=w&level=max&goal=${goal}`)?.goal).toBe(goal);
+    }
+    const unknown = parsePracticeLink(`#fen=${ENCODED}&mode=play&side=w&level=max&goal=win`);
+    expect(unknown).toEqual({ fen: FEN, side: 'w', level: 'max' });
   });
 
   it('accepts a hash without the leading #', () => {
