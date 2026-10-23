@@ -1,6 +1,8 @@
 import { findOpening, gameFens, type OpeningMatch, type OpeningTable } from './lookup';
 
 let table: Promise<OpeningTable> | null = null;
+/** The table once it has loaded. */
+let loaded: OpeningTable | null = null;
 /** The latest request per element, so an answer that arrives late never overwrites a newer one. */
 const latest = new WeakMap<HTMLElement, symbol>();
 
@@ -10,7 +12,7 @@ const latest = new WeakMap<HTMLElement, symbol>();
  */
 function loadTable(): Promise<OpeningTable> {
   table ??= import('./data/openings.json').then(
-    (data) => data.positions as unknown as OpeningTable,
+    (data) => (loaded = data.positions as unknown as OpeningTable),
     (error: unknown) => {
       table = null;
       throw error;
@@ -50,4 +52,12 @@ export function showOpening(el: HTMLElement, startFen: string, sans: readonly st
     .catch(() => {
       if (latest.get(el) === request) render(el, null);
     });
+}
+
+/**
+ * The deepest known opening of a game, or null when it has none or the names have not loaded yet. Synchronous, so
+ * copying or sharing the game keeps its user gesture; {@link showOpening} loads the names for any game with moves.
+ */
+export function loadedOpening(startFen: string, sans: readonly string[]): OpeningMatch | null {
+  return loaded && sans.length ? findOpening(loaded, gameFens(startFen, sans)) : null;
 }

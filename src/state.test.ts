@@ -23,7 +23,7 @@ describe('saved game', () => {
     const settings = { ...DEFAULT_SETTINGS, mode: 'analysis' as const, side: 'b' as const, showEval: true };
     saveGame(DEFAULT_POSITION, ['e2e4', 'c7c5'], settings);
     const saved = loadSaved();
-    expect(saved).toEqual({ ...settings, startFen: DEFAULT_POSITION, moves: ['e2e4', 'c7c5'] });
+    expect(saved).toEqual({ ...settings, startFen: DEFAULT_POSITION, moves: ['e2e4', 'c7c5'], tags: {} });
     expect(saved && settingsOf(saved)).toEqual(settings);
   });
 
@@ -45,9 +45,20 @@ describe('saved game', () => {
       orient: 'b',
       startFen: DEFAULT_POSITION,
       moves: [],
+      tags: {},
     });
     store[KEY] = '{}';
-    expect(loadSaved()).toEqual({ ...DEFAULT_SETTINGS, startFen: DEFAULT_POSITION, moves: [] });
+    expect(loadSaved()).toEqual({ ...DEFAULT_SETTINGS, startFen: DEFAULT_POSITION, moves: [], tags: {} });
+  });
+
+  it('keeps the tags of a loaded game, only the known ones with text values', () => {
+    const tags = { White: 'Alice', Black: 'Bob', Result: '0-1', WhiteElo: '1500' };
+    saveGame(DEFAULT_POSITION, ['e2e4'], DEFAULT_SETTINGS, tags);
+    expect(loadSaved()?.tags).toEqual(tags);
+    store[KEY] = JSON.stringify({ tags: { White: 'Alice', Black: 7, Annotator: 'me', Result: 'won' } });
+    expect(loadSaved()?.tags).toEqual({ White: 'Alice' });
+    store[KEY] = JSON.stringify({ tags: ['White'] });
+    expect(loadSaved()?.tags).toEqual({});
   });
 
   it('reads the sound setting, off for older saves without it and for anything but true', () => {

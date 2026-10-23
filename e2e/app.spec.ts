@@ -234,6 +234,12 @@ async function loadPgn(page: Page, pgn: string): Promise<void> {
   await page.locator('#loadPgn').click();
 }
 
+async function downloadedPgn(page: Page): Promise<string> {
+  await openTools(page);
+  const [download] = await Promise.all([page.waitForEvent('download'), page.locator('#downloadPgn').click()]);
+  return readFileSync(await download.path(), 'utf8');
+}
+
 test.describe('the promotion picker', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('./');
@@ -323,8 +329,36 @@ test('the engine chip says idle when no engine is needed', async ({ page }) => {
   await expect(page.locator('#engineChip')).not.toHaveClass(/\bready\b/);
 });
 
-test('an imported PGN may have escaped quotes in a tag', async ({ page }) => {
-  await page.goto('./');
-  await loadPgn(page, '[White "Alice \\"A\\""]\n[Result "1-0"]\n\n1. e4 1-0');
-  await expect(page.locator('#toolsHint')).toHaveText('Imported 1 moves.');
+test.describe('an imported PGN', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('./');
+    await analyse(page);
+  });
+
+  test('keeps its players and result, also after a reload, until the game changes', async ({ page }) => {
+    await loadPgn(page, '[White "Alice"][Black "Bob"][Result "0-1"] 1. e4 e5 2. Nf3 0-1');
+    await expect(page.locator('#toolsHint')).toHaveText('Imported 3 moves.');
+    await expect(page.locator('#opening')).not.toBeEmpty(); // the opening names have loaded
+    let pgn = await downloadedPgn(page);
+    expect(pgn).toContain('[White "Alice"]');
+    expect(pgn).toContain('[Black "Bob"]');
+    expect(pgn).toContain('[Result "0-1"]');
+    expect(pgn).toMatch(/\[ECO "C\d\d"\]/);
+    expect(pgn).toContain('[Opening "King');
+    expect(pgn).toMatch(/2\. Nf3 0-1\s*$/);
+
+    await page.reload();
+    expect(await downloadedPgn(page)).toContain('[White "Alice"]');
+
+    await typeMoves(page, ['Nc6']);
+    pgn = await downloadedPgn(page);
+    expect(pgn).toContain('[White "?"]');
+    expect(pgn).toContain('[Result "*"]');
+  });
+
+  test('may have escaped quotes in a tag', async ({ page }) => {
+    await loadPgn(page, '[White "Alice \\"A\\""]\n[Result "1-0"]\n\n1. e4 1-0');
+    await expect(page.locator('#toolsHint')).toHaveText('Imported 1 moves.');
+    expect(await downloadedPgn(page)).toContain('[White "Alice \\"A\\""]');
+  });
 });

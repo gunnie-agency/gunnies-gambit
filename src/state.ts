@@ -2,6 +2,7 @@ import { Chess, DEFAULT_POSITION, type Color } from 'chess.js';
 import { DEFAULT_LEVEL_ID, LEVELS } from './engine/levels';
 import type { PositionEval } from './review/classify';
 import { fenProblem } from './util/moves';
+import { keptTags } from './util/pgn';
 import { parseUciMove } from './util/uci';
 
 export type Mode = 'play' | 'analysis';
@@ -29,6 +30,8 @@ export interface Settings {
 export interface SavedGame extends Settings {
   startFen: string;
   moves: string[];
+  /** The tags of a loaded game, kept for its export until the game changes (see util/pgn.ts). */
+  tags: Record<string, string>;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -67,6 +70,7 @@ export function loadSaved(): SavedGame | null {
     sound: s.sound === true,
     startFen: typeof s.startFen === 'string' ? s.startFen : DEFAULT_POSITION,
     moves: leadingStrings(s.moves),
+    tags: s.tags && typeof s.tags === 'object' ? keptTags(s.tags as Record<string, unknown>) : {},
   };
 }
 
@@ -82,9 +86,14 @@ export function settingsOf(saved: SavedGame): Settings {
   return { mode, side, orient, think, level, showEval, showBest, sound };
 }
 
-/** Stores the game as its start position and UCI moves, with the settings. */
-export function saveGame(startFen: string, moves: readonly string[], settings: Settings): void {
-  const saved: SavedGame = { ...settings, startFen, moves: [...moves] };
+/** Stores the game as its start position and UCI moves, with the settings and the tags of a loaded game. */
+export function saveGame(
+  startFen: string,
+  moves: readonly string[],
+  settings: Settings,
+  tags: Readonly<Record<string, string>> = {},
+): void {
+  const saved: SavedGame = { ...settings, startFen, moves: [...moves], tags: { ...tags } };
   try {
     localStorage.setItem(KEY, JSON.stringify(saved));
   } catch {

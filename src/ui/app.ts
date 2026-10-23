@@ -4,14 +4,14 @@ import { Engine, STOCKFISH_URL, type EngineStatus } from '../engine/engine';
 import type { EngineInfo } from '../engine/info';
 import { LEVELS, levelById } from '../engine/levels';
 import type { SearchJob } from '../engine/queue';
-import { showOpening } from '../openings/view';
+import { loadedOpening, showOpening } from '../openings/view';
 import { Review } from '../review/view';
 import { DEFAULT_SETTINGS, loadSaved, replay, saveGame, settingsOf, type Mode, type Settings } from '../state';
 import { clampView, moveName, shownMoves, STEP_KEYS, stepView, type Step, type View } from '../util/cursor';
 import { escapeHtml } from '../util/html';
 import { parsePracticeLink } from '../util/link';
 import { fenProblem, gameEnd, parseTypedMove, uniqueMoveTo, type GameEnd } from '../util/moves';
-import { buildPgn, pgnFileName, readPgn } from '../util/pgn';
+import { buildPgn, keptTags, pgnFileName, readPgn } from '../util/pgn';
 import { moveSound } from '../util/sounds';
 import { numberMoves, pvToSan } from '../util/san';
 import { evalBarPercent, formatScore, toWhitePov, verdict, type Score } from '../util/score';
@@ -101,6 +101,8 @@ export class App {
   /** The moves of `game`, refreshed in positionChanged: every chess.js history() call replays the whole game. */
   private played: Move[];
   private startFen: string;
+  /** The tags of a loaded game, for its export, until the game changes. */
+  private tags: Record<string, string>;
   private settings: Settings;
   private selected: Square | null = null;
   /** The square of the pawn whose promotion piece is being asked, so focus can return there on Escape. */
@@ -141,6 +143,7 @@ export class App {
     this.game = restored.game;
     this.played = this.game.history({ verbose: true });
     this.startFen = restored.startFen;
+    this.tags = saved?.tags ?? {};
     this.settings = saved ? settingsOf(saved) : { ...DEFAULT_SETTINGS };
     this.sounds.enabled = this.settings.sound;
 
@@ -186,8 +189,8 @@ export class App {
   }
 
   start(): void {
-    this.readPracticeLink();
-    this.positionChanged();
+    const linked = this.readPracticeLink();
+    this.positionChanged(linked ? {} : this.tags);
     this.warmOpponent();
   }
 
@@ -203,7 +206,7 @@ export class App {
     this.moveMessage = null;
     this.view = null;
     this.settings = { ...this.settings, mode: 'analysis', side: options.side, orient: options.side };
-    this.positionChanged();
+    this.positionChanged(keptTags(read.headers));
     if (options.review) this.startReview();
     return true;
   }
@@ -365,7 +368,9 @@ export class App {
 
   // ---------- game actions ----------
 
-  private positionChanged(): void {
+  /** After any change to the game. A loaded game passes its tags; any other change forgets them. */
+  private positionChanged(tags: Record<string, string> = {}): void {
+    this.tags = tags;
     this.review.close();
     clearTimeout(this.replyTimer);
     this.cancelPromotion();
@@ -624,7 +629,7 @@ export class App {
   }
 
   private save(): void {
-    saveGame(this.startFen, this.played.map(toUci), this.settings);
+    saveGame(this.startFen, this.played.map(toUci), this.settings, this.tags);
   }
 
   private updateSettings(patch: Partial<Settings>): void {
@@ -794,7 +799,7 @@ export class App {
       this.startFen = restored.startFen;
       this.opponentFen = null;
       this.view = null;
-      this.positionChanged();
+      this.positionChanged(keptTags(read.headers));
       this.toolsHint(`Imported ${this.played.length} moves.`);
     });
     el.copyFen.addEventListener('click', () => this.copy(this.fen, 'FEN copied.', el.fenInput));
@@ -830,7 +835,7 @@ export class App {
     navigator.clipboard.writeText(text).then(() => this.toolsHint(ok), fallback);
   }
 
-  /** The whole game as PGN, with who played which side in play mode. */
+  /** The whole game as PGN, with who played which side in play mode, or the tags of a loaded game. */
   private pgn(): string {
     const { mode, side, level } = this.settings;
     return buildPgn({
@@ -839,6 +844,11 @@ export class App {
       players: mode === 'play' ? { mode, side, level: levelById(level).label } : { mode },
       site: import.meta.env.VITE_SITE_URL,
       date: new Date(),
+      tags: this.tags,
+      opening: loadedOpening(
+        this.startFen,
+        this.played.map((m) => m.san),
+      ),
     });
   }
 

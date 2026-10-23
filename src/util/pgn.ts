@@ -1,4 +1,5 @@
 import { Chess, DEFAULT_POSITION, type Color } from 'chess.js';
+import type { Opening } from '../openings/lookup';
 import { gameEnd } from './moves';
 import { parseUciMove, toUci } from './uci';
 
@@ -11,7 +12,43 @@ export interface PgnGame {
   /** The public URL of the app, for the Site tag. */
   site: string;
   date: Date;
+  /**
+   * The tags of a loaded game (see {@link keptTags}), which replace the app's own. Its Result counts while the moves
+   * on the board do not decide the game, as for a game won on time or by resignation.
+   */
+  tags?: Readonly<Record<string, string>>;
+  /** The deepest named opening of the game, written as the ECO and Opening tags. */
+  opening?: Opening | null;
 }
+
+/** The tags of a loaded game worth keeping when it is exported again: who played, where, when, and how it ended. */
+const KEPT_TAGS = [
+  'Event',
+  'Site',
+  'Date',
+  'Round',
+  'White',
+  'Black',
+  'Result',
+  'TimeControl',
+  'WhiteElo',
+  'BlackElo',
+] as const;
+
+const RESULTS = new Set(['1-0', '0-1', '1/2-1/2', '*']);
+
+/** The tags of {@link KEPT_TAGS} among `headers`, leaving out a Result that is not one. */
+export function keptTags(headers: Readonly<Record<string, unknown>>): Record<string, string> {
+  const kept: Record<string, string> = {};
+  for (const name of KEPT_TAGS) {
+    const value = headers[name];
+    if (typeof value === 'string' && (name !== 'Result' || RESULTS.has(value))) kept[name] = value;
+  }
+  return kept;
+}
+
+/** A tag value with its quotes and backslashes escaped, as the PGN standard asks. */
+const escapeTag = (value: string) => value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -35,8 +72,9 @@ export function pgnResult(game: Chess): string {
 }
 
 /**
- * The game as PGN with the seven standard tags, plus SetUp and FEN when it started from another position. Moves
- * stop at the first one that does not apply, as when a saved game is replayed.
+ * The game as PGN with the seven standard tags, the kept tags of a loaded game, SetUp and FEN when it started from
+ * another position, and ECO and Opening when it reached a named one. Moves stop at the first one that does not
+ * apply, as when a saved game is replayed.
  */
 export function buildPgn(g: PgnGame): string {
   const game = new Chess(g.startFen);
@@ -50,13 +88,22 @@ export function buildPgn(g: PgnGame): string {
     }
   }
   const players = playerNames(g.players);
-  game.setHeader('Event', g.players.mode === 'play' ? 'Practice game against the computer' : 'Analysis');
-  game.setHeader('Site', g.site);
-  game.setHeader('Date', pgnDate(g.date));
-  game.setHeader('Round', '-');
-  game.setHeader('White', players.white);
-  game.setHeader('Black', players.black);
-  game.setHeader('Result', pgnResult(game));
+  const result = pgnResult(game);
+  const tags: Record<string, string> = {
+    Event: g.players.mode === 'play' ? 'Practice game against the computer' : 'Analysis',
+    Site: g.site,
+    Date: pgnDate(g.date),
+    Round: '-',
+    White: players.white,
+    Black: players.black,
+    ...g.tags,
+    Result: result === '*' ? (g.tags?.Result ?? result) : result,
+  };
+  if (g.opening) {
+    tags.ECO = g.opening.eco;
+    tags.Opening = g.opening.name;
+  }
+  for (const [name, value] of Object.entries(tags)) game.setHeader(name, escapeTag(value));
   return game.pgn();
 }
 

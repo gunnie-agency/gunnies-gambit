@@ -1,6 +1,6 @@
 import { Chess, DEFAULT_POSITION } from 'chess.js';
 import { describe, expect, it } from 'vitest';
-import { buildPgn, pgnDate, pgnFileName, pgnResult, readPgn } from './pgn';
+import { buildPgn, keptTags, pgnDate, pgnFileName, pgnResult, readPgn } from './pgn';
 
 const DATE = new Date(2026, 9, 2, 9, 5);
 const SITE = 'https://chess.example';
@@ -64,6 +64,70 @@ describe('buildPgn', () => {
     expect(loaded.moves).toEqual(moves);
   });
 
+  it('keeps the tags of a loaded game and its result while the moves do not decide it', () => {
+    const tags = { White: 'Alice', Black: 'Bob', Date: '2026.01.02', Result: '0-1', BlackElo: '1500' };
+    const pgn = buildPgn({
+      startFen: DEFAULT_POSITION,
+      moves: ['e2e4'],
+      players: { mode: 'analysis' },
+      site: SITE,
+      date: DATE,
+      tags,
+    });
+    expect(load(pgn).headers).toEqual({
+      Event: 'Analysis',
+      Site: SITE,
+      Date: '2026.01.02',
+      Round: '-',
+      White: 'Alice',
+      Black: 'Bob',
+      Result: '0-1',
+      BlackElo: '1500',
+    });
+    expect(pgn.trimEnd().endsWith('1. e4 0-1')).toBe(true);
+  });
+
+  it('scores a checkmate on the board over the loaded result', () => {
+    const moves = ['f2f3', 'e7e5', 'g2g4', 'd8h4'];
+    const tags = { Result: '1/2-1/2' };
+    const pgn = buildPgn({
+      startFen: DEFAULT_POSITION,
+      moves,
+      players: { mode: 'analysis' },
+      site: SITE,
+      date: DATE,
+      tags,
+    });
+    expect(load(pgn).headers.Result).toBe('0-1');
+  });
+
+  it('escapes quotes and backslashes in tag values', () => {
+    const tags = { White: 'Alice "A"', Black: 'C:\\games' };
+    const pgn = buildPgn({
+      startFen: DEFAULT_POSITION,
+      moves: [],
+      players: { mode: 'analysis' },
+      site: SITE,
+      date: DATE,
+      tags,
+    });
+    expect(pgn).toContain('[White "Alice \\"A\\""]');
+    expect(readPgn(pgn)?.headers).toMatchObject(tags);
+  });
+
+  it('names the opening', () => {
+    const opening = { eco: 'C40', name: "King's Knight Opening" };
+    const pgn = buildPgn({
+      startFen: DEFAULT_POSITION,
+      moves: ['e2e4', 'e7e5', 'g1f3'],
+      players: { mode: 'analysis' },
+      site: SITE,
+      date: DATE,
+      opening,
+    });
+    expect(load(pgn).headers).toMatchObject({ ECO: 'C40', Opening: "King's Knight Opening" });
+  });
+
   it('stops at the first move that does not apply', () => {
     const pgn = buildPgn({
       startFen: DEFAULT_POSITION,
@@ -119,5 +183,21 @@ describe('readPgn', () => {
 
   it('refuses text that is not a game', () => {
     expect(readPgn('1. e4 e4')).toBeNull();
+  });
+});
+
+describe('keptTags', () => {
+  it('keeps the tags that describe the game, and only a valid result', () => {
+    const headers = {
+      Event: 'Rated blitz game',
+      White: 'Alice',
+      FEN: 'x',
+      SetUp: '1',
+      Annotator: 'me',
+      TimeControl: '180+2',
+    };
+    expect(keptTags(headers)).toEqual({ Event: 'Rated blitz game', White: 'Alice', TimeControl: '180+2' });
+    expect(keptTags({ Result: '1-0' })).toEqual({ Result: '1-0' });
+    expect(keptTags({ Result: 'White won' })).toEqual({});
   });
 });
