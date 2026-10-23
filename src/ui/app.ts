@@ -6,7 +6,16 @@ import { levelById } from '../engine/levels';
 import type { SearchJob } from '../engine/queue';
 import { loadedOpening, showOpening } from '../openings/view';
 import { Review } from '../review/view';
-import { DEFAULT_SETTINGS, loadSaved, replay, saveGame, settingsOf, type Mode, type Settings } from '../state';
+import {
+  DEFAULT_SETTINGS,
+  loadSaved,
+  replay,
+  saveGame,
+  settingsOf,
+  type Mode,
+  type PracticeGame,
+  type Settings,
+} from '../state';
 import { clampView, moveName, shownMoves, STEP_KEYS, stepView, type Step, type View } from '../util/cursor';
 import { escapeHtml } from '../util/html';
 import { parsePracticeLink } from '../util/link';
@@ -103,7 +112,10 @@ export class App {
   private startFen: string;
   /** The tags of a loaded game, for its export, until the game changes. */
   private tags: Record<string, string>;
+  /** The settings in force: during a practice game with the link's side and level. */
   private settings: Settings;
+  /** The user's own side and level while a practice link's game is on; New game brings them back. */
+  private own: PracticeGame | null = null;
   private selected: Square | null = null;
   /** The square of the pawn whose promotion piece is being asked, so focus can return there on Escape. */
   private promotionFrom: Square | null = null;
@@ -145,6 +157,10 @@ export class App {
     this.startFen = restored.startFen;
     this.tags = saved?.tags ?? {};
     this.settings = saved ? settingsOf(saved) : { ...DEFAULT_SETTINGS };
+    if (saved?.practice) {
+      this.own = { side: this.settings.side, level: this.settings.level };
+      this.settings = { ...this.settings, ...saved.practice };
+    }
     this.sounds.enabled = this.settings.sound;
 
     this.analysis = new Engine({
@@ -202,6 +218,7 @@ export class App {
     this.hintFen = null;
     this.moveMessage = null;
     this.view = null;
+    this.endPractice();
     this.settings = { ...this.settings, mode: 'analysis', side: options.side, orient: options.side };
     this.positionChanged(keptTags(read.headers));
     if (options.review) this.startReview();
@@ -589,6 +606,7 @@ export class App {
   private newGame(): void {
     this.game.reset();
     this.startFen = DEFAULT_POSITION;
+    this.endPractice();
     this.settings.orient = this.settings.side;
     this.moveMessage = null;
     this.view = null;
@@ -626,10 +644,23 @@ export class App {
   }
 
   private save(): void {
-    saveGame(this.startFen, this.played.map(toUci), this.settings, this.tags);
+    const { side, level } = this.settings;
+    // The saved settings stay the user's own; a practice game's side and level are saved beside them.
+    const practice = this.own && { side, level };
+    saveGame(this.startFen, this.played.map(toUci), { ...this.settings, ...this.own }, this.tags, practice);
+  }
+
+  /** Brings back the user's own side and level when a practice link's game is replaced. */
+  private endPractice(): void {
+    if (!this.own) return;
+    if (this.own.side !== this.settings.side) this.settings.orient = this.own.side;
+    this.settings = { ...this.settings, ...this.own };
+    this.own = null;
   }
 
   private updateSettings(patch: Partial<Settings>): void {
+    // A side or level the user picks during a practice game is their own choice, also after it.
+    if (this.own) this.own = { side: patch.side ?? this.own.side, level: patch.level ?? this.own.level };
     this.settings = { ...this.settings, ...patch };
     this.cancelPromotion();
     this.save();
@@ -648,6 +679,7 @@ export class App {
     history.replaceState(null, '', location.pathname + location.search);
     this.game.load(link.fen);
     this.startFen = link.fen;
+    this.own ??= { side: this.settings.side, level: this.settings.level };
     this.settings = { ...this.settings, mode: 'play', side: link.side, orient: link.side, level: link.level };
     this.opponentFen = null;
     this.view = null;
@@ -779,6 +811,7 @@ export class App {
       if (problem) return this.toolsHint(`That FEN is not valid: ${problem}`, true);
       this.game.load(fen);
       this.startFen = fen;
+      this.endPractice();
       this.opponentFen = null;
       this.view = null;
       this.positionChanged();
@@ -792,6 +825,7 @@ export class App {
       const restored = replay(read.startFen, read.moves);
       this.game = restored.game;
       this.startFen = restored.startFen;
+      this.endPractice();
       this.opponentFen = null;
       this.view = null;
       this.positionChanged(keptTags(read.headers));

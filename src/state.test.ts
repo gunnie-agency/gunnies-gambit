@@ -70,6 +70,17 @@ describe('saved game', () => {
     expect(loadSaved()?.sound).toBe(false);
   });
 
+  it('keeps a practice game’s side and level beside the user’s own settings', () => {
+    saveGame(DEFAULT_POSITION, ['e2e4'], DEFAULT_SETTINGS, {}, { side: 'b', level: 'max' });
+    const saved = loadSaved();
+    expect(saved?.practice).toEqual({ side: 'b', level: 'max' });
+    expect(saved && settingsOf(saved)).toEqual(DEFAULT_SETTINGS);
+    store[KEY] = JSON.stringify({ practice: { side: 'b', level: 'grandmaster' } });
+    expect(loadSaved()).not.toHaveProperty('practice');
+    store[KEY] = JSON.stringify({ practice: 'max' });
+    expect(loadSaved()).not.toHaveProperty('practice');
+  });
+
   it('keeps the moves only up to the first one that is not a string', () => {
     store[KEY] = JSON.stringify({ moves: ['e2e4', 5, 'g1f3'] });
     expect(loadSaved()?.moves).toEqual(['e2e4']);

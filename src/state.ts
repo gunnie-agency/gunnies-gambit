@@ -27,11 +27,22 @@ export interface Settings {
   sound: boolean;
 }
 
+/**
+ * The side and level a practice link set for its one game. The saved settings keep the user's own choice, which
+ * New game brings back.
+ */
+export interface PracticeGame {
+  side: Color;
+  level: string;
+}
+
 export interface SavedGame extends Settings {
   startFen: string;
   moves: string[];
   /** The tags of a loaded game, kept for its export until the game changes (see util/pgn.ts). */
   tags: Record<string, string>;
+  /** Set while the game is one a practice link started. */
+  practice?: PracticeGame;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -59,19 +70,32 @@ export function loadSaved(): SavedGame | null {
   const s = raw as Partial<Record<keyof SavedGame, unknown>>;
   const color = (v: unknown, fallback: Color): Color => (v === 'w' || v === 'b' ? v : fallback);
   const side = color(s.side, DEFAULT_SETTINGS.side);
+  const practice = practiceOf(s.practice);
   return {
     mode: s.mode === 'analysis' ? 'analysis' : 'play',
     side,
     orient: color(s.orient, side),
     think: THINK_TIMES.includes(s.think as (typeof THINK_TIMES)[number]) ? (s.think as number) : DEFAULT_SETTINGS.think,
-    level: LEVELS.some((l) => l.id === s.level) ? (s.level as string) : DEFAULT_SETTINGS.level,
+    level: isLevel(s.level) ? s.level : DEFAULT_SETTINGS.level,
     showEval: s.showEval === true,
     showBest: s.showBest === true,
     sound: s.sound === true,
     startFen: typeof s.startFen === 'string' ? s.startFen : DEFAULT_POSITION,
     moves: leadingStrings(s.moves),
     tags: s.tags && typeof s.tags === 'object' ? keptTags(s.tags as Record<string, unknown>) : {},
+    ...(practice && { practice }),
   };
+}
+
+function isLevel(v: unknown): v is string {
+  return LEVELS.some((l) => l.id === v);
+}
+
+function practiceOf(v: unknown): PracticeGame | null {
+  if (!v || typeof v !== 'object') return null;
+  const { side, level } = v as Partial<Record<keyof PracticeGame, unknown>>;
+  if ((side !== 'w' && side !== 'b') || !isLevel(level)) return null;
+  return { side, level };
 }
 
 /** The strings at the start of `v`. Dropping a bad entry from the middle instead would replay a different game. */
@@ -86,14 +110,24 @@ export function settingsOf(saved: SavedGame): Settings {
   return { mode, side, orient, think, level, showEval, showBest, sound };
 }
 
-/** Stores the game as its start position and UCI moves, with the settings and the tags of a loaded game. */
+/**
+ * Stores the game as its start position and UCI moves, with the settings, the tags of a loaded game and, for a game
+ * a practice link started, the side and level of that link.
+ */
 export function saveGame(
   startFen: string,
   moves: readonly string[],
   settings: Settings,
   tags: Readonly<Record<string, string>> = {},
+  practice: PracticeGame | null = null,
 ): void {
-  const saved: SavedGame = { ...settings, startFen, moves: [...moves], tags: { ...tags } };
+  const saved: SavedGame = {
+    ...settings,
+    startFen,
+    moves: [...moves],
+    tags: { ...tags },
+    ...(practice && { practice }),
+  };
   try {
     localStorage.setItem(KEY, JSON.stringify(saved));
   } catch {

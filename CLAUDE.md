@@ -42,7 +42,9 @@ hint, the evaluation or best move in Play, or Analyse; in Play only the opponent
 analysis engine is still compiling.
 
 **Practice links** `#fen=…&mode=play&side=…&level=…` (`src/util/link.ts`), used by the endgames on How to play, open
-in Play with "Loaded the practice position." and the hash cleared. Links to positions that cannot arise (`fenProblem`
+in Play with "Loaded the practice position." and the hash cleared. The link's side and level hold for that game
+only: they are saved beside the user's own as `practice` (`src/state.ts`), so a reload keeps them, and New game or
+loading another game brings the user's own back. Links to positions that cannot arise (`fenProblem`
 in `src/util/moves.ts`) are refused, and a saved game whose start position `fenProblem` refuses replays from the
 standard start (`src/state.ts`). Typed input accepts lower case (`nf3`, `e8q`, `o-o`; a leading `b` is a b-file
 pawn when that move is legal, otherwise a bishop); a promotion without a piece is a queen (`e7e8`, `e8`).

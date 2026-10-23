@@ -389,3 +389,27 @@ test.describe('an imported PGN', () => {
     expect(await downloadedPgn(page)).toContain('[White "Alice \\"A\\""]');
   });
 });
+
+test.describe('practice links', () => {
+  const QUEEN_MATE = `./#fen=${encodeURIComponent('8/8/8/4k3/8/8/8/3QK3 w - - 0 1')}&mode=play&side=w&level=max`;
+
+  test('set the side and level for that game only', async ({ page }) => {
+    await page.goto('./');
+    await page.locator('#sideSeg').getByRole('button', { name: 'Black' }).click();
+    await page.locator('#levelSelect').selectOption('novice');
+    await page.goto(QUEEN_MATE);
+    await expect(page.locator('#status')).toContainText('You play White against the computer (Full strength)');
+    await page.reload(); // mid-practice: still the link's game
+    await expect(page.locator('#status')).toContainText('Full strength');
+    await expect(page.locator('#levelSelect')).toHaveValue('max');
+    await page.locator('#newBtn').click();
+    await expect(page.locator('#levelSelect')).toHaveValue('novice');
+    await expect(page.locator('#sideSeg').getByRole('button', { name: 'Black' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.locator('#status')).toContainText('Novice');
+    await page.reload();
+    await expect(page.locator('#levelSelect')).toHaveValue('novice');
+  });
+});
