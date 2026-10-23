@@ -1116,7 +1116,7 @@ export class App {
   }
 
   private paintBar(percent: number, title: string): void {
-    this.el.evalfill.style.height = `${percent.toFixed(1)}%`;
+    this.el.evalfill.style.transform = `scaleY(${(percent / 100).toFixed(3)})`;
     this.el.evalbar.classList.toggle('flipped', this.orient === 'b');
     this.el.evalbar.title = title;
   }

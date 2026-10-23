@@ -421,18 +421,18 @@ header.top {
 .evalbar.off {
   visibility: hidden;
 }
+/* White's share of the bar, as a vertical scale from the bottom (the top when the board is flipped): a transform, so
+   the bar moving with every engine update is not a layout shift. */
 .evalfill {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 50%;
+  inset: 0;
   background: var(--eval-white);
-  transition: height 0.35s ease;
+  transform: scaleY(0.5);
+  transform-origin: bottom;
+  transition: transform 0.35s ease;
 }
 .evalbar.flipped .evalfill {
-  bottom: auto;
-  top: 0;
+  transform-origin: top;
 }
 .board-box {
   position: relative;
@@ -681,6 +681,13 @@ button.btn.primary:hover:not(:disabled) {
   color: var(--muted);
   margin-top: 6px;
 }
+/* In a narrow two-column window the right column is too narrow for Analyse's 66-character small line: reserve its
+   second line from the first paint. */
+@media (min-width: 861px) and (max-width: 1080px) {
+  :root[data-mode='analysis'] .status {
+    min-height: calc(1.2em + 6px + 2 * 0.9rem * 1.2);
+  }
+}
 
 .verdict {
   grid-area: verdict;
@@ -698,7 +705,22 @@ button.btn.primary:hover:not(:disabled) {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  flex-wrap: wrap;
+}
+/* One row whatever the text: a waiting text that would push the button onto a second row on a phone ("Engine
+   loading…" next to "They played this") is cut off for the moment instead, so the panel keeps its height. */
+.verdict-row .best-san {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.verdict-row .btn {
+  flex: none;
+}
+/* In Analyse the button reads "They played this" when the other side is to move, which the script only knows once it
+   has replayed the game: Analyse keeps that label's width, so the button does not grow to the left. */
+:root[data-mode='analysis'] #playBest {
+  min-width: 11em;
 }
 .best-san {
   font-family: var(--font-mono);
@@ -762,9 +784,13 @@ button.btn.primary:hover:not(:disabled) {
   background: var(--accent-fill);
   border: 1px solid var(--accent-border);
 }
+/* One row per line, cut off with an ellipsis where it does not fit, so the panel's height does not follow the length
+   of what the engine finds (screen readers still get the whole line). */
 .pv {
   color: var(--muted);
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .lines.no-score li {
   grid-template-columns: minmax(0, 1fr);
@@ -1430,6 +1456,17 @@ footer .made-by {
   :root:not([data-evalbar='on']) .evalbar.off {
     display: none;
   }
+  /* The evaluation line under the best move ("+0.21 · the position is about equal · depth 18") takes two lines on a
+     phone: when the evaluation is shown, they are reserved from the first paint. */
+  :root[data-evalbar='on'] #bestMeta {
+    min-height: 3em;
+  }
+  /* Below 360px the hint's line ("A hint shows the best move in this position.") wraps as well. */
+  @media (max-width: 359px) {
+    #bestMeta {
+      min-height: 3em;
+    }
+  }
   /* On a 375px phone the longest small line, Analyse's 66 characters, wraps to two lines: reserve them. */
   .status {
     font-size: 1.2rem;
@@ -1577,6 +1614,19 @@ button.import-game:hover {
 :root[data-mode='analysis'] #levelSetting,
 :root[data-mode='analysis'] #helpSetting {
   display: none;
+}
+/* Analyse always shows three engine lines: their rows (border and padding, three 0.82rem lines plus the score's padding
+   and border, two gaps) are there from the first paint, and stay while the engine thinks, so nothing below moves when
+   they arrive. */
+:root[data-mode='analysis'] .lines {
+  display: flex;
+  min-height: calc(11px + 3 * (0.82rem * 1.5 + 4px) + 2 * 6px);
+}
+/* A returning visitor's saved game fills the move list once the script runs. The theme script stores its number of
+   rows in --saved-rows, and the list the page starts with (the one marked .initial) keeps their room: rows of
+   0.84rem text 2px apart, under the 11px top border and padding, up to the list's 220px. The app's own empty list has no such mark, so a new game shrinks the list as before. */
+.moves:has(> .initial) {
+  min-height: min(220px, calc(11px + var(--saved-rows, 0) * (0.84rem * 1.5 + 2px) - 2px));
 }
 /* Two lines, the default hint on most widths, so a shorter message after a move does not move what follows. */
 #moveHint {
