@@ -1743,8 +1743,9 @@ button.import-game:hover {
   content: attr(data-coord);
   content: attr(data-coord) / '';
 }
-/* The link in the move entry hint sits in running text too, so it is underlined like the others. */
-.hint a {
+/* Links in running text (the move entry hint, FAQ answers) are underlined like the others, not told apart by colour. */
+.hint a,
+.faq details p a {
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;

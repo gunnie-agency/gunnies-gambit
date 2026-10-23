@@ -5,6 +5,8 @@ import { LESSONS } from '../learn/lessons';
 import {
   PUZZLE_COUNT,
   faq,
+  answerHtml,
+  answerText,
   faqHtml,
   howToPlayStructuredData,
   indexNowKeyFile,
@@ -51,6 +53,9 @@ describe('structured data', () => {
     expect(app?.disambiguatingDescription).toContain('not a chess opening');
     const faqPage = graph.find((node) => node['@type'] === 'FAQPage') as { mainEntity: { name: string }[] };
     expect(faqPage.mainEntity.map((q) => q.name)).toEqual(faq(site).map((q) => q.question));
+    const answers = JSON.stringify(faqPage.mainEntity);
+    expect(answers).toContain('Start with How to play (https://chess.example/how-to-play).');
+    expect(answers).not.toContain('](');
   });
 
   it('dates both pages from the last change, and leaves the date out when it is unknown', () => {
@@ -123,6 +128,25 @@ describe('faqHtml', () => {
     expect(html.match(/<details>/g)).toHaveLength(faq(site).length);
     expect(html).toContain('Is A &lt;b&gt;&quot;bold&quot;&lt;/b&gt; &amp; Co a chess opening?');
     expect(html).not.toContain('<b>');
+  });
+
+  it('turns links in answers into relative anchors, with no bare URL or Markdown left', () => {
+    const html = faqHtml(site);
+    expect(html).toContain('Start with <a href="./how-to-play">How to play</a>.');
+    expect(html).toContain('<a href="./how-to-play#notation">How to play</a> explains every sign');
+    expect(html).not.toContain('](');
+    expect(html).not.toContain('(https://');
+  });
+});
+
+describe('answerText and answerHtml', () => {
+  it('write a link as "label (url)" for plain text and leave other sites absolute in HTML', () => {
+    expect(answerText('See [the rules](https://chess.example/how-to-play).')).toBe(
+      'See the rules (https://chess.example/how-to-play).',
+    );
+    expect(answerHtml('See [Lichess](https://lichess.org/) & co.', site)).toBe(
+      'See <a href="https://lichess.org/">Lichess</a> &amp; co.',
+    );
   });
 });
 

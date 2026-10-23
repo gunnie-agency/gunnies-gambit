@@ -19,7 +19,46 @@ export interface Site {
 
 export interface Faq {
   question: string;
+  /** Plain text, with links written as Markdown, `[label](url)`; each output renders them its own way. */
   answer: string;
+}
+
+/** Rewrites each Markdown link `[label](url)` in `text` with `link`, and the text around the links with `plain`. */
+function mapLinks(text: string, link: (label: string, url: string) => string, plain: (part: string) => string): string {
+  let out = '';
+  let at = 0;
+  for (;;) {
+    const open = text.indexOf('[', at);
+    const middle = open < 0 ? -1 : text.indexOf('](', open);
+    const close = middle < 0 ? -1 : text.indexOf(')', middle);
+    if (close < 0) return out + plain(text.slice(at));
+    out += plain(text.slice(at, open)) + link(text.slice(open + 1, middle), text.slice(middle + 2, close));
+    at = close + 1;
+  }
+}
+
+/** An answer as plain text, its links as "label (url)": for the structured data. */
+export function answerText(answer: string): string {
+  return mapLinks(
+    answer,
+    (label, url) => `${label} (${url})`,
+    (part) => part,
+  );
+}
+
+/**
+ * An answer as HTML for the page: escaped, its links as anchors. A link to this site becomes relative, like the
+ * page's other links, so the build also works on another host.
+ */
+export function answerHtml(answer: string, site: Site): string {
+  return mapLinks(
+    answer,
+    (label, url) => {
+      const href = url.startsWith(`${site.url}/`) ? `./${url.slice(site.url.length + 1)}` : url;
+      return `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
+    },
+    escapeHtml,
+  );
 }
 
 export const SUMMARY =
@@ -84,7 +123,7 @@ export function faq(site: Site): Faq[] {
     {
       question: 'I do not know the rules yet. Where do I start?',
       answer:
-        `Start with How to play (${site.url}${HOW_TO_PLAY_PATH}). It explains how every piece moves, check, ` +
+        `Start with [How to play](${site.url}${HOW_TO_PLAY_PATH}). It explains how every piece moves, check, ` +
         'checkmate, stalemate and the special moves, each with a small board to try it on. Then play the Beginner ' +
         'level with a hint whenever you are stuck, and review the game when it ends.',
     },
@@ -93,8 +132,8 @@ export function faq(site: Site): Faq[] {
       answer:
         'They are algebraic notation: the letter of the piece (K king, Q queen, R rook, B bishop, N knight, none for ' +
         'a pawn) and the square it moves to, named by its file a to h and its rank 1 to 8. So Nf3 is a knight to ' +
-        'f3, exd5 the e-pawn taking on d5 and O-O castling kingside. How to play explains every sign ' +
-        `(${site.url}${HOW_TO_PLAY_PATH}#notation), and you can type moves this way, in upper or lower case.`,
+        'f3, exd5 the e-pawn taking on d5 and O-O castling kingside. ' +
+        `[How to play](${site.url}${HOW_TO_PLAY_PATH}#notation) explains every sign, and you can type moves this way, in upper or lower case.`,
     },
     {
       question: 'Is it free, and do I need an account?',
@@ -184,7 +223,7 @@ export function faqHtml(site: Site): string {
   return faq(site)
     .map(
       ({ question, answer }) =>
-        `<details><summary>${escapeHtml(question)}</summary><p>${escapeHtml(answer)}</p></details>`,
+        `<details><summary>${escapeHtml(question)}</summary><p>${answerHtml(answer, site)}</p></details>`,
     )
     .join('\n');
 }
@@ -297,7 +336,7 @@ export function structuredData(site: Site): object {
         mainEntity: faq(site).map(({ question, answer }) => ({
           '@type': 'Question',
           name: question,
-          acceptedAnswer: { '@type': 'Answer', text: answer },
+          acceptedAnswer: { '@type': 'Answer', text: answerText(answer) },
         })),
       },
       GUNNIE_NODE,
