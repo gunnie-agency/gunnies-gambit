@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { reviewGame, reviewMove, summarise, whiteChances, type PositionEval } from './classify';
+import { nextMistake, reviewGame, reviewMove, summarise, whiteChances, type PositionEval } from './classify';
 
 const cp = (value: number, best: string | null = 'e2e4'): PositionEval => ({ score: { kind: 'cp', value }, best });
 const mate = (value: number, best: string | null = 'e2e4'): PositionEval => ({ score: { kind: 'mate', value }, best });
@@ -69,6 +69,21 @@ describe('reviewGame and summarise', () => {
     expect(s.w.accuracy).toBeCloseTo(65.7, 1);
     expect(s.b).toEqual({ inaccuracy: 0, mistake: 0, blunder: 0, accuracy: 100 });
     expect(summarise([]).w.accuracy).toBeNull();
+  });
+});
+
+describe('nextMistake', () => {
+  it('stops on mistakes and blunders, not inaccuracies, and starts over after the last', () => {
+    const reviews = reviewGame(
+      'w',
+      ['a2a3', 'e7e5', 'h2h3', 'd7d6', 'b2b3', 'g7g6'],
+      [cp(0), cp(60, 'e7e5'), cp(0), cp(120, 'd7d6'), cp(0), cp(300, 'g7g6'), undefined],
+    );
+    expect(reviews.map((r) => r?.judgement)).toEqual(['inaccuracy', null, 'mistake', null, 'blunder', undefined]);
+    expect(nextMistake(reviews, 0)).toBe(3);
+    expect(nextMistake(reviews, 3)).toBe(5);
+    expect(nextMistake(reviews, 5)).toBe(3);
+    expect(nextMistake(reviews.slice(0, 2), 0)).toBeNull();
   });
 });
 

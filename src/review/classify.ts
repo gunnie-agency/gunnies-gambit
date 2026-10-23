@@ -141,3 +141,13 @@ export function whiteChances(evaluation: PositionEval, sideToMove: Color): numbe
   const chances = winningChances(evaluation.score);
   return sideToMove === 'w' ? chances : -chances;
 }
+
+/**
+ * The position after the next mistake or blunder after position `from`, starting over from the beginning after the
+ * last one, or null when there is none. Inaccuracies are skipped: the move list and the graph show them, and stopping
+ * on each would bury the real errors.
+ */
+export function nextMistake(reviews: ReadonlyArray<MoveReview | undefined>, from: number): number | null {
+  const marked = reviews.flatMap((r, i) => (r?.judgement === 'mistake' || r?.judgement === 'blunder' ? [i + 1] : []));
+  return marked.find((p) => p > from) ?? marked[0] ?? null;
+}

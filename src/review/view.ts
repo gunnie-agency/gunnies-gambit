@@ -10,6 +10,7 @@ import { formatScore, toWhitePov } from '../util/score';
 import { parseUciMove, toUci, type UciMove } from '../util/uci';
 import {
   JUDGEMENT_SYMBOL,
+  nextMistake,
   reviewGame,
   summarise,
   whiteChances,
@@ -250,15 +251,9 @@ export class Review {
     else if (nav === 'next') this.goTo(this.cursor + 1);
     else if (nav === 'last') this.goTo(this.positions.length - 1);
     else if (nav === 'mistake') {
-      const next = this.nextMarked();
+      const next = nextMistake(this.reviews, this.cursor);
       if (next !== null) this.goTo(next);
     }
-  }
-
-  /** The position after the next marked move, starting over from the beginning after the last one. */
-  private nextMarked(): number | null {
-    const marked = this.reviews.flatMap((r, i) => (r?.judgement ? [i + 1] : []));
-    return marked.find((p) => p > this.cursor) ?? marked[0] ?? null;
   }
 
   private onKey(e: KeyboardEvent): void {
@@ -580,7 +575,7 @@ export class Review {
       const nav = b.dataset.nav;
       if (nav === 'first' || nav === 'prev') b.disabled = this.cursor === 0;
       else if (nav === 'next' || nav === 'last') b.disabled = this.cursor === last;
-      else b.disabled = this.nextMarked() === null;
+      else b.disabled = nextMistake(this.reviews, this.cursor) === null;
     }
     // A button that gets disabled under the user drops focus to the page; hand it to the step the other way instead.
     if (!focused?.disabled) return;
