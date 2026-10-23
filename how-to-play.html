@@ -71,6 +71,7 @@
               <li><a href="#check">Check, checkmate and stalemate</a></li>
               <li><a href="#special">Three special moves</a></li>
               <li><a href="#draws">Other ways to draw</a></li>
+              <li><a href="#notation">Reading and writing moves</a></li>
               <li><a href="#tactics">First tactics</a></li>
               <li><a href="#endgames">Basic endgames</a></li>
               <li><a href="#app">Using %VITE_APP_NAME%</a></li>
@@ -377,6 +378,74 @@
             </li>
           </ul>
           <p class="section-lead">%VITE_APP_NAME% spots the last three for you and ends the game.</p>
+        </section>
+
+        <section class="learn-section" id="notation" aria-labelledby="notationTitle">
+          <h2 id="notationTitle">Reading and writing moves</h2>
+          <p class="section-lead">
+            Hints, puzzles and the game review write moves in algebraic notation, the short form that chess books and
+            apps use. A move is the letter of the piece followed by the square it moves to.
+          </p>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>Square names</h3>
+              <p>
+                Every square is named by its column and its row. The columns, called files, are the letters a to h from
+                left to right as White sees the board. The rows, called ranks, are the numbers 1 to 8, starting from
+                White's side. So White's pieces start on ranks 1 and 2, Black's on 7 and 8, and the white king starts on
+                e1.
+              </p>
+              <h3>Piece letters</h3>
+              <p>
+                K is the king, Q the queen, R a rook, B a bishop and N a knight (K is taken by the king). Pawns have no
+                letter. So Nf3 means a knight moves to f3, and e4 means a pawn moves to e4. White's move and Black's
+                answer share a number: 1. e4 e5 2. Nf3 is White's pawn to e4, Black's pawn to e5, then White's knight to
+                f3.
+              </p>
+            </div>
+            <div class="lesson" data-lesson="squares">
+              <div class="board-box">
+                <fieldset class="board" aria-label="Practice board: square names"></fieldset>
+                <div class="promo" hidden></div>
+              </div>
+              <p class="lesson-msg" aria-live="polite">Tap any square to see its name and the piece on it.</p>
+              <button class="btn small lesson-reset" type="button">Start again</button>
+            </div>
+          </div>
+
+          <div class="lesson-row">
+            <div class="lesson-text">
+              <h3>Signs in a move</h3>
+              <dl class="notation-list">
+                <dt>x</dt>
+                <dd>
+                  A capture: Bxf7 is a bishop taking on f7. A pawn capture names the file the pawn came from, so exd5 is
+                  the e-pawn taking on d5.
+                </dd>
+                <dt>+</dt>
+                <dd>Check: Qh5+ is a queen move to h5 that gives check.</dd>
+                <dt>#</dt>
+                <dd>Checkmate: Qxf7# takes on f7 and mates.</dd>
+                <dt>O-O</dt>
+                <dd>Castling kingside; O-O-O is castling queenside.</dd>
+                <dt>=Q</dt>
+                <dd>Promotion: e8=Q is a pawn reaching e8 and becoming a queen.</dd>
+                <dt>Nbd2</dt>
+                <dd>
+                  When two pieces of the same kind can reach the square, the file or rank they come from is added: the
+                  knight from the b-file goes to d2.
+                </dd>
+              </dl>
+              <h3>Typing a move</h3>
+              <p>
+                In Play and Analyse you can type a move under Type a move instead of tapping, in this notation: Nf3,
+                exd5, O-O or e8=Q. Lower case works too, such as nf3, o-o or e8q, though bxc3 is read as a pawn capture
+                when one is possible; write Bxc3 for the bishop. You can also type the square a piece starts on and the
+                square it goes to, such as g1f3.
+              </p>
+            </div>
+          </div>
         </section>
 
         <section class="learn-section" id="tactics" aria-labelledby="tacticsTitle">
@@ -802,7 +871,7 @@
                 Choose Play at the top. Pick your colour under I play and a level under Opponent. Beginner and Novice
                 make mistakes on purpose, the Elo levels play at about 1400 to 2400, and Full strength is the engine at
                 its best. Move by tapping a piece and then a square, or type the move under Type a move, such as e4 or
-                Nf3.
+                Nf3 (see <a href="#notation">Reading and writing moves</a>).
               </p>
             </div>
             <div>

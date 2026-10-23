@@ -89,6 +89,14 @@ export function faq(site: Site): Faq[] {
         'level with a hint whenever you are stuck, and review the game when it ends.',
     },
     {
+      question: 'What do moves like Nf3, exd5 and O-O mean?',
+      answer:
+        'They are algebraic notation: the letter of the piece (K king, Q queen, R rook, B bishop, N knight, none for ' +
+        'a pawn) and the square it moves to, named by its file a to h and its rank 1 to 8. So Nf3 is a knight to ' +
+        'f3, exd5 the e-pawn taking on d5 and O-O castling kingside. How to play explains every sign ' +
+        `(${site.url}${HOW_TO_PLAY_PATH}#notation), and you can type moves this way, in upper or lower case.`,
+    },
+    {
       question: 'Is it free, and do I need an account?',
       answer: 'It is free and open source, with no account, no sign-up and no ads.',
     },
@@ -225,6 +233,14 @@ const RULES: ReadonlyArray<{ anchor: string; title: string; text: string }> = [
     text:
       'by agreement, by threefold repetition, by the 50-move rule, or when neither side has enough pieces left to ' +
       'checkmate.',
+  },
+  {
+    anchor: 'notation',
+    title: 'Reading and writing moves',
+    text:
+      'squares are named by file (a to h) and rank (1 to 8); a move is the piece letter (K, Q, R, B, N, none for a ' +
+      'pawn) and the square it goes to, as in Nf3 or e4, with x for a capture, + for check, # for checkmate, O-O and ' +
+      'O-O-O for castling and =Q for a promotion.',
   },
 ];
 

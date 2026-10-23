@@ -3,6 +3,7 @@ import { DEFAULT_POSITION, type Chess, type Color, type Move, type PieceSymbol }
 /**
  * How a practice board behaves after a move.
  *
+ * - `squares`: nothing moves; tapping a square names it and the piece on it, to learn the square names.
  * - `free`: White is to move again after every move, so the reader can keep moving a piece around.
  * - `task`: the board waits for one White move and says what it did. A move that misses the task is taken back at
  *   once; a right one stays until the board is reset.
@@ -12,7 +13,7 @@ import { DEFAULT_POSITION, type Chess, type Color, type Move, type PieceSymbol }
  * - `puzzle`: the reader plays the moves of `solution` for the side to move, and the board answers with the other
  *   side's, until it is solved. The board is turned so the reader's side is at the bottom.
  */
-export type LessonMode = 'free' | 'task' | 'game' | 'puzzle' | 'mate';
+export type LessonMode = 'squares' | 'free' | 'task' | 'game' | 'puzzle' | 'mate';
 
 /** One practice board on the How to play page. Its intro text lives in the page, next to the board. */
 export interface Lesson {
@@ -41,6 +42,9 @@ export const PIECE_NAME: Record<PieceSymbol, string> = {
   p: 'pawn',
 };
 
+/** The letter that stands for each piece in a written move. Pawns have none. */
+export const PIECE_LETTER: Record<PieceSymbol, string> = { k: 'K', q: 'Q', r: 'R', b: 'B', n: 'N', p: '' };
+
 /** What a task board says about the reader's move, and whether the move is taken back for another try. */
 export interface Feedback {
   text: string;
@@ -60,6 +64,7 @@ const ANOTHER_WAY = 'Start again to find another way.';
 
 export const LESSONS: readonly Lesson[] = [
   { id: 'start', mode: 'game', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' },
+  { id: 'squares', mode: 'squares', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' },
   { id: 'king', mode: 'free', fen: '8/8/8/8/4K3/8/8/8 w - - 0 1' },
   { id: 'queen', mode: 'free', fen: '8/8/8/8/3Q4/8/8/8 w - - 0 1' },
   { id: 'rook', mode: 'free', fen: '8/3p4/8/8/3R2P1/8/8/8 w - - 0 1' },

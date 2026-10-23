@@ -1723,3 +1723,19 @@ button.import-game:hover {
     min-height: 4.5em;
   }
 }
+
+/* How to play, Reading and writing moves: each sign of the notation in the mono face, its meaning beside it. */
+.notation-list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0 0 16px;
+  color: var(--muted);
+}
+.notation-list dt {
+  font: 500 0.92rem/1.6 var(--font-mono);
+  color: var(--fg);
+}
+.notation-list dd {
+  margin: 0;
+}

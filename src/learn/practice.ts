@@ -1,7 +1,7 @@
 import { Chess, type Color, type Move, type PieceSymbol, type Square } from 'chess.js';
 import { parseUciMove, toUci, type PromotionPiece, type UciMove } from '../util/uci';
 import { defend } from './defender';
-import { PIECE_NAME, type Lesson } from './lessons';
+import { PIECE_LETTER, PIECE_NAME, type Lesson } from './lessons';
 
 /** A move the reader has chosen but that still needs a promotion piece. */
 export interface PendingMove {
@@ -79,6 +79,11 @@ export class Practice {
    */
   tap(square: Square): PendingMove | null {
     if (this.done || this.waiting) return null;
+    if (this.lesson.mode === 'squares') {
+      this.last = { from: square, to: square };
+      this.message = this.nameSquare(square);
+      return null;
+    }
     const from = this.selected;
     if (from && from !== square) {
       const moves = this.game.moves({ square: from, verbose: true }).filter((m) => m.to === square);
@@ -94,6 +99,16 @@ export class Practice {
     const piece = this.game.get(square);
     this.selected = from !== square && piece?.color === this.game.turn() ? square : null;
     return null;
+  }
+
+  /** A square's name, how it is made up, and the piece on it with its letter. */
+  private nameSquare(square: Square): string {
+    const name = `${square}: file ${square[0]}, rank ${square[1]}`;
+    const piece = this.game.get(square);
+    if (!piece) return `${name}. The square is empty.`;
+    const owner = `${name}, with a ${COLOR_NAME[piece.color].toLowerCase()} ${PIECE_NAME[piece.type]}`;
+    if (piece.type === 'p') return `${owner}. Pawns have no letter.`;
+    return `${owner}. Its letter is ${PIECE_LETTER[piece.type]}.`;
   }
 
   /** Why the selected piece cannot go to a square it was tapped to. Nothing moves. */

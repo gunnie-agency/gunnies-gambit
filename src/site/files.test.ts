@@ -112,7 +112,7 @@ describe('llmsTxt rules in brief', () => {
     const page = readFileSync(new URL('../../how-to-play.html', import.meta.url), 'utf8');
     const section = llmsTxt(site).split('## Rules in brief\n\n')[1]?.split('\n\n')[0] ?? '';
     const anchors = [...section.matchAll(/\(https:\/\/chess\.example\/how-to-play#([\w-]+)\)/g)].map((m) => m[1]);
-    expect(anchors).toEqual(['goal', 'pieces', 'check', 'special', 'draws']);
+    expect(anchors).toEqual(['goal', 'pieces', 'check', 'special', 'draws', 'notation']);
     for (const anchor of anchors) expect(page).toContain(`id="${anchor}"`);
   });
 });

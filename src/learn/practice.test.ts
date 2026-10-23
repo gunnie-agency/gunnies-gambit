@@ -55,6 +55,26 @@ describe('Practice', () => {
     expect(p.done).toBe(false);
   });
 
+  it('names a tapped square and the piece on it, and moves nothing', () => {
+    const p = practice('squares');
+    const fen = p.game.fen();
+    p.tap('e4');
+    expect(p.message).toBe('e4: file e, rank 4. The square is empty.');
+    expect(p.last).toEqual({ from: 'e4', to: 'e4' });
+    p.tap('g1');
+    expect(p.message).toBe('g1: file g, rank 1, with a white knight. Its letter is N.');
+    expect(p.selected).toBeNull();
+    p.tap('d7');
+    expect(p.message).toBe('d7: file d, rank 7, with a black pawn. Pawns have no letter.');
+    p.tap('g1');
+    p.tap('f3');
+    expect(p.game.fen()).toBe(fen);
+    expect(p.message).toBe('f3: file f, rank 3. The square is empty.');
+    p.reset();
+    expect(p.last).toBeUndefined();
+    expect(p.message).toBeNull();
+  });
+
   it('moves the selected piece, or switches to another own piece', () => {
     const p = practice('start');
     p.tap('e2');
